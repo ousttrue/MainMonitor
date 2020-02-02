@@ -8,6 +8,8 @@
 #include <memory>
 #include <vector>
 
+const auto SCALING_FACTOR = 2.0f;
+
 /// get IDXGIOutput1 for IDXGIOutputDuplication
 static Microsoft::WRL::ComPtr<IDXGIOutput1> GetPrimaryOutput(const Microsoft::WRL::ComPtr<IDXGIDevice> &dxgi)
 {
@@ -43,13 +45,18 @@ static Microsoft::WRL::ComPtr<IDXGIOutput1> GetPrimaryOutput(const Microsoft::WR
 
 class DesktopDuplicatorImpl
 {
-
     Microsoft::WRL::ComPtr<ID3D11Device> m_device;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_context;
     Microsoft::WRL::ComPtr<IDXGIOutputDuplication> m_dupl;
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_shared;
+    float m_scalingFactor;
 
 public:
+    DesktopDuplicatorImpl(float scaling = 1.0f)
+        : m_scalingFactor(scaling)
+    {
+    }
+
     // create dupl and setup desktop size texture for sharing
     HANDLE CreateDuplAndSharedHandle()
     {
@@ -98,8 +105,8 @@ public:
         // create shared texture
         D3D11_TEXTURE2D_DESC desc = {0};
         desc.Format = duplDesc.ModeDesc.Format;
-        desc.Width = duplDesc.ModeDesc.Width;
-        desc.Height = duplDesc.ModeDesc.Height;
+        desc.Width = static_cast<UINT>(duplDesc.ModeDesc.Width * m_scalingFactor);
+        desc.Height = static_cast<UINT>(duplDesc.ModeDesc.Height * m_scalingFactor);
         desc.Usage = D3D11_USAGE_DEFAULT;
         desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
         desc.CPUAccessFlags = 0;
@@ -196,7 +203,7 @@ private:
         if (!m_renderer)
         {
             auto renderer = std::make_unique<QuadRenderer>();
-            if (!renderer->Initialize(m_device, dst))
+            if (!renderer->Initialize(m_device, dst, m_scalingFactor))
             {
                 return false;
             }
@@ -249,7 +256,7 @@ private:
 };
 
 DesktopDuplicator::DesktopDuplicator()
-    : m_impl(new DesktopDuplicatorImpl)
+    : m_impl(new DesktopDuplicatorImpl(SCALING_FACTOR))
 {
 }
 

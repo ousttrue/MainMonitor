@@ -34,6 +34,6 @@ VS_OUT vsMain(VS_IN input)
 
 float4 psMain(PS_IN input) : SV_TARGET
 {
-	return tex0.Sample(samplerState, input.uv);
+	return tex0.Sample(samplerState, input.uv) * 0.8;
 }
 )""

@@ -61,17 +61,21 @@ struct Vertex
 };
 
 bool QuadRenderer::Initialize(const Microsoft::WRL::ComPtr<ID3D11Device> &device,
-                              const Microsoft::WRL::ComPtr<ID3D11Texture2D> &dst)
+                              const Microsoft::WRL::ComPtr<ID3D11Texture2D> &dst,
+                              float scalingFactor)
 {
     if (FAILED(device->CreateRenderTargetView(dst.Get(), nullptr, &m_rtv)))
     {
         return false;
     }
+
+    m_scalingFactor = scalingFactor;
+
     {
         D3D11_TEXTURE2D_DESC desc;
         dst->GetDesc(&desc);
-        m_vp.Width = static_cast<float>(desc.Width);
-        m_vp.Height = static_cast<float>(desc.Height);
+        m_vp.Width = static_cast<float>(desc.Width) * m_scalingFactor;
+        m_vp.Height = static_cast<float>(desc.Height) * m_scalingFactor;
         m_vp.MinDepth = 0.0f;
         m_vp.MaxDepth = 1.0f;
         m_vp.TopLeftX = 0;
@@ -259,11 +263,12 @@ void QuadRenderer::Render(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &con
     // update constant buffer
     D3D11_TEXTURE2D_DESC desc;
     texture->GetDesc(&desc);
+    auto factor = m_scalingFactor * 2;
     DirectX::XMFLOAT4 offsetScale = {
-        x / m_vp.Width * 2 - 1,
-        -y / m_vp.Height * 2 + 1,
-        desc.Width / m_vp.Width * 2,
-        desc.Height / m_vp.Height * 2};
+        x / m_vp.Width * factor - 1,
+        -y / m_vp.Height * factor + 1,
+        desc.Width / m_vp.Width * factor,
+        desc.Height / m_vp.Height * factor};
     context->UpdateSubresource(m_constant.Get(), 0, nullptr, &offsetScale, 0, 0);
     context->VSSetConstantBuffers(0, 1, m_constant.GetAddressOf());
 

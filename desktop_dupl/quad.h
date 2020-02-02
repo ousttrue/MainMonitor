@@ -15,10 +15,12 @@ class QuadRenderer
     uint32_t m_indexCount = 0;
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_constant;
     Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendState;
+    float m_scalingFactor = 1.0f;
 
 public:
     bool Initialize(const Microsoft::WRL::ComPtr<ID3D11Device> &device,
-                    const Microsoft::WRL::ComPtr<ID3D11Texture2D> &dst);
+                    const Microsoft::WRL::ComPtr<ID3D11Texture2D> &dst,
+                    float scalingFactor);
 
     void Render(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &context,
                 const Microsoft::WRL::ComPtr<ID3D11Texture2D> &texture, int x = 0, int y = 0);
