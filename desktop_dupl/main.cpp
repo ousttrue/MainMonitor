@@ -40,106 +40,112 @@ static Microsoft::WRL::ComPtr<IDXGIOutput1> GetPrimaryOutput(const Microsoft::WR
     return output1;
 }
 
-void loop(const Microsoft::WRL::ComPtr<ID3D11Device> &device,
-          const Microsoft::WRL::ComPtr<IDXGIOutput1> &output)
+class DesktopDuplicator
 {
-    Overlay overlay;
-    if (!overlay.Initialize("desktop_dupl", "desktop dupl"))
-    {
-        return;
-    }
+    Microsoft::WRL::ComPtr<IDXGIOutputDuplication> m_dupl;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> m_shared;
 
-    // dupl
-    Microsoft::WRL::ComPtr<IDXGIOutputDuplication> dupl;
-    if (FAILED(output->DuplicateOutput(device.Get(), &dupl)))
+public:
+    // create dupl and setup desktop size texture for sharing
+    HANDLE CreateDuplAndSharedHandle(const Microsoft::WRL::ComPtr<ID3D11Device> &device,
+                                     const Microsoft::WRL::ComPtr<IDXGIOutput1> &output)
     {
-        return;
-    }
-
-    Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
-    device->GetImmediateContext(&context);
-    Microsoft::WRL::ComPtr<ID3D11Texture2D> shared;
-
-    // get dup
-    bool isActive;
-    while (overlay.Loop(&isActive))
-    {
-        if (isActive)
+        if (FAILED(output->DuplicateOutput(device.Get(), &m_dupl)))
         {
-            dupl->ReleaseFrame();
+            return nullptr;
+        }
 
-            DXGI_OUTDUPL_FRAME_INFO info;
-            Microsoft::WRL::ComPtr<IDXGIResource> resource;
-            auto hr = dupl->AcquireNextFrame(INFINITE, &info, &resource);
-            switch (hr)
+        DXGI_OUTDUPL_DESC duplDesc;
+        m_dupl->GetDesc(&duplDesc);
+
+        // create shared texture
+        D3D11_TEXTURE2D_DESC desc = {0};
+        desc.Format = duplDesc.ModeDesc.Format;
+        desc.Width = duplDesc.ModeDesc.Width;
+        desc.Height = duplDesc.ModeDesc.Height;
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        desc.CPUAccessFlags = 0;
+        desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        if (FAILED(device->CreateTexture2D(&desc, nullptr, &m_shared)))
+        {
+            return nullptr;
+        }
+
+        // create shared handle
+        Microsoft::WRL::ComPtr<IDXGIResource> sharedResource;
+        if (FAILED(m_shared.As(&sharedResource)))
+        {
+            return nullptr;
+        }
+
+        HANDLE handle;
+        if (FAILED(sharedResource->GetSharedHandle(&handle)))
+        {
+            return nullptr;
+        }
+
+        // set overlay
+        return handle;
+    }
+
+    // return false if error
+    bool Duplicate(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &context)
+    {
+        m_dupl->ReleaseFrame();
+
+        DXGI_OUTDUPL_FRAME_INFO info;
+        Microsoft::WRL::ComPtr<IDXGIResource> resource;
+        auto hr = m_dupl->AcquireNextFrame(INFINITE, &info, &resource);
+        switch (hr)
+        {
+        case S_OK:
+        {
+            Microsoft::WRL::ComPtr<ID3D11Texture2D> duplTexture;
+            if (FAILED(resource.As(&duplTexture)))
             {
-            case S_OK:
-            {
-                Microsoft::WRL::ComPtr<ID3D11Texture2D> duplTexture;
-                if (FAILED(resource.As(&duplTexture)))
-                {
-                    return;
-                }
-                if (!shared)
-                {
-                    // only first time
-                    D3D11_TEXTURE2D_DESC desc;
-                    duplTexture->GetDesc(&desc);
-                    desc.Usage = D3D11_USAGE_DEFAULT;
-                    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-                    desc.CPUAccessFlags = 0;
-                    desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
-                    if (FAILED(device->CreateTexture2D(&desc, nullptr, &shared)))
-                    {
-                        return;
-                    }
-
-                    // create shared handle
-                    Microsoft::WRL::ComPtr<IDXGIResource> sharedResource;
-                    if (FAILED(shared.As(&sharedResource)))
-                    {
-                        return;
-                    }
-
-                    HANDLE handle;
-                    if (FAILED(sharedResource->GetSharedHandle(&handle)))
-                    {
-                        return;
-                    }
-
-                    // set overlay
-                    overlay.SetSharedHanle(handle);
-                }
-                // copy duplTexture to shared
-                context->CopyResource(shared.Get(), duplTexture.Get());
+                return false;
             }
+
+            // copy duplTexture to shared
+            context->CopyResource(m_shared.Get(), duplTexture.Get());
+            break;
+        }
+
+        case DXGI_ERROR_WAIT_TIMEOUT:
             break;
 
-            case DXGI_ERROR_WAIT_TIMEOUT:
-                break;
+        case DXGI_ERROR_ACCESS_LOST:
+            return false;
 
-            case DXGI_ERROR_ACCESS_LOST:
-                return;
+        case DXGI_ERROR_INVALID_CALL:
+            // not released previous frame
+            return false;
 
-            case DXGI_ERROR_INVALID_CALL:
-                // not released previous frame
-                return;
-
-            default:
-                return;
-            }
+        default:
+            return false;
         }
-        else
-        {
-            Sleep(100);
-        }
+
+        return true;
     }
-}
+};
 
 int main(int argc, char **argv)
 {
+    // openvr overlay
+    Overlay overlay;
+    if (!overlay.Initialize("desktop_dupl", "desktop dupl"))
+    {
+        return 1;
+    }
+
     // create d3d11
     Microsoft::WRL::ComPtr<ID3D11Device> device;
+    Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
     D3D_FEATURE_LEVEL levels[] = {
         D3D_FEATURE_LEVEL_11_0,
     };
@@ -147,7 +153,7 @@ int main(int argc, char **argv)
     if (FAILED(D3D11CreateDevice(nullptr,
                                  D3D_DRIVER_TYPE_HARDWARE, nullptr,
                                  D3D11_CREATE_DEVICE_BGRA_SUPPORT, levels, _countof(levels), D3D11_SDK_VERSION,
-                                 &device, &level, nullptr)))
+                                 &device, &level, &context)))
     {
         return 2;
     }
@@ -174,7 +180,30 @@ int main(int argc, char **argv)
 #endif
     }
 
-    loop(device, output);
+    // create desktop texture
+    DesktopDuplicator dupl;
+    auto handle = dupl.CreateDuplAndSharedHandle(device, output);
+    if (!handle)
+    {
+        return 3;
+    }
+    overlay.SetSharedHanle(handle);
+
+    // main loop
+    bool isActive;
+    while (overlay.Loop(&isActive))
+    {
+        if (isActive)
+        {
+            // update shared texture
+            dupl.Duplicate(context);
+        }
+        else
+        {
+            // wait
+            Sleep(100);
+        }
+    }
 
     return 0;
 }
