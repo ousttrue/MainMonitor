@@ -157,7 +157,7 @@ public:
                 return false;
             }
 
-            m_renderer->RenderScreen(m_context, duplTexture);
+            m_renderer->Render(m_context, duplTexture);
             if (info.PointerPosition.Visible)
             {
                 m_x = info.PointerPosition.Position.x;
@@ -166,10 +166,7 @@ public:
             }
             if (m_cursor)
             {
-                m_renderer->RenderScreen(m_context, m_cursor
-                                         //    info.PointerPosition.Position.x,
-                                         //    info.PointerPosition.Position.y
-                );
+                m_renderer->Render(m_context, m_cursor, m_x, m_y);
             }
 #endif
             break;

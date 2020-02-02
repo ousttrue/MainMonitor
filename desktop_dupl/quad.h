@@ -13,13 +13,12 @@ class QuadRenderer
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertices;
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_indices;
     uint32_t m_indexCount = 0;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> m_constant;
 
 public:
     bool Initialize(const Microsoft::WRL::ComPtr<ID3D11Device> &device,
                     const Microsoft::WRL::ComPtr<ID3D11Texture2D> &dst);
 
-    void RenderScreen(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &context,
-                      const Microsoft::WRL::ComPtr<ID3D11Texture2D> &texture);
     void Render(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &context,
-                const Microsoft::WRL::ComPtr<ID3D11Texture2D> &texture, int x, int y);
+                const Microsoft::WRL::ComPtr<ID3D11Texture2D> &texture, int x = 0, int y = 0);
 };

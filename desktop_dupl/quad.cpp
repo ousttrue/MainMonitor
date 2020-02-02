@@ -144,15 +144,28 @@ bool QuadRenderer::Initialize(const Microsoft::WRL::ComPtr<ID3D11Device> &device
         }
     }
 
+    // constants
+    {
+        D3D11_BUFFER_DESC desc = {0};
+        desc.ByteWidth = sizeof(DirectX::XMFLOAT4);
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        desc.CPUAccessFlags = 0;
+        if (FAILED(device->CreateBuffer(&desc, nullptr, &m_constant)))
+        {
+            return false;
+        }
+    }
+
     // vertices
     {
         auto size = 1.0f;
         Vertex pVertices[] =
             {
-                {DirectX::XMFLOAT2(-size, -size), DirectX::XMFLOAT2(0, 1)},
-                {DirectX::XMFLOAT2(-size, size), DirectX::XMFLOAT2(0, 0)},
-                {DirectX::XMFLOAT2(size, size), DirectX::XMFLOAT2(1, 0)},
-                {DirectX::XMFLOAT2(size, -size), DirectX::XMFLOAT2(1, 1)},
+                {DirectX::XMFLOAT2(0, 0), DirectX::XMFLOAT2(0, 0)},
+                {DirectX::XMFLOAT2(1, 0), DirectX::XMFLOAT2(1, 0)},
+                {DirectX::XMFLOAT2(1, -1), DirectX::XMFLOAT2(1, 1)},
+                {DirectX::XMFLOAT2(0, -1), DirectX::XMFLOAT2(0, 1)},
             };
         D3D11_BUFFER_DESC vdesc = {0};
         vdesc.ByteWidth = sizeof(pVertices);
@@ -196,8 +209,8 @@ bool QuadRenderer::Initialize(const Microsoft::WRL::ComPtr<ID3D11Device> &device
     return true;
 }
 
-void QuadRenderer::RenderScreen(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &context,
-                                const Microsoft::WRL::ComPtr<ID3D11Texture2D> &texture)
+void QuadRenderer::Render(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &context,
+                          const Microsoft::WRL::ComPtr<ID3D11Texture2D> &texture, int x, int y)
 {
 #if 0
         // clear
@@ -225,6 +238,17 @@ void QuadRenderer::RenderScreen(const Microsoft::WRL::ComPtr<ID3D11DeviceContext
     context->PSSetShader(m_ps.Get(), NULL, 0);
     context->PSSetShaderResources(0, 1, srv.GetAddressOf());
 
+    // update constant buffer
+    D3D11_TEXTURE2D_DESC desc;
+    texture->GetDesc(&desc);
+    DirectX::XMFLOAT4 offsetScale = {
+        x / m_vp.Width * 2 - 1,
+        -y / m_vp.Height * 2 + 1,
+        desc.Width / m_vp.Width * 2,
+        desc.Height / m_vp.Height * 2};
+    context->UpdateSubresource(m_constant.Get(), 0, nullptr, &offsetScale, 0, 0);
+    context->VSSetConstantBuffers(0, 1, m_constant.GetAddressOf());
+
     // mesh
     context->IASetInputLayout(m_inputLayout.Get());
 
@@ -241,9 +265,4 @@ void QuadRenderer::RenderScreen(const Microsoft::WRL::ComPtr<ID3D11DeviceContext
 #endif
 
     context->Flush();
-}
-
-void QuadRenderer::Render(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &context,
-                          const Microsoft::WRL::ComPtr<ID3D11Texture2D> &texture, int x, int y)
-{
 }
