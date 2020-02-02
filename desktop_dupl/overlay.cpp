@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <openvr.h>
 
+const float DESKTOP_HORIZONTAL_METER = 3.6f;
+
 class OverlayImpl
 {
     vr::VROverlayHandle_t g_ulOverlayHandle = vr::k_ulOverlayHandleInvalid;
@@ -37,7 +39,7 @@ public:
 
         vr::VROverlay()->SetOverlayAlpha(g_ulOverlayHandle, 1.0f);
         vr::VROverlay()->SetOverlayColor(g_ulOverlayHandle, 1.0f, 1.0f, 1.0f);
-        vr::VROverlay()->SetOverlayWidthInMeters(g_ulOverlayHandle, 4.0f);
+        vr::VROverlay()->SetOverlayWidthInMeters(g_ulOverlayHandle, DESKTOP_HORIZONTAL_METER);
 
         return true;
     }
