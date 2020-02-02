@@ -4,6 +4,9 @@ add_executable(${TARGET_NAME}
     main.cpp
     overlay.cpp
     duplicator.cpp
+    compileshader.cpp
+    quad.cpp
+    quad.hlsl
     )
 target_include_directories(${TARGET_NAME} PRIVATE
     ${EXTERNAL_DIR}/openvr/headers
@@ -19,4 +22,5 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     openvr_api
     d3d11
     dxgi
+    d3dcompiler
     )

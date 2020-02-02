@@ -1,8 +1,10 @@
 #include "duplicator.h"
-#include <iostream>
+#include "quad.h"
 #include <d3d11.h>
 #include <dxgi1_2.h>
 #include <wrl/client.h>
+#include <iostream>
+#include <memory>
 
 /// get IDXGIOutput1 for IDXGIOutputDuplication
 static Microsoft::WRL::ComPtr<IDXGIOutput1> GetPrimaryOutput(const Microsoft::WRL::ComPtr<IDXGIDevice> &dxgi)
@@ -97,7 +99,7 @@ public:
         desc.Width = duplDesc.ModeDesc.Width;
         desc.Height = duplDesc.ModeDesc.Height;
         desc.Usage = D3D11_USAGE_DEFAULT;
-        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
         desc.CPUAccessFlags = 0;
         desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
         desc.SampleDesc.Count = 1;
@@ -144,8 +146,15 @@ public:
                 return false;
             }
 
-            // copy duplTexture to shared
+// copy duplTexture to shared
+#if 0
             m_context->CopyResource(m_shared.Get(), duplTexture.Get());
+#else
+            if (!Render(m_shared, duplTexture))
+            {
+                return false;
+            }
+#endif
             break;
         }
 
@@ -163,6 +172,31 @@ public:
             return false;
         }
 
+        return true;
+    }
+
+private:
+    std::unique_ptr<QuadRenderer> m_renderer;
+
+    bool Render(const Microsoft::WRL::ComPtr<ID3D11Texture2D> &dst, const Microsoft::WRL::ComPtr<ID3D11Texture2D> &src)
+    {
+        if (!m_renderer)
+        {
+            auto renderer = std::make_unique<QuadRenderer>();
+            if (!renderer->Initialize(m_device, dst))
+            {
+                return false;
+            }
+            m_renderer = std::move(renderer);
+        }
+
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
+        if (FAILED(m_device->CreateShaderResourceView(src.Get(), nullptr, &srv)))
+        {
+            return false;
+        }
+
+        m_renderer->Render(m_context, srv);
         return true;
     }
 };
