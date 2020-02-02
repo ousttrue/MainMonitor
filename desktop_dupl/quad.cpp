@@ -196,8 +196,8 @@ bool QuadRenderer::Initialize(const Microsoft::WRL::ComPtr<ID3D11Device> &device
     return true;
 }
 
-void QuadRenderer::Render(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &context,
-                          const Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> &srv)
+void QuadRenderer::RenderScreen(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &context,
+                                const Microsoft::WRL::ComPtr<ID3D11Texture2D> &texture)
 {
 #if 0
         // clear
@@ -205,6 +205,15 @@ void QuadRenderer::Render(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &con
         context->ClearRenderTargetView(m_rtv.Get(), clearColor);
 
 #else
+    Microsoft::WRL::ComPtr<ID3D11Device> device;
+    context->GetDevice(&device);
+
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
+    if (FAILED(device->CreateShaderResourceView(texture.Get(), nullptr, &srv)))
+    {
+        return;
+    }
+
     // Output-Merger stage
     context->OMSetRenderTargets(1, m_rtv.GetAddressOf(), nullptr);
 
@@ -232,4 +241,9 @@ void QuadRenderer::Render(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &con
 #endif
 
     context->Flush();
+}
+
+void QuadRenderer::Render(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &context,
+                          const Microsoft::WRL::ComPtr<ID3D11Texture2D> &texture, int x, int y)
+{
 }

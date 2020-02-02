@@ -1,10 +1,12 @@
 #include "duplicator.h"
 #include "quad.h"
+#include "pointershape.h"
 #include <d3d11.h>
 #include <dxgi1_2.h>
 #include <wrl/client.h>
 #include <iostream>
 #include <memory>
+#include <vector>
 
 /// get IDXGIOutput1 for IDXGIOutputDuplication
 static Microsoft::WRL::ComPtr<IDXGIOutput1> GetPrimaryOutput(const Microsoft::WRL::ComPtr<IDXGIDevice> &dxgi)
@@ -146,13 +148,28 @@ public:
                 return false;
             }
 
-// copy duplTexture to shared
+            // copy duplTexture to shared
 #if 0
             m_context->CopyResource(m_shared.Get(), duplTexture.Get());
 #else
-            if (!Render(m_shared, duplTexture))
+            if (!CreateRendererIfEmpty(m_shared))
             {
                 return false;
+            }
+
+            m_renderer->RenderScreen(m_context, duplTexture);
+            if (info.PointerPosition.Visible)
+            {
+                m_x = info.PointerPosition.Position.x;
+                m_y = info.PointerPosition.Position.y;
+                m_cursor = GetCursorTexture(info);
+            }
+            if (m_cursor)
+            {
+                m_renderer->RenderScreen(m_context, m_cursor
+                                         //    info.PointerPosition.Position.x,
+                                         //    info.PointerPosition.Position.y
+                );
             }
 #endif
             break;
@@ -177,8 +194,7 @@ public:
 
 private:
     std::unique_ptr<QuadRenderer> m_renderer;
-
-    bool Render(const Microsoft::WRL::ComPtr<ID3D11Texture2D> &dst, const Microsoft::WRL::ComPtr<ID3D11Texture2D> &src)
+    bool CreateRendererIfEmpty(const Microsoft::WRL::ComPtr<ID3D11Texture2D> &dst)
     {
         if (!m_renderer)
         {
@@ -189,15 +205,49 @@ private:
             }
             m_renderer = std::move(renderer);
         }
+        return true;
+    }
 
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
-        if (FAILED(m_device->CreateShaderResourceView(src.Get(), nullptr, &srv)))
+    PointerShape m_shape;
+    int m_x;
+    int m_y;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> m_cursor;
+
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> GetCursorTexture(
+        const DXGI_OUTDUPL_FRAME_INFO &frameInfo)
+    {
+        if (frameInfo.PointerShapeBufferSize)
         {
-            return false;
+            // Get shape
+            if (m_shape.Update(m_dupl, frameInfo.PointerShapeBufferSize))
+            {
+                D3D11_TEXTURE2D_DESC desc;
+                desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+                desc.Width = m_shape.Width,
+                desc.Height = m_shape.Height;
+                desc.Usage = D3D11_USAGE_DEFAULT;
+                desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+                desc.CPUAccessFlags = 0;
+                desc.MiscFlags = 0;
+                desc.SampleDesc.Count = 1;
+                desc.SampleDesc.Quality = 0;
+                desc.MipLevels = 1;
+                desc.ArraySize = 1;
+
+                D3D11_SUBRESOURCE_DATA data;
+                data.SysMemPitch = m_shape.Stride;
+                data.pSysMem = m_shape.RGBA.data();
+                data.SysMemSlicePitch = 0;
+
+                if (FAILED(m_device->CreateTexture2D(&desc, &data, &m_cursor)))
+                {
+                    return nullptr;
+                }
+                // std::cout << "create cursor texture" << std::endl;
+            }
         }
 
-        m_renderer->Render(m_context, srv);
-        return true;
+        return m_cursor;
     }
 };
 

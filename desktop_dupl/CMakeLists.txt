@@ -7,6 +7,7 @@ add_executable(${TARGET_NAME}
     compileshader.cpp
     quad.cpp
     quad.hlsl
+    pointershape.cpp
     )
 target_include_directories(${TARGET_NAME} PRIVATE
     ${EXTERNAL_DIR}/openvr/headers

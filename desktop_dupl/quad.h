@@ -18,6 +18,8 @@ public:
     bool Initialize(const Microsoft::WRL::ComPtr<ID3D11Device> &device,
                     const Microsoft::WRL::ComPtr<ID3D11Texture2D> &dst);
 
+    void RenderScreen(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &context,
+                      const Microsoft::WRL::ComPtr<ID3D11Texture2D> &texture);
     void Render(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &context,
-                const Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> &srv);
+                const Microsoft::WRL::ComPtr<ID3D11Texture2D> &texture, int x, int y);
 };
