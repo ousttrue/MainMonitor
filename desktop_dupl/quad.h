@@ -14,6 +14,7 @@ class QuadRenderer
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_indices;
     uint32_t m_indexCount = 0;
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_constant;
+    Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendState;
 
 public:
     bool Initialize(const Microsoft::WRL::ComPtr<ID3D11Device> &device,
