@@ -3,6 +3,7 @@ set(SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/../OpenVROverlay_imgui)
 add_executable(${TARGET_NAME}
     main.cpp
     overlay.cpp
+    duplicator.cpp
     )
 target_include_directories(${TARGET_NAME} PRIVATE
     ${EXTERNAL_DIR}/openvr/headers
