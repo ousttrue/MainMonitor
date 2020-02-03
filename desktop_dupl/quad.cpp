@@ -210,6 +210,7 @@ bool QuadRenderer::Initialize(const Microsoft::WRL::ComPtr<ID3D11Device> &device
         }
     }
 
+    // blend state
     {
         D3D11_BLEND_DESC desc = {0};
         desc.RenderTarget[0].BlendEnable = TRUE;
@@ -220,7 +221,23 @@ bool QuadRenderer::Initialize(const Microsoft::WRL::ComPtr<ID3D11Device> &device
         desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
         desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
         desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-        device->CreateBlendState(&desc, &m_blendState);
+        if (FAILED(device->CreateBlendState(&desc, &m_blendState)))
+        {
+            return false;
+        }
+    }
+
+    // sampler state
+    {
+        D3D11_SAMPLER_DESC desc = {0};
+        desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+        desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+        desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+        desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        if (FAILED(device->CreateSamplerState(&desc, &m_sampler)))
+        {
+            return false;
+        }
     }
 
     return true;
@@ -253,7 +270,10 @@ void QuadRenderer::Render(const Microsoft::WRL::ComPtr<ID3D11DeviceContext> &con
     // shader
     context->VSSetShader(m_vs.Get(), NULL, 0);
     context->PSSetShader(m_ps.Get(), NULL, 0);
+
+    // texture
     context->PSSetShaderResources(0, 1, srv.GetAddressOf());
+    context->PSSetSamplers(0, 1, m_sampler.GetAddressOf());
 
     // blend state
     float blendFactor[4] = {0.0f, 0.0f, 0.0f, 0.0f};

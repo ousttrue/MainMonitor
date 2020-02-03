@@ -34,6 +34,7 @@ VS_OUT vsMain(VS_IN input)
 
 float4 psMain(PS_IN input) : SV_TARGET
 {
-	return tex0.Sample(samplerState, input.uv) * 0.8;
+    float4 pixel = tex0.Sample(samplerState, input.uv);
+	return  float4(pixel.rgb * 0.6, pixel.a);
 }
 )""

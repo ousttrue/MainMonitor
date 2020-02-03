@@ -8,7 +8,7 @@
 #include <memory>
 #include <vector>
 
-const auto SCALING_FACTOR = 2.0f;
+const auto SCALING_FACTOR = 1.0f;
 
 /// get IDXGIOutput1 for IDXGIOutputDuplication
 static Microsoft::WRL::ComPtr<IDXGIOutput1> GetPrimaryOutput(const Microsoft::WRL::ComPtr<IDXGIDevice> &dxgi)

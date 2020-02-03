@@ -16,6 +16,7 @@ class QuadRenderer
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_constant;
     Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendState;
     float m_scalingFactor = 1.0f;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState> m_sampler;
 
 public:
     bool Initialize(const Microsoft::WRL::ComPtr<ID3D11Device> &device,
