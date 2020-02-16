@@ -5,6 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "ExternalViewer",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/ExternalViewer/ExternalViewer.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "${workspaceFolder}/external/openvr/bin/win64;${env:PATH}"
+                }
+            ],
+            "externalConsole": false
+        },
+        {
             "name": "desktop_dupl",
             "type": "cppvsdbg",
             "request": "launch",
