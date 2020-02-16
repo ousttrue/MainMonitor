@@ -32,18 +32,6 @@ static void PrintBlob(const ComPtr<ID3DBlob> &blob)
 
 bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string &shaderSource)
 {
-    // Create descriptor heaps.
-    {
-        // Describe and create a constant buffer view (CBV) descriptor heap.
-        // Flags indicate that this descriptor heap can be bound to the pipeline
-        // and that descriptors contained in it can be referenced by a root table.
-        D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc = {
-            .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-            .NumDescriptors = 2,
-            .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-        };
-        ThrowIfFailed(device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(&m_cbvHeap)));
-    }
 
     // Create a root signature consisting of a descriptor table with a single CBV.
     {
@@ -71,11 +59,11 @@ bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string 
                 .ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
                 .DescriptorTable = {
                     .NumDescriptorRanges = 1,
-                    .pDescriptorRanges = ranges,
+                    .pDescriptorRanges = &ranges[0],
                 },
                 .ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX,
             },
-        };
+       };
 
         // Allow input layout and deny uneccessary access to certain pipeline stages.
         D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -216,11 +204,6 @@ CommandList *Pipeline::Reset()
 
     // Set necessary state.
     commandList->SetGraphicsRootSignature(m_rootSignature.Get());
-
-    ID3D12DescriptorHeap *ppHeaps[] = {m_cbvHeap.Get()};
-    commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-
-    commandList->SetGraphicsRootDescriptorTable(0, m_cbvHeap->GetGPUDescriptorHandleForHeapStart());
 
     return m_commandList;
 }

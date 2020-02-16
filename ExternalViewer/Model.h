@@ -2,6 +2,8 @@
 #include <vector>
 #include <memory>
 #include <stdint.h>
+#include <DirectXMath.h>
+#include "ConstantBuffer.h"
 
 class Model
 {
@@ -11,6 +13,15 @@ class Model
     int m_indexStride = 0;
 
 public:
+    struct ModelConstantBuffer
+    {
+        DirectX::XMFLOAT4X4 world{
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1};
+    };
+    ModelConstantBuffer Data;
     static std::shared_ptr<Model> Create();
 
     void SetVeritces(const uint8_t *p, int byteLength, int stride);

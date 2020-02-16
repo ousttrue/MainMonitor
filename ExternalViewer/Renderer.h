@@ -12,4 +12,5 @@ public:
     void AddModel(int index,
                   const uint8_t *vertices, int verticesByteLength, int vertexStride,
                   const uint8_t *indices, int indicesByteLength, int indexStride);
+    void SetPose(int index, const float *matrix);
 };

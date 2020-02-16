@@ -21,12 +21,10 @@ class Impl
     std::unique_ptr<Uploader> m_uploader;
     std::unique_ptr<Pipeline> m_pipeline;
     std::unique_ptr<Camera> m_camera;
-    ConstantBuffer<Camera::SceneConstantBuffer> m_sceneConstant;
-    struct ModelConstantBuffer
-    {
-        DirectX::XMFLOAT4X4 world;
-    };
-    ConstantBuffer<ModelConstantBuffer> m_modelConstant;
+    ComPtr<ID3D12DescriptorHeap> m_cbvHeap;
+
+    d12u::ConstantBuffer<Camera::SceneConstantBuffer, 1, 0, 64, 2> m_sceneConstant;
+    d12u::ConstantBuffer<Model::ModelConstantBuffer, 64, 1, 64, 2> m_modelConstant;
 
 public:
     Impl()
@@ -54,14 +52,32 @@ public:
         m_uploader->Initialize(m_device);
         m_pipeline->Initialize(m_device, g_shaderSource);
 
+        // Create descriptor heaps.
+        {
+            // Describe and create a constant buffer view (CBV) descriptor heap.
+            // Flags indicate that this descriptor heap can be bound to the pipeline
+            // and that descriptors contained in it can be referenced by a root table.
+            D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc = {
+                .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+                .NumDescriptors = 128,
+                .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+            };
+            ThrowIfFailed(m_device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(&m_cbvHeap)));
+        }
+
         // Create the constant buffer.
-        m_sceneConstant.Initialize(m_device, m_pipeline->Heap(), 0);
-        m_modelConstant.Initialize(m_device, m_pipeline->Heap(), 1);
-        DirectX::XMStoreFloat4x4(&m_modelConstant.Data.world, DirectX::XMMatrixIdentity());
+        m_sceneConstant.Initialize(m_device, m_cbvHeap);
+        m_modelConstant.Initialize(m_device, m_cbvHeap);
     }
 
     void OnFrame(HWND hwnd, const ScreenState &state)
     {
+        if (!m_device)
+        {
+            // first time
+            Initialize(hwnd);
+        }
+
         m_uploader->Update(m_device);
 
         // update
@@ -74,8 +90,10 @@ public:
         }
         if (m_camera->OnFrame(state, m_lastState))
         {
-            m_sceneConstant.CopyToGpu(&m_camera->Data);
+            *m_sceneConstant.Get(0) = m_camera->Data;
+            m_sceneConstant.CopyToGpu();
         }
+        m_modelConstant.CopyToGpu();
         m_lastState = state;
 
         // command
@@ -88,10 +106,17 @@ public:
         };
         auto &rt = m_rt->Begin(commandList->Get(), color);
 
+        // scene
+        {
+            ID3D12DescriptorHeap *ppHeaps[] = {m_cbvHeap.Get()};
+            commandList->Get()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+        }
+
+        // model
         for (auto &kv : m_models)
         {
+            commandList->Get()->SetGraphicsRootDescriptorTable(0, m_sceneConstant.GpuHandles[kv.first]);
             auto mesh = GetOrCreate(kv.second);
-            m_modelConstant.CopyToGpu();
             mesh->Command(commandList);
         }
 
@@ -135,26 +160,25 @@ public:
         m_modelMeshMap.insert(std::make_pair(model, mesh));
         return mesh;
     }
+
+    void SetPose(int index, const DirectX::XMFLOAT4X4 &m)
+    {
+        m_modelConstant.Get(index)->world = m;
+    }
 };
 
 Renderer::Renderer()
+    : m_impl(new Impl)
 {
 }
 
 Renderer::~Renderer()
 {
-    if (m_impl)
-        delete m_impl;
+    delete m_impl;
 }
 
 void Renderer::OnFrame(void *hwnd, const ScreenState &state)
 {
-    if (!m_impl)
-    {
-        // first time
-        m_impl = new Impl();
-        m_impl->Initialize((HWND)hwnd);
-    }
     m_impl->OnFrame((HWND)hwnd, state);
 }
 
@@ -166,4 +190,9 @@ void Renderer::AddModel(int index,
     model->SetVeritces(vertices, verticesByteLength, vertexStride);
     model->SetIndices(indices, indicesByteLength, indexStride);
     m_impl->AddModel(index, model);
+}
+
+void Renderer::SetPose(int index, const float *matrix)
+{
+    m_impl->SetPose(index, *((const DirectX::XMFLOAT4X4 *)matrix));
 }

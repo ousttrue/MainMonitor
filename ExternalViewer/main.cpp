@@ -4,6 +4,9 @@
 #include <iostream>
 #include <functional>
 #include <list>
+#include <unordered_map>
+#include <DirectXMath.h>
+using namespace DirectX;
 
 static std::string GetTrackedDeviceString(vr::IVRSystem *system, vr::TrackedDeviceIndex_t index,
                                           vr::TrackedDeviceProperty prop, vr::TrackedPropertyError *pError = NULL)
@@ -43,6 +46,12 @@ class Tracker
     vr::RenderModel_t *m_pModel = nullptr;
     vr::RenderModel_TextureMap_t *m_pTexture = nullptr;
 
+    XMFLOAT4X4 m_pose = {
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1};
+
 public:
     Tracker(int index, const std::string &modelName)
         : m_index(index), m_modelName(modelName), m_state(TrackerState::ModelLoading)
@@ -57,6 +66,8 @@ public:
     int Index() const { return m_index; }
     vr::RenderModel_t *Model() const { return m_pModel; }
     vr::RenderModel_TextureMap_t *Texture() const { return m_pTexture; }
+    const XMFLOAT4X4 &Matrix() const { return m_pose; }
+    void Matrix(const XMFLOAT4X4 &pose) { m_pose = pose; }
 
     void Release()
     {
@@ -119,15 +130,27 @@ public:
     }
 };
 
+static XMFLOAT4X4 ConvertSteamVRMatrixToMatrix4(const vr::HmdMatrix34_t &matPose)
+{
+    XMFLOAT4X4 matrixObj(
+        matPose.m[0][0], matPose.m[1][0], matPose.m[2][0], 0.0,
+        matPose.m[0][1], matPose.m[1][1], matPose.m[2][1], 0.0,
+        matPose.m[0][2], matPose.m[1][2], matPose.m[2][2], 0.0,
+        matPose.m[0][3], matPose.m[1][3], matPose.m[2][3], 1.0f);
+    return matrixObj;
+}
+
 using OnModelLoad = std::function<void(int, const vr::RenderModel_t *, const vr::RenderModel_TextureMap_t *)>;
 class OpenVR
 {
     vr::IVRSystem *m_system = nullptr;
 
-    std::list<std::unique_ptr<Tracker>> m_trackers;
     OnModelLoad m_callback;
+    vr::TrackedDevicePose_t m_poses[vr::k_unMaxTrackedDeviceCount] = {};
 
 public:
+    std::unordered_map<int, std::unique_ptr<Tracker>> m_trackers;
+
     ~OpenVR()
     {
     }
@@ -166,17 +189,6 @@ public:
     void
     OnFrame()
     {
-        for (auto &tracker : m_trackers)
-        {
-            if (tracker->Update())
-            {
-                if (m_callback)
-                {
-                    m_callback(tracker->Index(), tracker->Model(), tracker->Texture());
-                }
-            }
-        }
-
         // Process SteamVR events
         vr::VREvent_t event;
         while (m_system->PollNextEvent(&event, sizeof(event)))
@@ -202,6 +214,22 @@ public:
             break;
             }
         }
+
+        m_system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, 0,
+                                                  m_poses, vr::k_unMaxTrackedDeviceCount);
+
+        for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
+        {
+            if (m_poses[i].bPoseIsValid)
+            {
+                auto found = m_trackers.find(i);
+                if (found != m_trackers.end())
+                {
+                    auto pose = ConvertSteamVRMatrixToMatrix4(m_poses[i].mDeviceToAbsoluteTracking);
+                    found->second->Matrix(pose);
+                }
+            }
+        }
     }
 
     void StartLoadModel(int index)
@@ -218,8 +246,8 @@ public:
         {
             return;
         }
-        std::cout << "loadModel: " << modelName << std::endl;
-        m_trackers.push_back(std::make_unique<Tracker>(index, modelName));
+        std::cout << "#" << index << " loadModel: " << modelName << std::endl;
+        m_trackers.insert(std::make_pair(index, std::make_unique<Tracker>(index, modelName)));
     }
 };
 
@@ -242,24 +270,40 @@ int main()
         auto callback = [&renderer](int index,
                                     const vr::RenderModel_t *model,
                                     const vr::RenderModel_TextureMap_t *texture) {
-            auto vertexStride = (int)sizeof(model->rVertexData[0]);
-            auto indexStride = (int)sizeof(model->rIndexData[0]);
-            renderer.AddModel(index,
-                              (uint8_t *)model->rVertexData, model->unVertexCount * vertexStride, vertexStride,
-                              (uint8_t *)model->rIndexData, model->unTriangleCount * indexStride, indexStride);
         };
 
         vr.SetCallback(callback);
 
         if (!vr.Connect())
         {
-            // return 2;
+            return 2;
         }
 
         ScreenState state;
         while (window.Update(&state))
         {
             vr.OnFrame();
+            for (auto &kv : vr.m_trackers)
+            {
+                auto &index = kv.first;
+                auto &tracker = kv.second;
+                if (tracker->Update())
+                {
+                    // on load
+                    // if (m_callback)
+                    // {
+                    //     m_callback(tracker->Index(), tracker->Model(), tracker->Texture());
+                    // }
+                    auto model = tracker->Model();
+                    auto vertexStride = (int)sizeof(model->rVertexData[0]);
+                    auto indexStride = (int)sizeof(model->rIndexData[0]);
+                    renderer.AddModel(index,
+                                      (uint8_t *)model->rVertexData, model->unVertexCount * vertexStride, vertexStride,
+                                      (uint8_t *)model->rIndexData, model->unTriangleCount * indexStride, indexStride);
+                }
+                renderer.SetPose(index, &tracker->Matrix()._11);
+            }
+
             renderer.OnFrame(hwnd, state);
         }
     }
