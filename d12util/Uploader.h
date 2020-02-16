@@ -34,6 +34,11 @@ public:
     ~Uploader();
     void Initialize(const ComPtr<ID3D12Device> &device);
     void Update(const ComPtr<ID3D12Device> &device);
+    void EnqueueUpload(const std::shared_ptr<class ResourceItem> &item,
+                       const void *p, UINT byteLength, UINT stride)
+    {
+        EnqueueUpload({item, p, byteLength, stride});
+    }
     void EnqueueUpload(const UploadCommand &command)
     {
         m_commands.push(command);

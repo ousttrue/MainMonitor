@@ -14,12 +14,14 @@ class Impl
     std::unique_ptr<SwapChain> m_rt;
     std::unique_ptr<CommandList> m_command;
     std::unordered_map<int, std::shared_ptr<Model>> m_models;
+    std::unique_ptr<Uploader> m_uploader;
 
 public:
     Impl()
         : m_queue(new CommandQueue),
           m_rt(new SwapChain(2)),
-          m_command(new CommandList)
+          m_command(new CommandList),
+          m_uploader(new Uploader)
     {
     }
 
@@ -37,10 +39,13 @@ public:
         m_queue->Initialize(m_device);
         m_rt->Initialize(factory, m_queue->Get(), hwnd);
         m_command->Initialize(m_device, nullptr);
+        m_uploader->Initialize(m_device);
     }
 
     void OnFrame(HWND hwnd, const ScreenState &state)
     {
+        m_uploader->Update(m_device);
+
         // update
         if (m_lastState.Width != state.Width || m_lastState.Height != state.Height)
         {
@@ -51,22 +56,20 @@ public:
         }
         m_lastState = state;
 
-        float intPart;
-        auto value = modf(m_lastState.Time * 0.001f, &intPart);
-
         // command
         m_command->Reset(nullptr);
         float color[] = {
-            value,
-            value,
-            value,
+            0,
+            0,
+            0,
             1.0f,
         };
         auto &rt = m_rt->Begin(m_command->Get(), color);
 
-        for(auto kv: m_models)
+        for (auto &kv : m_models)
         {
-            // GetOrCreate(kv);
+            auto mesh = GetOrCreate(kv.second);
+            mesh->Command(m_command.get());
         }
 
         m_rt->End(m_command->Get(), rt);
@@ -81,6 +84,33 @@ public:
     void AddModel(int index, const std::shared_ptr<Model> &model)
     {
         m_models.insert(std::make_pair(index, model));
+    }
+
+    std::unordered_map<std::shared_ptr<Model>, std::shared_ptr<Mesh>> m_modelMeshMap;
+    std::shared_ptr<Mesh> GetOrCreate(const std::shared_ptr<Model> &model)
+    {
+        auto found = m_modelMeshMap.find(model);
+        if (found != m_modelMeshMap.end())
+        {
+            return found->second;
+        }
+
+        auto mesh = std::make_shared<Mesh>();
+
+        {
+            auto vertices = ResourceItem::CreateDefault(m_device, model->VerticesByteLength());
+            mesh->VertexBuffer(vertices);
+            m_uploader->EnqueueUpload(vertices, model->Vertices(), model->VerticesByteLength(), model->VertexStride());
+        }
+
+        {
+            auto indices = ResourceItem::CreateDefault(m_device, model->IndicesByteLength());
+            mesh->IndexBuffer(indices);
+            m_uploader->EnqueueUpload(indices, model->Indices(), model->IndicesByteLength(), model->IndexStride());
+        }
+
+        m_modelMeshMap.insert(std::make_pair(model, mesh));
+        return mesh;
     }
 };
 
