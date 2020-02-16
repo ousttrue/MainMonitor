@@ -1,5 +1,6 @@
 #include "Renderer.h"
 #include "Model.h"
+#include "Camera.h"
 #include <d12util.h>
 #include <memory>
 #include <unordered_map>
@@ -19,13 +20,21 @@ class Impl
     std::unordered_map<int, std::shared_ptr<Model>> m_models;
     std::unique_ptr<Uploader> m_uploader;
     std::unique_ptr<Pipeline> m_pipeline;
+    std::unique_ptr<Camera> m_camera;
+    ConstantBuffer<Camera::SceneConstantBuffer> m_sceneConstant;
+    struct ModelConstantBuffer
+    {
+        DirectX::XMFLOAT4X4 world;
+    };
+    ConstantBuffer<ModelConstantBuffer> m_modelConstant;
 
 public:
     Impl()
         : m_queue(new CommandQueue),
           m_rt(new SwapChain(2)),
           m_uploader(new Uploader),
-          m_pipeline(new Pipeline)
+          m_pipeline(new Pipeline),
+          m_camera(new Camera)
     {
     }
 
@@ -44,6 +53,11 @@ public:
         m_rt->Initialize(factory, m_queue->Get(), hwnd);
         m_uploader->Initialize(m_device);
         m_pipeline->Initialize(m_device, g_shaderSource);
+
+        // Create the constant buffer.
+        m_sceneConstant.Initialize(m_device, m_pipeline->Heap(), 0);
+        m_modelConstant.Initialize(m_device, m_pipeline->Heap(), 1);
+        DirectX::XMStoreFloat4x4(&m_modelConstant.Data.world, DirectX::XMMatrixIdentity());
     }
 
     void OnFrame(HWND hwnd, const ScreenState &state)
@@ -57,6 +71,10 @@ public:
             m_queue->SyncFence();
             m_rt->Resize(m_queue->Get(),
                          hwnd, state.Width, state.Height);
+        }
+        if (m_camera->OnFrame(state, m_lastState))
+        {
+            m_sceneConstant.CopyToGpu(&m_camera->Data);
         }
         m_lastState = state;
 
@@ -73,6 +91,7 @@ public:
         for (auto &kv : m_models)
         {
             auto mesh = GetOrCreate(kv.second);
+            m_modelConstant.CopyToGpu();
             mesh->Command(commandList);
         }
 

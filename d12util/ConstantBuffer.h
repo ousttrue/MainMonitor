@@ -59,8 +59,12 @@ public:
     void
     CopyToGpu()
     {
-        memcpy(m_pCbvDataBegin, &Data, sizeof(T));
-        // memcpy(m_pCbvDataBegin, &m_constantBufferData, sizeof(m_constantBufferData));
+        CopyToGpu(&Data);
+    }
+    void
+    CopyToGpu(const T* p)
+    {
+        memcpy(m_pCbvDataBegin, p, sizeof(T));
     }
 };
 } // namespace d12u

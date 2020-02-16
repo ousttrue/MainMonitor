@@ -205,10 +205,6 @@ bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string 
         m_commandList->Initialize(device, m_pipelineState);
     }
 
-    // Create the constant buffer.
-    m_sceneConstant.Initialize(device, m_cbvHeap, 0);
-    m_modelConstant.Initialize(device, m_cbvHeap, 1);
-
     return true;
 }
 
