@@ -4,6 +4,10 @@
 #include <memory>
 #include <unordered_map>
 
+std::string g_shaderSource =
+#include "OpenVRRenderModel.hlsl"
+    ;
+
 using namespace d12u;
 
 class Impl
@@ -12,16 +16,16 @@ class Impl
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
     std::unique_ptr<CommandQueue> m_queue;
     std::unique_ptr<SwapChain> m_rt;
-    std::unique_ptr<CommandList> m_command;
     std::unordered_map<int, std::shared_ptr<Model>> m_models;
     std::unique_ptr<Uploader> m_uploader;
+    std::unique_ptr<Pipeline> m_pipeline;
 
 public:
     Impl()
         : m_queue(new CommandQueue),
           m_rt(new SwapChain(2)),
-          m_command(new CommandList),
-          m_uploader(new Uploader)
+          m_uploader(new Uploader),
+          m_pipeline(new Pipeline)
     {
     }
 
@@ -38,8 +42,8 @@ public:
 
         m_queue->Initialize(m_device);
         m_rt->Initialize(factory, m_queue->Get(), hwnd);
-        m_command->Initialize(m_device, nullptr);
         m_uploader->Initialize(m_device);
+        m_pipeline->Initialize(m_device, g_shaderSource);
     }
 
     void OnFrame(HWND hwnd, const ScreenState &state)
@@ -57,26 +61,26 @@ public:
         m_lastState = state;
 
         // command
-        m_command->Reset(nullptr);
+        auto commandList = m_pipeline->Reset();
         float color[] = {
             0,
             0,
             0,
             1.0f,
         };
-        auto &rt = m_rt->Begin(m_command->Get(), color);
+        auto &rt = m_rt->Begin(commandList->Get(), color);
 
         for (auto &kv : m_models)
         {
             auto mesh = GetOrCreate(kv.second);
-            mesh->Command(m_command.get());
+            mesh->Command(commandList);
         }
 
-        m_rt->End(m_command->Get(), rt);
-        auto callbacks = m_command->Close();
+        m_rt->End(commandList->Get(), rt);
+        auto callbacks = commandList->Close();
 
         // execute
-        m_queue->Execute(m_command->Get());
+        m_queue->Execute(commandList->Get());
         m_rt->Present();
         m_queue->SyncFence(callbacks);
     }

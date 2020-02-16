@@ -1,15 +1,4 @@
 R""(
-//*********************************************************
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-//*********************************************************
-
 cbuffer SceneConstantBuffer : register(b0)
 {
     float4x4 view;
@@ -32,7 +21,7 @@ struct PSInput
     float2 uv : TEXCOORD0;
 };
 
-PSInput VSMain(float3 position : POSITION, float3: NORMAL, float2 uv : TEXCOORD0)
+PSInput VSMain(float3 position : POSITION, float3 normal : NORMAL, float2 uv : TEXCOORD0)
 {
     PSInput result;
 

@@ -28,7 +28,7 @@ public:
     Pipeline();
     ~Pipeline();
     const ComPtr<ID3D12DescriptorHeap> &Heap() const { return m_cbvHeap; }
-    bool Initialize(const ComPtr<ID3D12Device> &device);
+    bool Initialize(const ComPtr<ID3D12Device> &device, const std::string &shaderSource);
     class CommandList *Reset();
 };
 } // namespace d12u

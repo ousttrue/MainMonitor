@@ -6,11 +6,7 @@
 #include <string>
 #include <d3dcompiler.h>
 #include <algorithm>
-
-std::string g_shaders;
-//  =
-// #include "shaders.hlsl"
-//     ;
+#include <iostream>
 
 namespace d12u
 {
@@ -26,7 +22,15 @@ Pipeline::~Pipeline()
     delete m_commandList;
 }
 
-bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device)
+static void PrintBlob(const ComPtr<ID3DBlob> &blob)
+{
+    std::vector<uint8_t> buffer(blob->GetBufferSize());
+    memcpy(buffer.data(), blob->GetBufferPointer(), buffer.size());
+    std::string msg(buffer.begin(), buffer.end());
+    std::cerr << msg << std::endl;
+}
+
+bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string &shaderSource)
 {
     // Create descriptor heaps.
     {
@@ -108,14 +112,30 @@ bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device)
         UINT compileFlags = 0;
 #endif
 
-        ThrowIfFailed(D3DCompile(g_shaders.data(), g_shaders.size(), "shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
-        ThrowIfFailed(D3DCompile(g_shaders.data(), g_shaders.size(), "shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
+        {
+            ComPtr<ID3DBlob> error;
+            if (FAILED(D3DCompile(shaderSource.data(), shaderSource.size(), "shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &error)))
+            {
+                PrintBlob(error);
+                throw;
+            }
+        }
+        {
+            ComPtr<ID3DBlob> error;
+            if (FAILED(D3DCompile(shaderSource.data(), shaderSource.size(), "shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr)))
+            {
+                PrintBlob(error);
+                throw;
+            }
+        }
 
         // Define the vertex input layout.
         D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
             {
                 {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-                {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}};
+                {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+                {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            };
 
         // Describe and create the graphics pipeline state object (PSO).
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {
