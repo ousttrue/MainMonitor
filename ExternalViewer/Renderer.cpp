@@ -97,15 +97,41 @@ struct RenderTarget : NonCopyable
 {
     ComPtr<ID3D12Resource> Resource;
     D3D12_CPU_DESCRIPTOR_HANDLE RTV{};
+    Microsoft::WRL::ComPtr<ID3D12Resource> DepthStencil;
+    D3D12_CPU_DESCRIPTOR_HANDLE DSV;
 
     void Initialzie(const ComPtr<IDXGISwapChain3> &swapChain,
                     int i,
                     const ComPtr<ID3D12Device> &device,
-                    const D3D12_CPU_DESCRIPTOR_HANDLE &rtv)
+                    const D3D12_CPU_DESCRIPTOR_HANDLE &rtv,
+                    const D3D12_CPU_DESCRIPTOR_HANDLE &dsv)
     {
         ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&Resource)));
         device->CreateRenderTargetView(Resource.Get(), nullptr, rtv);
         RTV = rtv;
+
+        // Create depth
+        auto depthDesc = Resource->GetDesc();
+        depthDesc.Format = DXGI_FORMAT_D32_FLOAT;
+        depthDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        D3D12_HEAP_PROPERTIES prop{
+            .Type = D3D12_HEAP_TYPE_DEFAULT,
+        };
+        D3D12_CLEAR_VALUE clear{DXGI_FORMAT_D32_FLOAT, 1.0f, 0};
+        device->CreateCommittedResource(&prop,
+                                        D3D12_HEAP_FLAG_NONE,
+                                        &depthDesc,
+                                        D3D12_RESOURCE_STATE_DEPTH_WRITE,
+                                        &clear,
+                                        IID_PPV_ARGS(&DepthStencil));
+        device->CreateDepthStencilView(DepthStencil.Get(), nullptr, dsv);
+        DSV = dsv;
+    }
+
+    void Release()
+    {
+        Resource.Reset();
+        DepthStencil.Reset();
     }
 };
 
@@ -114,7 +140,8 @@ class SwapChainRenderTarget : NonCopyable
     ComPtr<IDXGISwapChain3> m_swapChain;
     D3D12_VIEWPORT m_viewport = {};
     D3D12_RECT m_scissorRect = {};
-    ComPtr<ID3D12DescriptorHeap> m_heap;
+    ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
+    ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 
     std::vector<RenderTarget> m_backbuffers;
 
@@ -184,7 +211,7 @@ public:
         ////////////////////
         for (auto &backbuffer : m_backbuffers)
         {
-            backbuffer.Resource.Reset();
+            backbuffer.Release();
         }
         m_swapChain.Reset();
 
@@ -197,25 +224,35 @@ public:
         ComPtr<ID3D12Device> device;
         commandList->GetDevice(IID_PPV_ARGS(&device));
 
-        if (!m_heap)
+        if (!m_rtvHeap)
         {
-
-            D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {
+            D3D12_DESCRIPTOR_HEAP_DESC desc = {
                 .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
                 .NumDescriptors = (UINT)m_backbuffers.size(),
                 .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
             };
-            ThrowIfFailed(device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_heap)));
+            ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_rtvHeap)));
+        }
+        if (!m_dsvHeap)
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC desc = {
+                .Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV,
+                .NumDescriptors = (UINT)m_backbuffers.size(),
+                .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+            };
+            ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_dsvHeap)));
         }
         // Create frame resources.
         if (!m_backbuffers[0].Resource)
         {
-            auto rtv = m_heap->GetCPUDescriptorHandleForHeapStart();
+            auto rtv = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
+            auto dsv = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
             int i = 0;
             for (auto &backbuffer : m_backbuffers)
             {
-                backbuffer.Initialzie(m_swapChain, i++, device, rtv);
+                backbuffer.Initialzie(m_swapChain, i++, device, rtv, dsv);
                 rtv.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+                dsv.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
             }
         }
 
@@ -234,8 +271,9 @@ public:
         };
         commandList->ResourceBarrier(1, &barrier);
 
-        commandList->OMSetRenderTargets(1, &backbuffer->RTV, FALSE, nullptr);
+        commandList->OMSetRenderTargets(1, &backbuffer->RTV, FALSE, &backbuffer->DSV);
         commandList->ClearRenderTargetView(backbuffer->RTV, clearColor, 0, nullptr);
+        commandList->ClearDepthStencilView(backbuffer->DSV, D3D12_CLEAR_FLAG_DEPTH, 1.0, 0, 0, nullptr);
 
         return backbuffer;
     }
@@ -259,7 +297,7 @@ public:
     }
 };
 
-class CommandList: NonCopyable
+class CommandList : NonCopyable
 {
     using OnCompletedFunc = std::function<void()>;
 
