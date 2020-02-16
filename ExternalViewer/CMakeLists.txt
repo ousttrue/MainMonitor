@@ -10,4 +10,5 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     Winmm
     d3d12
     dxgi
+    d12util
     )

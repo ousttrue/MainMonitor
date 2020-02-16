@@ -4,6 +4,8 @@
 #include <dxgi1_4.h>
 #include <wrl/client.h>
 
+namespace d12u
+{
 template <class T>
 using ComPtr = Microsoft::WRL::ComPtr<T>;
 
@@ -81,3 +83,13 @@ inline void ThrowIfFailed(HRESULT hr)
         throw HrException(hr);
     }
 }
+
+class NonCopyable
+{
+    NonCopyable(const NonCopyable &) = delete;
+    NonCopyable &operator=(const NonCopyable &) = delete;
+
+protected:
+    NonCopyable() = default;
+};
+} // namespace d12u
