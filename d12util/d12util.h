@@ -8,3 +8,5 @@
 #include "ResourceItem.h"
 #include "Uploader.h"
 #include "Mesh.h"
+#include "ConstantBuffer.h"
+#include "Pipeline.h"
