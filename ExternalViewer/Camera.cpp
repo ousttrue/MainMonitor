@@ -10,7 +10,7 @@ Camera::Camera()
 void Camera::Calc()
 {
     {
-        auto m = XMMatrixPerspectiveFovLH(m_fovY, m_aspectRatio, m_near, m_far);
+        auto m = XMMatrixPerspectiveFovRH(m_fovY, m_aspectRatio, m_near, m_far);
         XMStoreFloat4x4(&Data.projection, m);
     }
 
@@ -43,8 +43,8 @@ bool Camera::OnFrame(const ScreenState &state, const ScreenState &prev)
         changed = true;
         const auto f = m_translation.z * (float)tan(m_fovY / 2) / state.Height * 2;
 
-        m_translation.x += dx * f;
-        m_translation.y -= dy * f;
+        m_translation.x -= dx * f;
+        m_translation.y += dy * f;
     }
     if (state.Has(MouseButtonFlags::WheelMinus))
     {

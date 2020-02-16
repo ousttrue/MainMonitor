@@ -9,7 +9,7 @@ class Camera
     // view
     float m_yaw = 0;
     float m_pitch = 0;
-    DirectX::XMFLOAT3 m_translation = {0, 0, 7};
+    DirectX::XMFLOAT3 m_translation = {0, 0, -7};
 
     // projection
     float m_near = 0.1f;
