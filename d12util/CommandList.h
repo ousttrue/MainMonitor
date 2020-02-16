@@ -21,5 +21,9 @@ public:
                     D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT);
     void Reset(const ComPtr<ID3D12PipelineState> &ps);
     std::list<OnCompletedFunc> Close();
+    void AddOnCompleted(const OnCompletedFunc &callback)
+    {
+        m_callbacks.push_back(callback);
+    }
 };
 } // namespace d12u

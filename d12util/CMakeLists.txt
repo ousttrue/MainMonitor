@@ -4,6 +4,9 @@ add_library(${TARGET_NAME}
     RenderTarget.cpp
     SwapChain.cpp
     CommandList.cpp
+    ResourceItem.cpp
+    Uploader.cpp
+    Mesh.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

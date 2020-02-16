@@ -2,6 +2,7 @@ set(TARGET_NAME ExternalViewer)
 add_executable(${TARGET_NAME}
     main.cpp
     Renderer.cpp
+    Model.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

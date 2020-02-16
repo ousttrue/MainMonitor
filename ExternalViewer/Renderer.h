@@ -9,4 +9,7 @@ public:
     Renderer();
     ~Renderer();
     void OnFrame(void *hwnd, const ScreenState &state);
+    void AddModel(int index,
+                  const uint8_t *vertices, int verticesByteLength, int vertexStride,
+                  const uint8_t *indices, int indicesByteLength, int indexStride);
 };

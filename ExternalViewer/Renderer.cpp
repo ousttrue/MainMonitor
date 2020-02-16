@@ -1,5 +1,8 @@
 #include "Renderer.h"
+#include "Model.h"
 #include <d12util.h>
+#include <memory>
+#include <unordered_map>
 
 using namespace d12u;
 
@@ -10,6 +13,7 @@ class Impl
     std::unique_ptr<CommandQueue> m_queue;
     std::unique_ptr<SwapChain> m_rt;
     std::unique_ptr<CommandList> m_command;
+    std::unordered_map<int, std::shared_ptr<Model>> m_models;
 
 public:
     Impl()
@@ -59,7 +63,12 @@ public:
             1.0f,
         };
         auto &rt = m_rt->Begin(m_command->Get(), color);
-        // TODO: Scene
+
+        for(auto kv: m_models)
+        {
+            // GetOrCreate(kv);
+        }
+
         m_rt->End(m_command->Get(), rt);
         auto callbacks = m_command->Close();
 
@@ -67,6 +76,11 @@ public:
         m_queue->Execute(m_command->Get());
         m_rt->Present();
         m_queue->SyncFence(callbacks);
+    }
+
+    void AddModel(int index, const std::shared_ptr<Model> &model)
+    {
+        m_models.insert(std::make_pair(index, model));
     }
 };
 
@@ -89,4 +103,14 @@ void Renderer::OnFrame(void *hwnd, const ScreenState &state)
         m_impl->Initialize((HWND)hwnd);
     }
     m_impl->OnFrame((HWND)hwnd, state);
+}
+
+void Renderer::AddModel(int index,
+                        const uint8_t *vertices, int verticesByteLength, int vertexStride,
+                        const uint8_t *indices, int indicesByteLength, int indexStride)
+{
+    auto model = Model::Create();
+    model->SetVeritces(vertices, verticesByteLength, vertexStride);
+    model->SetIndices(indices, indicesByteLength, indexStride);
+    m_impl->AddModel(index, model);
 }
