@@ -5,6 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "vrcui",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/vrcui/vrcui.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "${workspaceFolder}/external/openvr/bin/win64;${env:PATH}"
+                }
+            ],
+            "externalConsole": false
+        },
+        {
             "name": "ExternalViewer",
             "type": "cppvsdbg",
             "request": "launch",

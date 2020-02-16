@@ -11,4 +11,8 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     d3d12
     dxgi
     d12util
+    ${EXTERNAL_DIR}/openvr/lib/win64/openvr_api.lib
+    )
+target_include_directories(${TARGET_NAME} PRIVATE
+    ${EXTERNAL_DIR}/openvr/headers
     )
