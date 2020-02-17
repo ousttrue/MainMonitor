@@ -10,3 +10,10 @@ VR desktop experiment
 ## MainMonitor(Unity OpenVR App)
 
 TODO
+
+## ExternalViewer(OpenVR tracker viewer)
+
+* [ ] Grid
+* [ ] imgui
+* [ ] light/lambert
+* [ ] texture
