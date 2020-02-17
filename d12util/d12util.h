@@ -10,3 +10,4 @@
 #include "Mesh.h"
 #include "ConstantBuffer.h"
 #include "Pipeline.h"
+#include "Heap.h"

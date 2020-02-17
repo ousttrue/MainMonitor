@@ -13,7 +13,7 @@ struct UploadCommand
     UINT Stride;
 };
 
-class Uploader
+class Uploader: NonCopyable
 {
     template <class T>
     using ComPtr = Microsoft::WRL::ComPtr<T>;

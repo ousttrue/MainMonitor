@@ -8,6 +8,7 @@ add_library(${TARGET_NAME}
     Uploader.cpp
     Mesh.cpp
     Pipeline.cpp
+    Heap.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

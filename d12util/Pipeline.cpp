@@ -30,7 +30,7 @@ static void PrintBlob(const ComPtr<ID3DBlob> &blob)
     std::cerr << msg << std::endl;
 }
 
-bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string &shaderSource)
+bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string &shaderSource, UINT cbvDescriptorCount)
 {
 
     // Create a root signature consisting of a descriptor table with a single CBV.
@@ -41,13 +41,13 @@ bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string 
         };
         if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
         {
-            featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+            throw;
         }
 
         D3D12_DESCRIPTOR_RANGE1 ranges[] = {
             {
                 .RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
-                .NumDescriptors = 2,
+                .NumDescriptors = cbvDescriptorCount,
                 .BaseShaderRegister = 0,
                 .RegisterSpace = 0,
                 .Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,

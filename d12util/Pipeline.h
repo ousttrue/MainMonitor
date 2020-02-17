@@ -6,7 +6,7 @@
 
 namespace d12u
 {
-class Pipeline
+class Pipeline: NonCopyable
 {
     ComPtr<ID3D12RootSignature> m_rootSignature;
     ComPtr<ID3D12PipelineState> m_pipelineState;
@@ -15,7 +15,7 @@ class Pipeline
 public:
     Pipeline();
     ~Pipeline();
-    bool Initialize(const ComPtr<ID3D12Device> &device, const std::string &shaderSource);
+    bool Initialize(const ComPtr<ID3D12Device> &device, const std::string &shaderSource, UINT cbvDescriptorCount);
     class CommandList *Reset();
 };
 } // namespace d12u

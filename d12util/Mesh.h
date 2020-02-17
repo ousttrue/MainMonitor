@@ -4,7 +4,7 @@
 
 namespace d12u
 {
-class Mesh
+class Mesh: NonCopyable
 {
     template <class T>
     using ComPtr = Microsoft::WRL::ComPtr<T>;

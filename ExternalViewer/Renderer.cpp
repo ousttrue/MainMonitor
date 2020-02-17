@@ -21,10 +21,10 @@ class Impl
     std::unique_ptr<Uploader> m_uploader;
     std::unique_ptr<Pipeline> m_pipeline;
     std::unique_ptr<Camera> m_camera;
-    ComPtr<ID3D12DescriptorHeap> m_cbvHeap;
+    std::unique_ptr<Heap> m_heap;
 
-    d12u::ConstantBuffer<Camera::SceneConstantBuffer, 1, 0, 64, 2> m_sceneConstant;
-    d12u::ConstantBuffer<Model::ModelConstantBuffer, 64, 1, 64, 2> m_modelConstant;
+    d12u::ConstantBuffer<Camera::SceneConstantBuffer, 1> m_sceneConstant;
+    d12u::ConstantBuffer<Model::ModelConstantBuffer, 64> m_modelConstant;
 
 public:
     Impl()
@@ -32,7 +32,8 @@ public:
           m_rt(new SwapChain(2)),
           m_uploader(new Uploader),
           m_pipeline(new Pipeline),
-          m_camera(new Camera)
+          m_camera(new Camera),
+          m_heap(new Heap)
     {
     }
 
@@ -50,24 +51,16 @@ public:
         m_queue->Initialize(m_device);
         m_rt->Initialize(factory, m_queue->Get(), hwnd);
         m_uploader->Initialize(m_device);
-        m_pipeline->Initialize(m_device, g_shaderSource);
+        m_pipeline->Initialize(m_device, g_shaderSource, 2);
+        m_sceneConstant.Initialize(m_device);
+        m_modelConstant.Initialize(m_device);
 
-        // Create descriptor heaps.
-        {
-            // Describe and create a constant buffer view (CBV) descriptor heap.
-            // Flags indicate that this descriptor heap can be bound to the pipeline
-            // and that descriptors contained in it can be referenced by a root table.
-            D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc = {
-                .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-                .NumDescriptors = 128,
-                .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-            };
-            ThrowIfFailed(m_device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(&m_cbvHeap)));
-        }
+        ConstantBufferBase *buffers[] = {
+            &m_sceneConstant,
+            &m_modelConstant,
+        };
 
-        // Create the constant buffer.
-        m_sceneConstant.Initialize(m_device, m_cbvHeap);
-        m_modelConstant.Initialize(m_device, m_cbvHeap);
+        m_heap->Initialize(m_device, buffers, 2, 64);
     }
 
     void OnFrame(HWND hwnd, const ScreenState &state)
@@ -108,14 +101,14 @@ public:
 
         // scene
         {
-            ID3D12DescriptorHeap *ppHeaps[] = {m_cbvHeap.Get()};
+            ID3D12DescriptorHeap *ppHeaps[] = {m_heap->Get()};
             commandList->Get()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
         }
 
         // model
         for (auto &kv : m_models)
         {
-            commandList->Get()->SetGraphicsRootDescriptorTable(0, m_sceneConstant.GpuHandles[kv.first]);
+            commandList->Get()->SetGraphicsRootDescriptorTable(0, m_heap->GpuHandle(kv.first));
             auto mesh = GetOrCreate(kv.second);
             mesh->Command(commandList);
         }
