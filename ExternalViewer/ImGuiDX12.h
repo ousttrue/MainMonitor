@@ -19,6 +19,7 @@ class ImGuiDX12
     D3D12_CPU_DESCRIPTOR_HANDLE g_hFontSrvCpuDescHandle = {};
     D3D12_GPU_DESCRIPTOR_HANDLE g_hFontSrvGpuDescHandle = {};
 
+public:
     struct FrameResources
     {
         ComPtr<ID3D12Resource> IndexBuffer;
@@ -26,6 +27,8 @@ class ImGuiDX12
         int IndexBufferSize = 10000;
         int VertexBufferSize = 5000;
     };
+
+private:
     std::vector<FrameResources> g_pFrameResources;
     UINT g_numFramesInFlight = 0;
     UINT g_frameIndex = UINT_MAX;
@@ -37,5 +40,4 @@ public:
     void RenderDrawData(ImDrawData *draw_data, ID3D12GraphicsCommandList *ctx);
 private:
     void InvalidateDeviceObjects();
-    void SetupRenderState(ImDrawData *draw_data, ID3D12GraphicsCommandList *ctx, FrameResources *fr);
 };

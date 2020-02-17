@@ -307,6 +307,58 @@ struct VERTEX_CONSTANT_BUFFER
 {
     float mvp[4][4];
 };
+static void SetupRenderState(ImDrawData *draw_data, ID3D12GraphicsCommandList *ctx, ImGuiDX12::FrameResources *fr)
+{
+    // Setup orthographic projection matrix into our constant buffer
+    // Our visible imgui space lies from draw_data->DisplayPos (top left) to draw_data->DisplayPos+data_data->DisplaySize (bottom right).
+    VERTEX_CONSTANT_BUFFER vertex_constant_buffer;
+    {
+        float L = draw_data->DisplayPos.x;
+        float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
+        float T = draw_data->DisplayPos.y;
+        float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
+        float mvp[4][4] =
+            {
+                {2.0f / (R - L), 0.0f, 0.0f, 0.0f},
+                {0.0f, 2.0f / (T - B), 0.0f, 0.0f},
+                {0.0f, 0.0f, 0.5f, 0.0f},
+                {(R + L) / (L - R), (T + B) / (B - T), 0.5f, 1.0f},
+            };
+        memcpy(&vertex_constant_buffer.mvp, mvp, sizeof(mvp));
+    }
+
+    // Setup viewport
+    D3D12_VIEWPORT vp{
+        .Width = draw_data->DisplaySize.x,
+        .Height = draw_data->DisplaySize.y,
+        .MinDepth = 0.0f,
+        .MaxDepth = 1.0f,
+    };
+    ctx->RSSetViewports(1, &vp);
+
+    // Bind shader and vertex buffers
+    unsigned int stride = sizeof(ImDrawVert);
+    unsigned int offset = 0;
+    D3D12_VERTEX_BUFFER_VIEW vbv;
+    memset(&vbv, 0, sizeof(D3D12_VERTEX_BUFFER_VIEW));
+    vbv.BufferLocation = fr->VertexBuffer->GetGPUVirtualAddress() + offset;
+    vbv.SizeInBytes = fr->VertexBufferSize * stride;
+    vbv.StrideInBytes = stride;
+    ctx->IASetVertexBuffers(0, 1, &vbv);
+
+    D3D12_INDEX_BUFFER_VIEW ibv;
+    memset(&ibv, 0, sizeof(D3D12_INDEX_BUFFER_VIEW));
+    ibv.BufferLocation = fr->IndexBuffer->GetGPUVirtualAddress();
+    ibv.SizeInBytes = fr->IndexBufferSize * sizeof(ImDrawIdx);
+    ibv.Format = sizeof(ImDrawIdx) == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+    ctx->IASetIndexBuffer(&ibv);
+
+    ctx->SetGraphicsRoot32BitConstants(0, 16, &vertex_constant_buffer, 0);
+
+    // Setup blend factor
+    const float blend_factor[4] = {0.f, 0.f, 0.f, 0.f};
+    ctx->OMSetBlendFactor(blend_factor);
+}
 
 bool ImGuiDX12::Init(ID3D12Device *device, int num_frames_in_flight,
                      DXGI_FORMAT rtv_format,
@@ -449,6 +501,9 @@ void ImGuiDX12::RenderDrawData(ImDrawData *draw_data, ID3D12GraphicsCommandList 
 
     // Setup desired DX state
     SetupRenderState(draw_data, ctx, fr);
+    ctx->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    ctx->SetPipelineState(g_pPipelineState.Get());
+    ctx->SetGraphicsRootSignature(g_pRootSignature.Get());
 
     // Render command lists
     // (Because we merged all buffers into a single one, we maintain our own offset into them)
@@ -483,10 +538,13 @@ void ImGuiDX12::RenderDrawData(ImDrawData *draw_data, ID3D12GraphicsCommandList 
         global_vtx_offset += cmd_list->VtxBuffer.Size;
     }
 }
+
 void ImGuiDX12::InvalidateDeviceObjects()
 {
     if (!g_pd3dDevice)
+    {
         return;
+    }
 
     g_pRootSignature.Reset();
     g_pPipelineState.Reset();
@@ -501,59 +559,4 @@ void ImGuiDX12::InvalidateDeviceObjects()
         fr->IndexBuffer.Reset();
         fr->VertexBuffer.Reset();
     }
-}
-
-void ImGuiDX12::SetupRenderState(ImDrawData *draw_data, ID3D12GraphicsCommandList *ctx, FrameResources *fr)
-{
-    // Setup orthographic projection matrix into our constant buffer
-    // Our visible imgui space lies from draw_data->DisplayPos (top left) to draw_data->DisplayPos+data_data->DisplaySize (bottom right).
-    VERTEX_CONSTANT_BUFFER vertex_constant_buffer;
-    {
-        float L = draw_data->DisplayPos.x;
-        float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
-        float T = draw_data->DisplayPos.y;
-        float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
-        float mvp[4][4] =
-            {
-                {2.0f / (R - L), 0.0f, 0.0f, 0.0f},
-                {0.0f, 2.0f / (T - B), 0.0f, 0.0f},
-                {0.0f, 0.0f, 0.5f, 0.0f},
-                {(R + L) / (L - R), (T + B) / (B - T), 0.5f, 1.0f},
-            };
-        memcpy(&vertex_constant_buffer.mvp, mvp, sizeof(mvp));
-    }
-
-    // Setup viewport
-    D3D12_VIEWPORT vp;
-    memset(&vp, 0, sizeof(D3D12_VIEWPORT));
-    vp.Width = draw_data->DisplaySize.x;
-    vp.Height = draw_data->DisplaySize.y;
-    vp.MinDepth = 0.0f;
-    vp.MaxDepth = 1.0f;
-    vp.TopLeftX = vp.TopLeftY = 0.0f;
-    ctx->RSSetViewports(1, &vp);
-
-    // Bind shader and vertex buffers
-    unsigned int stride = sizeof(ImDrawVert);
-    unsigned int offset = 0;
-    D3D12_VERTEX_BUFFER_VIEW vbv;
-    memset(&vbv, 0, sizeof(D3D12_VERTEX_BUFFER_VIEW));
-    vbv.BufferLocation = fr->VertexBuffer->GetGPUVirtualAddress() + offset;
-    vbv.SizeInBytes = fr->VertexBufferSize * stride;
-    vbv.StrideInBytes = stride;
-    ctx->IASetVertexBuffers(0, 1, &vbv);
-    D3D12_INDEX_BUFFER_VIEW ibv;
-    memset(&ibv, 0, sizeof(D3D12_INDEX_BUFFER_VIEW));
-    ibv.BufferLocation = fr->IndexBuffer->GetGPUVirtualAddress();
-    ibv.SizeInBytes = fr->IndexBufferSize * sizeof(ImDrawIdx);
-    ibv.Format = sizeof(ImDrawIdx) == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
-    ctx->IASetIndexBuffer(&ibv);
-    ctx->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    ctx->SetPipelineState(g_pPipelineState.Get());
-    ctx->SetGraphicsRootSignature(g_pRootSignature.Get());
-    ctx->SetGraphicsRoot32BitConstants(0, 16, &vertex_constant_buffer, 0);
-
-    // Setup blend factor
-    const float blend_factor[4] = {0.f, 0.f, 0.f, 0.f};
-    ctx->OMSetBlendFactor(blend_factor);
 }
