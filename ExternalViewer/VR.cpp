@@ -1,5 +1,6 @@
 #include "VR.h"
 #include "Model.h"
+#include "Scene.h"
 #include <iostream>
 
 struct LoadTask
@@ -151,7 +152,7 @@ bool VR::Connect()
     return true;
 }
 
-void VR::OnFrame()
+void VR::OnFrame(Scene *scene)
 {
     // load task
     for (auto it = m_tasks.begin(); it != m_tasks.end();)
@@ -167,7 +168,7 @@ void VR::OnFrame()
             auto model = Model::Create();
             model->SetVertices((uint8_t *)data->rVertexData, data->unVertexCount * vertexStride, vertexStride);
             model->SetIndices((uint8_t *)data->rIndexData, data->unTriangleCount * indexStride, indexStride);
-            m_trackers[task->m_index] = model;
+            scene->SetModel(task->m_index, model);
             it = m_tasks.erase(it);
         }
         else
@@ -207,14 +208,10 @@ void VR::OnFrame()
                                               m_poses, vr::k_unMaxTrackedDeviceCount);
     for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
     {
-        auto tracker = m_trackers[i];
         if (m_poses[i].bPoseIsValid)
         {
-            if (tracker)
-            {
-                auto pose = ConvertSteamVRMatrixToMatrix4(m_poses[i].mDeviceToAbsoluteTracking);
-                tracker->Data.world = pose;
-            }
+            auto pose = ConvertSteamVRMatrixToMatrix4(m_poses[i].mDeviceToAbsoluteTracking);
+            scene->SetPose(i, pose);
         }
     }
 }

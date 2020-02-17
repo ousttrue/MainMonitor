@@ -10,8 +10,7 @@ class VR
     std::list<std::shared_ptr<struct LoadTask>> m_tasks;
 
 public:
-    std::shared_ptr<class Model> m_trackers[vr::k_unMaxTrackedDeviceCount] = {};
     bool Connect();
-    void OnFrame();
+    void OnFrame(class Scene *scene);
     void StartLoadModel(int index);
 };

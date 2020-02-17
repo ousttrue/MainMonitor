@@ -1,6 +1,7 @@
 #include "Window.h"
 #include "Renderer.h"
 #include "VR.h"
+#include "Scene.h"
 
 int main()
 {
@@ -23,12 +24,13 @@ int main()
             return 2;
         }
 
+        Scene scene(vr::k_unMaxTrackedDeviceCount);
         ScreenState state;
         while (window.Update(&state))
         {
-            vr.OnFrame();
+            vr.OnFrame(&scene);
             renderer.OnFrame(hwnd, state,
-                             vr.m_trackers, (int)_countof(vr.m_trackers));
+                             scene.Data(), scene.Count());
         }
     }
 

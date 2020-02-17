@@ -5,6 +5,7 @@ add_executable(${TARGET_NAME}
     Model.cpp
     Camera.cpp
     VR.cpp
+    Scene.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20
