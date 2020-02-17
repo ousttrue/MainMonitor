@@ -79,7 +79,6 @@ public:
     void OnFrame(ID3D12GraphicsCommandList *commandList, HWND hwnd, const ScreenState &state)
     {
         // Start the Dear ImGui frame
-        m_dx12.ImGui_ImplDX12_NewFrame();
         m_win32.NewFrame(hwnd, state);
         ImGui::NewFrame();
 
@@ -90,7 +89,7 @@ public:
         ImGui::Render();
 
         commandList->SetDescriptorHeaps(1, &g_pd3dSrvDescHeap);
-        m_dx12.ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
+        m_dx12.RenderDrawData(ImGui::GetDrawData(), commandList);
     }
 };
 
