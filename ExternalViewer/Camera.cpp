@@ -34,8 +34,8 @@ bool Camera::OnFrame(const ScreenState &state, const ScreenState &prev)
         // right drag
         changed = true;
         auto f = 1.0f * dt;
-        m_yaw -= dx * f;
-        m_pitch -= dy * f;
+        m_yaw += dx * f;
+        m_pitch += dy * f;
     }
     if (state.Has(MouseButtonFlags::MiddleDown) && prev.Has(MouseButtonFlags::MiddleDown))
     {

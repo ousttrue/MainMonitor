@@ -158,12 +158,14 @@ public:
 
         auto mesh = std::make_shared<Mesh>();
 
+        if (model->VerticesByteLength())
         {
             auto vertices = ResourceItem::CreateDefault(m_device, model->VerticesByteLength());
             mesh->VertexBuffer(vertices);
             m_uploader->EnqueueUpload(vertices, model->Vertices(), model->VerticesByteLength(), model->VertexStride());
         }
 
+        if (model->IndicesByteLength())
         {
             auto indices = ResourceItem::CreateDefault(m_device, model->IndicesByteLength());
             mesh->IndexBuffer(indices);
