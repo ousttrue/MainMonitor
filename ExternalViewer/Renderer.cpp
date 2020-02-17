@@ -17,7 +17,6 @@ class Impl
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
     std::unique_ptr<CommandQueue> m_queue;
     std::unique_ptr<SwapChain> m_rt;
-    std::unordered_map<int, std::shared_ptr<Model>> m_models;
     std::unique_ptr<Uploader> m_uploader;
     std::unique_ptr<Pipeline> m_pipeline;
     std::unique_ptr<Camera> m_camera;
@@ -25,6 +24,8 @@ class Impl
     std::unique_ptr<Heap> m_heap;
     d12u::ConstantBuffer<Camera::SceneConstantBuffer, 1> m_sceneConstant;
     d12u::ConstantBuffer<Model::ModelConstantBuffer, 64> m_modelConstant;
+
+    std::unordered_map<std::shared_ptr<Model>, std::shared_ptr<Mesh>> m_modelMeshMap;
 
 public:
     Impl()
@@ -59,18 +60,19 @@ public:
             HeapItem items[] = {
                 {
                     .ConstantBuffer = &m_sceneConstant,
-                    .Count=1,
+                    .Count = 1,
                 },
                 {
                     .ConstantBuffer = &m_modelConstant,
-                    .Count=64,
+                    .Count = 64,
                 },
-             };
+            };
             m_heap->Initialize(m_device, _countof(items), items);
         }
     }
 
-    void OnFrame(HWND hwnd, const ScreenState &state)
+    void OnFrame(HWND hwnd, const ScreenState &state,
+                 const std::shared_ptr<Model> *models, int count)
     {
         if (!m_device)
         {
@@ -93,6 +95,14 @@ public:
             *m_sceneConstant.Get(0) = m_camera->Data;
             m_sceneConstant.CopyToGpu();
         }
+        for (int i = 0; i < count; ++i)
+        {
+            auto model = models[i];
+            if (model)
+            {
+                m_modelConstant.Get(i)->world = model->Data.world;
+            }
+        }
         m_modelConstant.CopyToGpu();
         m_lastState = state;
 
@@ -114,11 +124,15 @@ public:
         }
 
         // model
-        for (auto &kv : m_models)
+        for (int i = 0; i < count; ++i)
         {
-            commandList->Get()->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(kv.first + 1));
-            auto mesh = GetOrCreate(kv.second);
-            mesh->Command(commandList);
+            auto model = models[i];
+            if (model)
+            {
+                auto mesh = GetOrCreate(model);
+                commandList->Get()->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(i + 1));
+                mesh->Command(commandList);
+            }
         }
 
         m_rt->End(commandList->Get(), rt);
@@ -130,12 +144,6 @@ public:
         m_queue->SyncFence(callbacks);
     }
 
-    void AddModel(int index, const std::shared_ptr<Model> &model)
-    {
-        m_models.insert(std::make_pair(index, model));
-    }
-
-    std::unordered_map<std::shared_ptr<Model>, std::shared_ptr<Mesh>> m_modelMeshMap;
     std::shared_ptr<Mesh> GetOrCreate(const std::shared_ptr<Model> &model)
     {
         auto found = m_modelMeshMap.find(model);
@@ -161,11 +169,6 @@ public:
         m_modelMeshMap.insert(std::make_pair(model, mesh));
         return mesh;
     }
-
-    void SetPose(int index, const DirectX::XMFLOAT4X4 &m)
-    {
-        m_modelConstant.Get(index)->world = m;
-    }
 };
 
 Renderer::Renderer()
@@ -178,22 +181,8 @@ Renderer::~Renderer()
     delete m_impl;
 }
 
-void Renderer::OnFrame(void *hwnd, const ScreenState &state)
+void Renderer::OnFrame(void *hwnd, const ScreenState &state,
+                       const std::shared_ptr<class Model> *models, int count)
 {
-    m_impl->OnFrame((HWND)hwnd, state);
-}
-
-void Renderer::AddModel(int index,
-                        const uint8_t *vertices, int verticesByteLength, int vertexStride,
-                        const uint8_t *indices, int indicesByteLength, int indexStride)
-{
-    auto model = Model::Create();
-    model->SetVeritces(vertices, verticesByteLength, vertexStride);
-    model->SetIndices(indices, indicesByteLength, indexStride);
-    m_impl->AddModel(index, model);
-}
-
-void Renderer::SetPose(int index, const float *matrix)
-{
-    m_impl->SetPose(index, *((const DirectX::XMFLOAT4X4 *)matrix));
+    m_impl->OnFrame((HWND)hwnd, state, models, count);
 }

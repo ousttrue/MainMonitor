@@ -6,7 +6,7 @@ std::shared_ptr<Model> Model::Create()
     return model;
 }
 
-void Model::SetVeritces(const uint8_t *p, int byteLength, int stride)
+void Model::SetVertices(const uint8_t *p, int byteLength, int stride)
 {
     m_vertices.assign(p, p + byteLength);
     m_vertexStride = stride;

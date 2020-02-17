@@ -24,7 +24,7 @@ public:
     ModelConstantBuffer Data;
     static std::shared_ptr<Model> Create();
 
-    void SetVeritces(const uint8_t *p, int byteLength, int stride);
+    void SetVertices(const uint8_t *p, int byteLength, int stride);
     const uint8_t *Vertices() const { return m_vertices.data(); }
     uint32_t VerticesByteLength() const { return (uint32_t)m_vertices.size(); }
     int VertexStride() const { return m_vertexStride; }

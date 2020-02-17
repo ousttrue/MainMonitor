@@ -1,12 +1,97 @@
 #include "VR.h"
-// #include <openvr.h>
-// #include <string>
-// #include <vector>
-// #include <DirectXMath.h>
-// #include <iostream>
-// #include <functional>
-// #include <list>
-// #include <unordered_map>
+#include "Model.h"
+#include <iostream>
+
+struct LoadTask
+{
+    int m_index;
+    std::string m_modelName;
+    enum class TrackerState
+    {
+        Unknown,
+        ModelLoading,
+        TextureLoading,
+        Completed,
+        Error,
+    };
+    TrackerState m_state{};
+    vr::RenderModel_t *m_pModel = nullptr;
+    vr::RenderModel_TextureMap_t *m_pTexture = nullptr;
+
+public:
+    LoadTask(int index, const std::string &modelName)
+        : m_index(index), m_modelName(modelName), m_state(TrackerState::ModelLoading)
+    {
+    }
+
+    ~LoadTask()
+    {
+        Release();
+    }
+    void Release()
+    {
+        if (m_pModel)
+        {
+            vr::VRRenderModels()->FreeRenderModel(m_pModel);
+            m_pModel = nullptr;
+        }
+        if (m_pTexture)
+        {
+            vr::VRRenderModels()->FreeTexture(m_pTexture);
+            m_pTexture = nullptr;
+        }
+    }
+
+    int Index() const { return m_index; }
+    vr::RenderModel_t *RenderModel() const { return m_pModel; }
+    vr::RenderModel_TextureMap_t *Texture() const { return m_pTexture; }
+
+    bool Update()
+    {
+        if (m_state == TrackerState::ModelLoading)
+        {
+            auto error = vr::VRRenderModels()->LoadRenderModel_Async(m_modelName.c_str(), &m_pModel);
+            if (error == vr::VRRenderModelError_Loading)
+            {
+                std::cout << m_modelName << " model loading..." << std::endl;
+                return false;
+            }
+            else if (error != vr::VRRenderModelError_None)
+            {
+                std::cout << m_modelName << "fail to model load: " << vr::VRRenderModels()->GetRenderModelErrorNameFromEnum(error);
+                m_state = TrackerState::Error;
+                return false;
+            }
+
+            std::cout << m_modelName << " model loaded" << std::endl;
+            m_state = TrackerState::TextureLoading;
+            return false;
+        }
+        else if (m_state == TrackerState::TextureLoading)
+        {
+            auto error = vr::VRRenderModels()->LoadTexture_Async(m_pModel->diffuseTextureId, &m_pTexture);
+            if (error == vr::VRRenderModelError_Loading)
+            {
+                std::cout << m_modelName << " texture loading..." << std::endl;
+                return false;
+            }
+            else if (error != vr::VRRenderModelError_None)
+            {
+                std::cout << m_modelName << "fail to texture load: " << vr::VRRenderModels()->GetRenderModelErrorNameFromEnum(error);
+                m_state = TrackerState::Error;
+                return false;
+            }
+
+            std::cout << m_modelName << " texture loaded" << std::endl;
+            m_state = TrackerState::Completed;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+};
 
 static std::string GetTrackedDeviceString(vr::IVRSystem *system, vr::TrackedDeviceIndex_t index,
                                           vr::TrackedDeviceProperty prop, vr::TrackedPropertyError *pError = NULL)
@@ -40,11 +125,6 @@ static DirectX::XMFLOAT4X4 ConvertSteamVRMatrixToMatrix4(const vr::HmdMatrix34_t
     return matrixObj;
 }
 
-void VR::SetCallback(const OnModelLoad &callback)
-{
-    m_callback = callback;
-}
-
 bool VR::Connect()
 {
     vr::EVRInitError initError = vr::VRInitError_None;
@@ -73,6 +153,29 @@ bool VR::Connect()
 
 void VR::OnFrame()
 {
+    // load task
+    for (auto it = m_tasks.begin(); it != m_tasks.end();)
+    {
+        auto &task = *it;
+        if (task->Update())
+        {
+            // tracker model loaded
+            auto data = task->RenderModel();
+            auto vertexStride = (int)sizeof(data->rVertexData[0]);
+            auto indexStride = (int)sizeof(data->rIndexData[0]);
+
+            auto model = std::make_shared<Model>();
+            model->SetVertices((uint8_t *)data->rVertexData, data->unVertexCount * vertexStride, vertexStride);
+            model->SetIndices((uint8_t *)data->rIndexData, data->unTriangleCount * indexStride, indexStride);
+            m_trackers[task->m_index] = model;
+            it = m_tasks.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
     // Process SteamVR events
     vr::VREvent_t event;
     while (m_system->PollNextEvent(&event, sizeof(event)))
@@ -99,18 +202,18 @@ void VR::OnFrame()
         }
     }
 
+    // update pose
     m_system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, 0,
                                               m_poses, vr::k_unMaxTrackedDeviceCount);
-
     for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
     {
+        auto tracker = m_trackers[i];
         if (m_poses[i].bPoseIsValid)
         {
-            auto found = m_trackers.find(i);
-            if (found != m_trackers.end())
+            if (tracker)
             {
                 auto pose = ConvertSteamVRMatrixToMatrix4(m_poses[i].mDeviceToAbsoluteTracking);
-                found->second->Matrix(pose);
+                tracker->Data.world = pose;
             }
         }
     }
@@ -131,5 +234,5 @@ void VR::StartLoadModel(int index)
         return;
     }
     std::cout << "#" << index << " loadModel: " << modelName << std::endl;
-    m_trackers.insert(std::make_pair(index, std::make_unique<Tracker>(index, modelName)));
+    m_tasks.push_back(std::make_shared<LoadTask>(index, modelName));
 }
