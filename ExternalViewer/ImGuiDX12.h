@@ -12,8 +12,6 @@ class ImGuiDX12
 
     // DirectX data
     ComPtr<ID3D12Device> g_pd3dDevice;
-    ComPtr<ID3D10Blob> g_pVertexShaderBlob;
-    ComPtr<ID3D10Blob> g_pPixelShaderBlob;
     ComPtr<ID3D12RootSignature> g_pRootSignature;
     ComPtr<ID3D12PipelineState> g_pPipelineState;
     DXGI_FORMAT g_RTVFormat = DXGI_FORMAT_UNKNOWN;
@@ -35,9 +33,9 @@ class ImGuiDX12
 public:
     bool Init(ID3D12Device *device, int num_frames_in_flight, DXGI_FORMAT rtv_format, ID3D12DescriptorHeap *cbv_srv_heap,
               D3D12_CPU_DESCRIPTOR_HANDLE font_srv_cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE font_srv_gpu_desc_handle);
+    void NewFrame(ID3D12Device *device);
     void RenderDrawData(ImDrawData *draw_data, ID3D12GraphicsCommandList *ctx);
 private:
     void InvalidateDeviceObjects();
-    void CreateFontsTexture();
     void SetupRenderState(ImDrawData *draw_data, ID3D12GraphicsCommandList *ctx, FrameResources *fr);
 };
