@@ -6,8 +6,8 @@
 #include <unordered_map>
 #include <dxgi.h>
 #include <imgui.h>
-#include <examples/imgui_impl_win32.h>
-#include <examples/imgui_impl_dx12.h>
+#include "ImGuiWin32.h"
+#include "ImGuiDX12.h"
 
 std::string g_shaderSource =
 #include "OpenVRRenderModel.hlsl"
@@ -15,12 +15,14 @@ std::string g_shaderSource =
 
 using namespace d12u;
 
-class DX12ImGui
+class Gui
 {
     ComPtr<ID3D12DescriptorHeap> g_pd3dSrvDescHeap;
+    ImGuiWin32 m_win32;
+    ImGuiDX12 m_dx12;
 
 public:
-    DX12ImGui(const ComPtr<ID3D12Device> &device, int bufferCount, HWND hwnd)
+    Gui(const ComPtr<ID3D12Device> &device, int bufferCount, HWND hwnd)
     {
         {
             D3D12_DESCRIPTOR_HEAP_DESC desc = {};
@@ -46,11 +48,11 @@ public:
         //ImGui::StyleColorsClassic();
 
         // Setup Platform/Renderer bindings
-        ImGui_ImplWin32_Init(hwnd);
-        ImGui_ImplDX12_Init(device.Get(), bufferCount,
-                            DXGI_FORMAT_R8G8B8A8_UNORM, g_pd3dSrvDescHeap.Get(),
-                            g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
-                            g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
+        m_win32.Init(hwnd);
+        m_dx12.Init(device.Get(), bufferCount,
+                    DXGI_FORMAT_R8G8B8A8_UNORM, g_pd3dSrvDescHeap.Get(),
+                    g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
+                    g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
 
         // Load Fonts
         // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -68,19 +70,17 @@ public:
         //IM_ASSERT(font != NULL);
     }
 
-    ~DX12ImGui()
+    ~Gui()
     {
-        ImGui_ImplDX12_Shutdown();
-        ImGui_ImplWin32_Shutdown();
         ImGui::DestroyContext();
     }
 
     bool show_demo_window = true;
-    void OnFrame(ID3D12GraphicsCommandList *commandList)
+    void OnFrame(ID3D12GraphicsCommandList *commandList, HWND hwnd, const ScreenState &state)
     {
         // Start the Dear ImGui frame
-        ImGui_ImplDX12_NewFrame();
-        ImGui_ImplWin32_NewFrame();
+        m_dx12.ImGui_ImplDX12_NewFrame();
+        m_win32.NewFrame(hwnd, state);
         ImGui::NewFrame();
 
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
@@ -90,7 +90,7 @@ public:
         ImGui::Render();
 
         commandList->SetDescriptorHeaps(1, &g_pd3dSrvDescHeap);
-        ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
+        m_dx12.ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
     }
 };
 
@@ -110,7 +110,7 @@ class Impl
 
     std::unordered_map<std::shared_ptr<Model>, std::shared_ptr<Mesh>> m_modelMeshMap;
 
-    std::unique_ptr<DX12ImGui> m_imgui;
+    std::unique_ptr<Gui> m_imgui;
 
     int m_maxModelCount = -1;
 
@@ -158,7 +158,7 @@ public:
             m_heap->Initialize(m_device, _countof(items), items);
         }
 
-        m_imgui.reset(new DX12ImGui(m_device, m_rt->BufferCount(), hwnd));
+        m_imgui.reset(new Gui(m_device, m_rt->BufferCount(), hwnd));
     }
 
     void OnFrame(HWND hwnd, const ScreenState &state,
@@ -224,6 +224,8 @@ public:
                 mesh->Command(commandList);
             }
         }
+
+        m_imgui->OnFrame(commandList->Get().Get(), hwnd, state);
 
         // barrier
         m_rt->End(commandList->Get(), rt);
