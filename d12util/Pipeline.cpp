@@ -47,13 +47,21 @@ bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string 
         D3D12_DESCRIPTOR_RANGE1 ranges[] = {
             {
                 .RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
-                .NumDescriptors = cbvDescriptorCount,
+                .NumDescriptors = 1,
                 .BaseShaderRegister = 0,
                 .RegisterSpace = 0,
                 .Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
                 // . OffsetInDescriptorsFromTableStart,
             },
-        };
+            {
+                .RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
+                .NumDescriptors = 1,
+                .BaseShaderRegister = 1,
+                .RegisterSpace = 0,
+                .Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
+                // . OffsetInDescriptorsFromTableStart,
+            },
+         };
         D3D12_ROOT_PARAMETER1 rootParameters[] = {
             {
                 .ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
@@ -63,7 +71,15 @@ bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string 
                 },
                 .ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX,
             },
-       };
+            {
+                .ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+                .DescriptorTable = {
+                    .NumDescriptorRanges = 1,
+                    .pDescriptorRanges = &ranges[1],
+                },
+                .ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX,
+            },
+        };
 
         // Allow input layout and deny uneccessary access to certain pipeline stages.
         D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -76,7 +92,7 @@ bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string 
         D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc{
             .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
             .Desc_1_1{
-                .NumParameters = 1,
+                .NumParameters = _countof(rootParameters),
                 .pParameters = rootParameters,
                 .Flags = rootSignatureFlags,
             },

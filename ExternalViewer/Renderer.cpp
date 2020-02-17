@@ -21,8 +21,8 @@ class Impl
     std::unique_ptr<Uploader> m_uploader;
     std::unique_ptr<Pipeline> m_pipeline;
     std::unique_ptr<Camera> m_camera;
-    std::unique_ptr<Heap> m_heap;
 
+    std::unique_ptr<Heap> m_heap;
     d12u::ConstantBuffer<Camera::SceneConstantBuffer, 1> m_sceneConstant;
     d12u::ConstantBuffer<Model::ModelConstantBuffer, 64> m_modelConstant;
 
@@ -55,12 +55,19 @@ public:
         m_sceneConstant.Initialize(m_device);
         m_modelConstant.Initialize(m_device);
 
-        ConstantBufferBase *buffers[] = {
-            &m_sceneConstant,
-            &m_modelConstant,
-        };
-
-        m_heap->Initialize(m_device, buffers, 2, 64);
+        {
+            HeapItem items[] = {
+                {
+                    .ConstantBuffer = &m_sceneConstant,
+                    .Count=1,
+                },
+                {
+                    .ConstantBuffer = &m_modelConstant,
+                    .Count=64,
+                },
+             };
+            m_heap->Initialize(m_device, _countof(items), items);
+        }
     }
 
     void OnFrame(HWND hwnd, const ScreenState &state)
@@ -98,17 +105,18 @@ public:
             1.0f,
         };
         auto &rt = m_rt->Begin(commandList->Get(), color);
+        ID3D12DescriptorHeap *ppHeaps[] = {m_heap->Get()};
+        commandList->Get()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 
         // scene
         {
-            ID3D12DescriptorHeap *ppHeaps[] = {m_heap->Get()};
-            commandList->Get()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+            commandList->Get()->SetGraphicsRootDescriptorTable(0, m_heap->GpuHandle(0));
         }
 
         // model
         for (auto &kv : m_models)
         {
-            commandList->Get()->SetGraphicsRootDescriptorTable(0, m_heap->GpuHandle(kv.first));
+            commandList->Get()->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(kv.first + 1));
             auto mesh = GetOrCreate(kv.second);
             mesh->Command(commandList);
         }
