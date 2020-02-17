@@ -7,7 +7,7 @@ class Renderer
     class Impl *m_impl = nullptr;
 
 public:
-    Renderer();
+    Renderer(int maxModelCount);
     ~Renderer();
     void OnFrame(void *hwnd, const ScreenState &state,
                  const std::shared_ptr<class Model> *models, int count);

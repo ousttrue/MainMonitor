@@ -4,13 +4,21 @@
 #include <stdint.h>
 #include <DirectXMath.h>
 #include "ConstantBuffer.h"
+#include "d12util.h"
 
-class Model
+class Model : d12u::NonCopyable
 {
+    int m_id = -1;
+
     std::vector<uint8_t> m_vertices;
     int m_vertexStride = 0;
     std::vector<uint8_t> m_indices;
     int m_indexStride = 0;
+
+    Model(int id)
+        : m_id(id)
+    {
+    }
 
 public:
     struct ModelConstantBuffer
@@ -24,6 +32,7 @@ public:
     ModelConstantBuffer Data;
     static std::shared_ptr<Model> Create();
 
+    int ID() const { return m_id; }
     void SetVertices(const uint8_t *p, int byteLength, int stride);
     const uint8_t *Vertices() const { return m_vertices.data(); }
     uint32_t VerticesByteLength() const { return (uint32_t)m_vertices.size(); }

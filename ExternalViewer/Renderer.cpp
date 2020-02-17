@@ -27,14 +27,17 @@ class Impl
 
     std::unordered_map<std::shared_ptr<Model>, std::shared_ptr<Mesh>> m_modelMeshMap;
 
+    int m_maxModelCount = -1;
+
 public:
-    Impl()
+    Impl(int maxModelCount)
         : m_queue(new CommandQueue),
           m_rt(new SwapChain(2)),
           m_uploader(new Uploader),
           m_pipeline(new Pipeline),
           m_camera(new Camera),
-          m_heap(new Heap)
+          m_heap(new Heap),
+          m_maxModelCount(maxModelCount)
     {
     }
 
@@ -100,7 +103,7 @@ public:
             auto model = models[i];
             if (model)
             {
-                m_modelConstant.Get(i)->world = model->Data.world;
+                m_modelConstant.Get(model->ID())->world = model->Data.world;
             }
         }
         m_modelConstant.CopyToGpu();
@@ -118,10 +121,8 @@ public:
         ID3D12DescriptorHeap *ppHeaps[] = {m_heap->Get()};
         commandList->Get()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 
-        // scene
-        {
-            commandList->Get()->SetGraphicsRootDescriptorTable(0, m_heap->GpuHandle(0));
-        }
+        // scene constant
+        commandList->Get()->SetGraphicsRootDescriptorTable(0, m_heap->GpuHandle(0));
 
         // model
         for (int i = 0; i < count; ++i)
@@ -130,15 +131,18 @@ public:
             if (model)
             {
                 auto mesh = GetOrCreate(model);
-                commandList->Get()->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(i + 1));
+                // model constant
+                commandList->Get()->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(model->ID() + 1));
+                // draw or barrier
                 mesh->Command(commandList);
             }
         }
 
+        // barrier
         m_rt->End(commandList->Get(), rt);
-        auto callbacks = commandList->Close();
 
         // execute
+        auto callbacks = commandList->Close();
         m_queue->Execute(commandList->Get());
         m_rt->Present();
         m_queue->SyncFence(callbacks);
@@ -171,8 +175,8 @@ public:
     }
 };
 
-Renderer::Renderer()
-    : m_impl(new Impl)
+Renderer::Renderer(int maxModelCount)
+    : m_impl(new Impl(maxModelCount))
 {
 }
 

@@ -2,7 +2,8 @@
 
 std::shared_ptr<Model> Model::Create()
 {
-    auto model = std::make_shared<Model>();
+    static int s_id = 0;
+    auto model = std::shared_ptr<Model>(new Model(s_id++));
     return model;
 }
 

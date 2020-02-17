@@ -15,7 +15,7 @@ int main()
     window.Show();
 
     {
-        Renderer renderer;
+        Renderer renderer(65);
         VR vr;
 
         if (!vr.Connect())

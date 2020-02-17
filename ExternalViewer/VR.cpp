@@ -164,7 +164,7 @@ void VR::OnFrame()
             auto vertexStride = (int)sizeof(data->rVertexData[0]);
             auto indexStride = (int)sizeof(data->rIndexData[0]);
 
-            auto model = std::make_shared<Model>();
+            auto model = Model::Create();
             model->SetVertices((uint8_t *)data->rVertexData, data->unVertexCount * vertexStride, vertexStride);
             model->SetIndices((uint8_t *)data->rIndexData, data->unTriangleCount * indexStride, indexStride);
             m_trackers[task->m_index] = model;
