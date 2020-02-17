@@ -2,25 +2,36 @@
 #include "ScreenState.h"
 #include <Windows.h>
 #include <windowsx.h>
+#include <string>
 
 class Window
 {
     HWND m_hwnd = NULL;
     ScreenState m_state{};
+    std::wstring m_className;
+    HINSTANCE m_hInstance;
 
 public:
-    HWND Create(const wchar_t *className, const wchar_t *titleName,
-                int width = 0, int height = 0)
+    Window(const wchar_t *className)
+        : m_className(className), m_hInstance(GetModuleHandle(NULL))
     {
-        auto hInstance = GetModuleHandle(NULL);
+    }
+
+    ~Window()
+    {
+        ::UnregisterClassW(m_className.c_str(), m_hInstance);
+    }
+
+    HWND Create(const wchar_t *titleName, int width = 0, int height = 0)
+    {
         // Initialize the window class.
         WNDCLASSEXW windowClass = {
             .cbSize = (UINT)sizeof(WNDCLASSEXW),
             .style = CS_HREDRAW | CS_VREDRAW,
             .lpfnWndProc = WindowProc,
-            .hInstance = hInstance,
+            .hInstance = m_hInstance,
             .hCursor = LoadCursor(NULL, IDC_ARROW),
-            .lpszClassName = className,
+            .lpszClassName = m_className.c_str(),
         };
         if (!RegisterClassExW(&windowClass))
         {
@@ -42,7 +53,7 @@ public:
 
         // Create the window and store a handle to it.
         m_hwnd = CreateWindowW(
-            className,
+            m_className.c_str(),
             titleName,
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT,
@@ -51,7 +62,7 @@ public:
             height,
             nullptr, // We have no parent window.
             nullptr, // We aren't using menus.
-            hInstance,
+            m_hInstance,
             this);
 
         return m_hwnd;
@@ -185,6 +196,19 @@ public:
             }
             return 0;
         }
+
+        case WM_SYSCOMMAND:
+            if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
+                return 0;
+            break;
+
+        case WM_SETCURSOR:
+            if (LOWORD(lParam) == HTCLIENT)
+            {
+                window->m_state.Set(MouseButtonFlags::CursorUpdate);
+                return 1;
+            }
+            break;
         }
 
         // Handle any messages the switch statement didn't.
@@ -217,7 +241,7 @@ public:
         }
         m_state.Time = timeGetTime();
         *pState = m_state;
-        m_state.ClearWheel();
+        m_state.Clear();
         return true;
     }
 };

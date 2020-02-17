@@ -31,9 +31,9 @@ static std::shared_ptr<Model> CreateGrid()
 
 int main()
 {
-    Window window;
+    Window window(L"ExternalViewerClass");
 
-    auto hwnd = window.Create(L"ExternalViewerClass", L"ExternalViewer");
+    auto hwnd = window.Create(L"ExternalViewer");
     if (!hwnd)
     {
         return 1;
