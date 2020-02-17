@@ -10,6 +10,7 @@
         "XMFLOAT",
         "countof",
         "hwnd",
+        "imgui",
         "uploader"
     ]
 }

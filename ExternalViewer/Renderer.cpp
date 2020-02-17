@@ -4,12 +4,77 @@
 #include <d12util.h>
 #include <memory>
 #include <unordered_map>
+#include <dxgi.h>
+#include <imgui.h>
+#include <examples/imgui_impl_win32.h>
+#include <examples/imgui_impl_dx12.h>
 
 std::string g_shaderSource =
 #include "OpenVRRenderModel.hlsl"
     ;
 
 using namespace d12u;
+
+class DX12ImGui
+{
+    ComPtr<ID3D12DescriptorHeap> g_pd3dSrvDescHeap;
+
+public:
+    DX12ImGui(const ComPtr<ID3D12Device> &device, int bufferCount, HWND hwnd)
+    {
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+            desc.NumDescriptors = 1;
+            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+            if (device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&g_pd3dSrvDescHeap)) != S_OK)
+            {
+                throw;
+            }
+        }
+
+        // Setup Dear ImGui context
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO &io = ImGui::GetIO();
+        (void)io;
+        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+        // Setup Dear ImGui style
+        ImGui::StyleColorsDark();
+        //ImGui::StyleColorsClassic();
+
+        // Setup Platform/Renderer bindings
+        ImGui_ImplWin32_Init(hwnd);
+        ImGui_ImplDX12_Init(device.Get(), bufferCount,
+                            DXGI_FORMAT_R8G8B8A8_UNORM, g_pd3dSrvDescHeap.Get(),
+                            g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
+                            g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
+
+        // Load Fonts
+        // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
+        // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
+        // - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
+        // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
+        // - Read 'docs/FONTS.txt' for more instructions and details.
+        // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
+        //io.Fonts->AddFontDefault();
+        //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
+        //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
+        //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
+        //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
+        //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
+        //IM_ASSERT(font != NULL);
+    }
+
+    ~DX12ImGui()
+    {
+        ImGui_ImplDX12_Shutdown();
+        ImGui_ImplWin32_Shutdown();
+        ImGui::DestroyContext();
+    }
+};
 
 class Impl
 {
@@ -26,6 +91,8 @@ class Impl
     d12u::ConstantBuffer<Model::ModelConstantBuffer, 64> m_modelConstant;
 
     std::unordered_map<std::shared_ptr<Model>, std::shared_ptr<Mesh>> m_modelMeshMap;
+
+    std::unique_ptr<DX12ImGui> m_imgui;
 
     int m_maxModelCount = -1;
 
@@ -72,6 +139,9 @@ public:
             };
             m_heap->Initialize(m_device, _countof(items), items);
         }
+
+
+        m_imgui.reset(new DX12ImGui(m_device, m_rt->BufferCount(), hwnd));
     }
 
     void OnFrame(HWND hwnd, const ScreenState &state,

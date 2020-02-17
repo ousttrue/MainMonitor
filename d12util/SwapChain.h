@@ -22,7 +22,7 @@ private:
 
 public:
     SwapChain(int backbufferCount);
-
+    int BufferCount() const { return (int)m_backbuffers.size(); }
     void Initialize(const ComPtr<IDXGIFactory4> &factory,
                     const ComPtr<ID3D12CommandQueue> &commandQueue, HWND hwnd);
     void Resize(const ComPtr<ID3D12CommandQueue> &commandQueue, HWND hwnd, int width, int height);
