@@ -74,6 +74,24 @@ public:
         ImGui_ImplWin32_Shutdown();
         ImGui::DestroyContext();
     }
+
+    bool show_demo_window = true;
+    void OnFrame(ID3D12GraphicsCommandList *commandList)
+    {
+        // Start the Dear ImGui frame
+        ImGui_ImplDX12_NewFrame();
+        ImGui_ImplWin32_NewFrame();
+        ImGui::NewFrame();
+
+        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        if (show_demo_window)
+            ImGui::ShowDemoWindow(&show_demo_window);
+
+        ImGui::Render();
+
+        commandList->SetDescriptorHeaps(1, &g_pd3dSrvDescHeap);
+        ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
+    }
 };
 
 class Impl
@@ -139,7 +157,6 @@ public:
             };
             m_heap->Initialize(m_device, _countof(items), items);
         }
-
 
         m_imgui.reset(new DX12ImGui(m_device, m_rt->BufferCount(), hwnd));
     }
