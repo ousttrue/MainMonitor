@@ -37,7 +37,7 @@ public:
 
         // Setup Platform/Renderer bindings
         m_win32.Init(hwnd);
-        m_dx12.Init(device.Get(), bufferCount);
+        m_dx12.Initialize(device.Get(), bufferCount);
 
         // Load Fonts
         // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -61,8 +61,7 @@ public:
     }
 
     bool show_demo_window = true;
-    void OnFrame(const ComPtr<ID3D12Device> &device,
-                 const ComPtr<ID3D12GraphicsCommandList> &commandList,
+    void OnFrame(const ComPtr<ID3D12GraphicsCommandList> &commandList,
                  HWND hwnd, const ScreenState &state)
     {
         // Start the Dear ImGui frame
@@ -74,12 +73,12 @@ public:
             ImGui::ShowDemoWindow(&show_demo_window);
 
         ImGui::Render();
-
-        m_dx12.RenderDrawData(device, commandList, ImGui::GetDrawData());
+        m_dx12.RenderDrawData(commandList.Get(), ImGui::GetDrawData());
     }
 };
 
 class Impl
+
 {
     ScreenState m_lastState = {};
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
@@ -210,7 +209,7 @@ public:
             }
         }
 
-        m_imgui->OnFrame(m_device, commandList->Get(), hwnd, state);
+        m_imgui->OnFrame(commandList->Get(), hwnd, state);
 
         // barrier
         m_rt->End(commandList->Get(), rt);

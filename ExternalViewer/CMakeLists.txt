@@ -7,6 +7,7 @@ add_executable(${TARGET_NAME}
     VR.cpp
     Scene.cpp
     ImGuiDX12.cpp
+    ImGuiDX12FrameResources.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

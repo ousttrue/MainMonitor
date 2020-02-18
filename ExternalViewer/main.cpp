@@ -29,11 +29,14 @@ static std::shared_ptr<Model> CreateGrid()
     return model;
 }
 
+const auto CLASS_NAME = L"ExternalViewerClass";
+const auto WINDOW_NAME = L"ExternalViewer";
+
 int main()
 {
-    Window window(L"ExternalViewerClass");
+    Window window(CLASS_NAME);
 
-    auto hwnd = window.Create(L"ExternalViewer");
+    auto hwnd = window.Create(WINDOW_NAME);
     if (!hwnd)
     {
         return 1;
