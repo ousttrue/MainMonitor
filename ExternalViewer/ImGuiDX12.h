@@ -11,11 +11,12 @@ class ImGuiDX12
     using ComPtr = Microsoft::WRL::ComPtr<T>;
 
     // DirectX data
-    ComPtr<ID3D12Device> g_pd3dDevice;
+    // ComPtr<ID3D12Device> g_pd3dDevice;
+    ComPtr<ID3D12DescriptorHeap> g_pd3dSrvDescHeap;
     ComPtr<ID3D12RootSignature> g_pRootSignature;
     ComPtr<ID3D12PipelineState> g_pPipelineState;
-    DXGI_FORMAT g_RTVFormat = DXGI_FORMAT_UNKNOWN;
-    ComPtr<ID3D12Resource> g_pFontTextureResource = NULL;
+    // DXGI_FORMAT g_RTVFormat = DXGI_FORMAT_UNKNOWN;
+    ComPtr<ID3D12Resource> g_pFontTextureResource;
     D3D12_CPU_DESCRIPTOR_HANDLE g_hFontSrvCpuDescHandle = {};
     D3D12_GPU_DESCRIPTOR_HANDLE g_hFontSrvGpuDescHandle = {};
 
@@ -34,10 +35,9 @@ private:
     UINT g_frameIndex = UINT_MAX;
 
 public:
-    bool Init(ID3D12Device *device, int num_frames_in_flight, DXGI_FORMAT rtv_format, ID3D12DescriptorHeap *cbv_srv_heap,
-              D3D12_CPU_DESCRIPTOR_HANDLE font_srv_cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE font_srv_gpu_desc_handle);
-    void NewFrame(ID3D12Device *device);
-    void RenderDrawData(ImDrawData *draw_data, ID3D12GraphicsCommandList *ctx);
+    bool Init(const ComPtr<ID3D12Device> &device, int num_frames_in_flight);
+    // void NewFrame(ID3D12Device *device);
+    void RenderDrawData(const ComPtr<ID3D12Device> &device, const ComPtr<ID3D12GraphicsCommandList> &ctx, ImDrawData *draw_data);
 private:
     void InvalidateDeviceObjects();
 };

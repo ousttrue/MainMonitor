@@ -17,24 +17,12 @@ using namespace d12u;
 
 class Gui
 {
-    ComPtr<ID3D12DescriptorHeap> g_pd3dSrvDescHeap;
     ImGuiWin32 m_win32;
     ImGuiDX12 m_dx12;
 
 public:
     Gui(const ComPtr<ID3D12Device> &device, int bufferCount, HWND hwnd)
     {
-        {
-            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-            desc.NumDescriptors = 1;
-            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-            if (device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&g_pd3dSrvDescHeap)) != S_OK)
-            {
-                throw;
-            }
-        }
-
         // Setup Dear ImGui context
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -49,10 +37,7 @@ public:
 
         // Setup Platform/Renderer bindings
         m_win32.Init(hwnd);
-        m_dx12.Init(device.Get(), bufferCount,
-                    DXGI_FORMAT_R8G8B8A8_UNORM, g_pd3dSrvDescHeap.Get(),
-                    g_pd3dSrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
-                    g_pd3dSrvDescHeap->GetGPUDescriptorHandleForHeapStart());
+        m_dx12.Init(device.Get(), bufferCount);
 
         // Load Fonts
         // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -76,7 +61,9 @@ public:
     }
 
     bool show_demo_window = true;
-    void OnFrame(ID3D12GraphicsCommandList *commandList, HWND hwnd, const ScreenState &state)
+    void OnFrame(const ComPtr<ID3D12Device> &device,
+                 const ComPtr<ID3D12GraphicsCommandList> &commandList,
+                 HWND hwnd, const ScreenState &state)
     {
         // Start the Dear ImGui frame
         m_win32.NewFrame(hwnd, state);
@@ -88,8 +75,7 @@ public:
 
         ImGui::Render();
 
-        commandList->SetDescriptorHeaps(1, &g_pd3dSrvDescHeap);
-        m_dx12.RenderDrawData(ImGui::GetDrawData(), commandList);
+        m_dx12.RenderDrawData(device, commandList, ImGui::GetDrawData());
     }
 };
 
@@ -224,7 +210,7 @@ public:
             }
         }
 
-        m_imgui->OnFrame(commandList->Get().Get(), hwnd, state);
+        m_imgui->OnFrame(m_device, commandList->Get(), hwnd, state);
 
         // barrier
         m_rt->End(commandList->Get(), rt);
