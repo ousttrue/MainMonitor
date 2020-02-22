@@ -1,7 +1,8 @@
 #include "Scene.h"
 
-Scene::Scene(int trackerCount)
-    : m_trackers(trackerCount)
+namespace scngrph
+{
+Scene::Scene()
 {
 }
 
@@ -22,3 +23,4 @@ void Scene::SetPose(int trackerID, const DirectX::XMFLOAT4X4 &pose)
         tracker->Data.world = pose;
     }
 }
+} // namespace scngrph

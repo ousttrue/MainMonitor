@@ -151,7 +151,7 @@ bool VR::Connect()
     return true;
 }
 
-void VR::OnFrame(Scene *scene)
+void VR::OnFrame(scngrph::Scene *scene)
 {
     // load task
     for (auto it = m_tasks.begin(); it != m_tasks.end();)

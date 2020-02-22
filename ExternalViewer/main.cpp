@@ -53,17 +53,20 @@ int main()
             return 2;
         }
 
-        Scene scene(vr::k_unMaxTrackedDeviceCount);
+        auto scene = renderer.GetScene();
+        for(int i=0; i<vr::k_unMaxTrackedDeviceCount; ++i)
+        {
+            scene->AddEmpty();
+        }
 
         auto grid = CreateGrid();
-        scene.AddModel(grid);
+        scene->AddModel(grid);
 
         screenstate::ScreenState state;
         while (window.Update(&state))
         {
-            vr.OnFrame(&scene);
-            renderer.OnFrame(hwnd, state,
-                             scene.Data(), scene.Count());
+            vr.OnFrame(scene);
+            renderer.OnFrame(hwnd, state);
         }
     }
 

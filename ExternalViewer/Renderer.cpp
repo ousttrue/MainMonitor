@@ -1,18 +1,74 @@
 #include "Renderer.h"
 #include <d12util.h>
 #include <memory>
+#include <iostream>
 #include <unordered_map>
 #include <dxgi.h>
 #include <imgui.h>
 #include "ImGuiWin32.h"
 #include "ImGuiDX12.h"
+
 #include "Camera.h"
+#include "Scene.h"
 
 std::string g_shaderSource =
 #include "OpenVRRenderModel.hlsl"
     ;
 
 using namespace d12u;
+
+#include <shobjidl.h>
+std::wstring OpenFileDialog(const std::wstring &folder)
+{
+    ComPtr<IFileOpenDialog> pFileOpen;
+    if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL,
+                                IID_PPV_ARGS(&pFileOpen))))
+    {
+        return L"";
+    }
+
+    COMDLG_FILTERSPEC fileTypes[] = {
+        {L"gltf binary format", L"*.glb"},
+        {L"all", L"*.*"},
+    };
+    if (FAILED(pFileOpen->SetFileTypes(_countof(fileTypes), fileTypes)))
+    {
+        return L"";
+    }
+    if (FAILED(pFileOpen->SetDefaultExtension(L".glb")))
+    {
+        return L"";
+    }
+    if (FAILED(pFileOpen->Show(NULL)))
+    {
+        return L"";
+    }
+
+    ComPtr<IShellItem> pItem;
+    if (FAILED(pFileOpen->GetResult(&pItem)))
+    {
+        return L"";
+    }
+
+    PWSTR pszFilePath;
+    if (FAILED(pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath)))
+    {
+        return L"";
+    }
+    std::wstring result(pszFilePath);
+    CoTaskMemFree(pszFilePath);
+
+    // DWORD len = GetCurrentDirectoryW(0, NULL);
+    // std::vector<wchar_t> dir(len);
+    // GetCurrentDirectoryW((DWORD)dir.size(), dir.data());
+    // if(dir.back()==0)
+    // {
+    //     dir.pop_back();
+    // }
+    // std::wcout << std::wstring(dir.begin(), dir.end()) << std::endl;
+
+    return result;
+}
 
 class Gui
 {
@@ -59,7 +115,6 @@ public:
         ImGui::DestroyContext();
     }
 
-    bool show_demo_window = true;
     void OnFrame(const ComPtr<ID3D12GraphicsCommandList> &commandList,
                  HWND hwnd, const screenstate::ScreenState &state)
     {
@@ -67,9 +122,17 @@ public:
         m_win32.NewFrame(hwnd, state);
         ImGui::NewFrame();
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
+        // main window
+        ImGui::Begin("main");
+        {
+            if (ImGui::Button("open"))
+            {
+                // TODO: imgui log window
+                auto path = OpenFileDialog(L"");
+                std::wcout << path << std::endl;
+            }
+        }
+        ImGui::End();
 
         ImGui::Render();
         m_dx12.RenderDrawData(commandList.Get(), ImGui::GetDrawData());
@@ -86,28 +149,29 @@ class Impl
     std::unique_ptr<Pipeline> m_pipeline;
     std::unique_ptr<SceneMapper> m_sceneMapper;
 
-    // scene
-    std::unique_ptr<scngrph::Camera> m_camera;
-
     std::unique_ptr<Heap> m_heap;
     d12u::ConstantBuffer<scngrph::Camera::SceneConstantBuffer, 1> m_sceneConstant;
     d12u::ConstantBuffer<scngrph::Model::ModelConstantBuffer, 64> m_modelConstant;
 
     std::unique_ptr<Gui> m_imgui;
 
-    int m_maxModelCount = -1;
+    // scene
+    std::unique_ptr<scngrph::Camera> m_camera;
+    std::unique_ptr<scngrph::Scene> m_scene;
 
 public:
     Impl(int maxModelCount)
         : m_queue(new CommandQueue),
           m_rt(new SwapChain(2)),
           m_pipeline(new Pipeline),
-          m_camera(new scngrph::Camera),
           m_heap(new Heap),
           m_sceneMapper(new SceneMapper),
-          m_maxModelCount(maxModelCount)
+          m_camera(new scngrph::Camera),
+          m_scene(new scngrph::Scene)
     {
     }
+
+    const std::unique_ptr<scngrph::Scene> &Scene() const { return m_scene; }
 
     void Initialize(HWND hwnd)
     {
@@ -144,8 +208,7 @@ public:
         m_imgui.reset(new Gui(m_device, m_rt->BufferCount(), hwnd));
     }
 
-    void OnFrame(HWND hwnd, const screenstate::ScreenState &state,
-                 const std::shared_ptr<scngrph::Model> *models, int count)
+    void OnFrame(HWND hwnd, const screenstate::ScreenState &state)
     {
         if (!m_device)
         {
@@ -168,6 +231,9 @@ public:
             *m_sceneConstant.Get(0) = m_camera->Data;
             m_sceneConstant.CopyToGpu();
         }
+
+        int count;
+        auto models = m_scene->GetModels(&count);
         for (int i = 0; i < count; ++i)
         {
             auto model = models[i];
@@ -176,6 +242,7 @@ public:
                 m_modelConstant.Get(model->ID())->world = model->Data.world;
             }
         }
+
         m_modelConstant.CopyToGpu();
         m_lastState = state;
 
@@ -219,7 +286,6 @@ public:
         m_rt->Present();
         m_queue->SyncFence(callbacks);
     }
-
 };
 
 Renderer::Renderer(int maxModelCount)
@@ -232,8 +298,12 @@ Renderer::~Renderer()
     delete m_impl;
 }
 
-void Renderer::OnFrame(void *hwnd, const screenstate::ScreenState &state,
-                       const std::shared_ptr<scngrph::Model> *models, int count)
+void Renderer::OnFrame(void *hwnd, const screenstate::ScreenState &state)
 {
-    m_impl->OnFrame((HWND)hwnd, state, models, count);
+    m_impl->OnFrame((HWND)hwnd, state);
+}
+
+scngrph::Scene *Renderer::GetScene()
+{
+    return m_impl->Scene().get();
 }

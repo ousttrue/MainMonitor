@@ -3,6 +3,11 @@
 #include <list>
 #include <memory>
 
+namespace scngrph
+{
+    class Scene;
+}
+
 class VR
 {
     vr::IVRSystem *m_system = nullptr;
@@ -11,6 +16,6 @@ class VR
 
 public:
     bool Connect();
-    void OnFrame(class Scene *scene);
+    void OnFrame(scngrph::Scene *scene);
     void StartLoadModel(int index);
 };

@@ -2,6 +2,7 @@ set(TARGET_NAME scngrph)
 add_library(${TARGET_NAME}
     Model.cpp
     Camera.cpp
+    Scene.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20
