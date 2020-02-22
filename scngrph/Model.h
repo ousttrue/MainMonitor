@@ -3,10 +3,10 @@
 #include <memory>
 #include <stdint.h>
 #include <DirectXMath.h>
-#include "ConstantBuffer.h"
-#include "d12util.h"
+// #include "ConstantBuffer.h"
+// #include "d12util.h"
 
-class Model : d12u::NonCopyable
+class Model
 {
     int m_id = -1;
 

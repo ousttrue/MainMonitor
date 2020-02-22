@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include "ScreenState.h"
 
 using namespace DirectX;
 
@@ -23,13 +24,13 @@ void Camera::Calc()
     }
 }
 
-bool Camera::OnFrame(const ScreenState &state, const ScreenState &prev)
+bool Camera::OnFrame(const screenstate::ScreenState &state, const screenstate::ScreenState &prev)
 {
     bool changed = false;
     auto dx = state.X - prev.X;
     auto dy = state.Y - prev.Y;
     auto dt = state.DeltaSeconds(prev);
-    if (state.Has(MouseButtonFlags::RightDown) && prev.Has(MouseButtonFlags::RightDown))
+    if (state.Has(screenstate::MouseButtonFlags::RightDown) && prev.Has(screenstate::MouseButtonFlags::RightDown))
     {
         // right drag
         changed = true;
@@ -37,7 +38,7 @@ bool Camera::OnFrame(const ScreenState &state, const ScreenState &prev)
         m_yaw += dx * f;
         m_pitch += dy * f;
     }
-    if (state.Has(MouseButtonFlags::MiddleDown) && prev.Has(MouseButtonFlags::MiddleDown))
+    if (state.Has(screenstate::MouseButtonFlags::MiddleDown) && prev.Has(screenstate::MouseButtonFlags::MiddleDown))
     {
         // Middle drag
         changed = true;
@@ -46,12 +47,12 @@ bool Camera::OnFrame(const ScreenState &state, const ScreenState &prev)
         m_translation.x -= dx * f;
         m_translation.y += dy * f;
     }
-    if (state.Has(MouseButtonFlags::WheelMinus))
+    if (state.Has(screenstate::MouseButtonFlags::WheelMinus))
     {
         changed = true;
         m_translation.z *= 1.1f;
     }
-    if (state.Has(MouseButtonFlags::WheelPlus))
+    if (state.Has(screenstate::MouseButtonFlags::WheelPlus))
     {
         changed = true;
         m_translation.z *= 0.9f;

@@ -1,7 +1,10 @@
 #pragma once
-#include "Helper.h"
-#include "ScreenState.h"
 #include <DirectXMath.h>
+
+namespace screenstate
+{
+    struct ScreenState;
+}
 
 /// Turntable
 class Camera
@@ -26,5 +29,5 @@ public:
     };
     SceneConstantBuffer Data;
     Camera();
-    bool OnFrame(const ScreenState &state, const ScreenState &prev);
+    bool OnFrame(const screenstate::ScreenState &state, const screenstate::ScreenState &prev);
 };

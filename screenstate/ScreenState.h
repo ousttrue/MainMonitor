@@ -1,6 +1,8 @@
 #pragma once
 #include <stdint.h>
 
+namespace screenstate
+{
 enum MouseButtonFlags
 {
     None,
@@ -66,3 +68,4 @@ struct ScreenState
     }
 };
 static_assert(sizeof(ScreenState) == 16, "sizeof(WindowMouseState)");
+} // namespace screenstate

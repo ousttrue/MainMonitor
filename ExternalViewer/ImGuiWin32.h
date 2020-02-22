@@ -1,4 +1,5 @@
 #pragma once
+#include "ScreenState.h"
 
 class ImGuiWin32
 {
@@ -102,7 +103,7 @@ public:
         return true;
     }
 
-    void NewFrame(HWND hWnd, const ScreenState &state)
+    void NewFrame(HWND hWnd, const screenstate::ScreenState &state)
     {
         // ImGui_ImplWin32_NewFrame();
         ImGuiIO &io = ImGui::GetIO();
@@ -110,14 +111,14 @@ public:
 
         ////////////////////////////////////////////////////////////
         io.MousePos = ImVec2(state.X, state.Y);
-        io.MouseDown[0] = state.Has(MouseButtonFlags::LeftDown);
-        io.MouseDown[1] = state.Has(MouseButtonFlags::RightDown);
-        io.MouseDown[2] = state.Has(MouseButtonFlags::MiddleDown);
-        if (state.Has(MouseButtonFlags::WheelPlus))
+        io.MouseDown[0] = state.Has(screenstate::MouseButtonFlags::LeftDown);
+        io.MouseDown[1] = state.Has(screenstate::MouseButtonFlags::RightDown);
+        io.MouseDown[2] = state.Has(screenstate::MouseButtonFlags::MiddleDown);
+        if (state.Has(screenstate::MouseButtonFlags::WheelPlus))
         {
             io.MouseWheel = 1;
         }
-        else if (state.Has(MouseButtonFlags::WheelMinus))
+        else if (state.Has(screenstate::MouseButtonFlags::WheelMinus))
         {
             io.MouseWheel = -1;
         }
@@ -125,7 +126,7 @@ public:
         {
             io.MouseWheel = 0;
         }
-        if (state.Has(MouseButtonFlags::CursorUpdate))
+        if (state.Has(screenstate::MouseButtonFlags::CursorUpdate))
         {
             if (!UpdateMouseCursor())
             {

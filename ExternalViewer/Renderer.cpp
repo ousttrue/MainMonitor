@@ -62,7 +62,7 @@ public:
 
     bool show_demo_window = true;
     void OnFrame(const ComPtr<ID3D12GraphicsCommandList> &commandList,
-                 HWND hwnd, const ScreenState &state)
+                 HWND hwnd, const screenstate::ScreenState &state)
     {
         // Start the Dear ImGui frame
         m_win32.NewFrame(hwnd, state);
@@ -80,7 +80,7 @@ public:
 class Impl
 
 {
-    ScreenState m_lastState = {};
+    screenstate::ScreenState m_lastState = {};
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
     std::unique_ptr<CommandQueue> m_queue;
     std::unique_ptr<SwapChain> m_rt;
@@ -145,7 +145,7 @@ public:
         m_imgui.reset(new Gui(m_device, m_rt->BufferCount(), hwnd));
     }
 
-    void OnFrame(HWND hwnd, const ScreenState &state,
+    void OnFrame(HWND hwnd, const screenstate::ScreenState &state,
                  const std::shared_ptr<Model> *models, int count)
     {
         if (!m_device)
@@ -260,7 +260,7 @@ Renderer::~Renderer()
     delete m_impl;
 }
 
-void Renderer::OnFrame(void *hwnd, const ScreenState &state,
+void Renderer::OnFrame(void *hwnd, const screenstate::ScreenState &state,
                        const std::shared_ptr<class Model> *models, int count)
 {
     m_impl->OnFrame((HWND)hwnd, state, models, count);

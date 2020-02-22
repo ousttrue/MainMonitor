@@ -1,4 +1,4 @@
-#include "Window.h"
+#include "Win32Window.h"
 #include "Renderer.h"
 #include "VR.h"
 #include "Scene.h"
@@ -34,7 +34,7 @@ const auto WINDOW_NAME = L"ExternalViewer";
 
 int main()
 {
-    Window window(CLASS_NAME);
+    screenstate::Win32Window window(CLASS_NAME);
 
     auto hwnd = window.Create(WINDOW_NAME);
     if (!hwnd)
@@ -58,7 +58,7 @@ int main()
         auto grid = CreateGrid();
         scene.AddModel(grid);
 
-        ScreenState state;
+        screenstate::ScreenState state;
         while (window.Update(&state))
         {
             vr.OnFrame(&scene);

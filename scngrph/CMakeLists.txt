@@ -1,14 +1,7 @@
-set(TARGET_NAME d12util)
+set(TARGET_NAME scngrph)
 add_library(${TARGET_NAME}
-    CommandQueue.cpp
-    RenderTarget.cpp
-    SwapChain.cpp
-    CommandList.cpp
-    ResourceItem.cpp
-    Uploader.cpp
-    Mesh.cpp
-    Pipeline.cpp
-    Heap.cpp
+    Model.cpp
+    Camera.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20
