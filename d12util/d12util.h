@@ -11,3 +11,4 @@
 #include "ConstantBuffer.h"
 #include "Pipeline.h"
 #include "Heap.h"
+#include "SceneMapper.h"

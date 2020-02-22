@@ -1,6 +1,4 @@
 #include "Renderer.h"
-#include "Model.h"
-#include "Camera.h"
 #include <d12util.h>
 #include <memory>
 #include <unordered_map>
@@ -8,6 +6,7 @@
 #include <imgui.h>
 #include "ImGuiWin32.h"
 #include "ImGuiDX12.h"
+#include "Camera.h"
 
 std::string g_shaderSource =
 #include "OpenVRRenderModel.hlsl"
@@ -84,15 +83,15 @@ class Impl
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
     std::unique_ptr<CommandQueue> m_queue;
     std::unique_ptr<SwapChain> m_rt;
-    std::unique_ptr<Uploader> m_uploader;
     std::unique_ptr<Pipeline> m_pipeline;
-    std::unique_ptr<Camera> m_camera;
+    std::unique_ptr<SceneMapper> m_sceneMapper;
+
+    // scene
+    std::unique_ptr<scngrph::Camera> m_camera;
 
     std::unique_ptr<Heap> m_heap;
-    d12u::ConstantBuffer<Camera::SceneConstantBuffer, 1> m_sceneConstant;
-    d12u::ConstantBuffer<Model::ModelConstantBuffer, 64> m_modelConstant;
-
-    std::unordered_map<std::shared_ptr<Model>, std::shared_ptr<Mesh>> m_modelMeshMap;
+    d12u::ConstantBuffer<scngrph::Camera::SceneConstantBuffer, 1> m_sceneConstant;
+    d12u::ConstantBuffer<scngrph::Model::ModelConstantBuffer, 64> m_modelConstant;
 
     std::unique_ptr<Gui> m_imgui;
 
@@ -102,10 +101,10 @@ public:
     Impl(int maxModelCount)
         : m_queue(new CommandQueue),
           m_rt(new SwapChain(2)),
-          m_uploader(new Uploader),
           m_pipeline(new Pipeline),
-          m_camera(new Camera),
+          m_camera(new scngrph::Camera),
           m_heap(new Heap),
+          m_sceneMapper(new SceneMapper),
           m_maxModelCount(maxModelCount)
     {
     }
@@ -123,7 +122,7 @@ public:
 
         m_queue->Initialize(m_device);
         m_rt->Initialize(factory, m_queue->Get(), hwnd);
-        m_uploader->Initialize(m_device);
+        m_sceneMapper->Initialize(m_device);
         m_pipeline->Initialize(m_device, g_shaderSource, 2);
         m_sceneConstant.Initialize(m_device);
         m_modelConstant.Initialize(m_device);
@@ -146,7 +145,7 @@ public:
     }
 
     void OnFrame(HWND hwnd, const screenstate::ScreenState &state,
-                 const std::shared_ptr<Model> *models, int count)
+                 const std::shared_ptr<scngrph::Model> *models, int count)
     {
         if (!m_device)
         {
@@ -154,7 +153,7 @@ public:
             Initialize(hwnd);
         }
 
-        m_uploader->Update(m_device);
+        m_sceneMapper->Update(m_device);
 
         // update
         if (m_lastState.Width != state.Width || m_lastState.Height != state.Height)
@@ -201,7 +200,7 @@ public:
             auto model = models[i];
             if (model)
             {
-                auto mesh = GetOrCreate(model);
+                auto mesh = m_sceneMapper->GetOrCreate(m_device, model);
                 // model constant
                 commandList->Get()->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(model->ID() + 1));
                 // draw or barrier
@@ -221,33 +220,6 @@ public:
         m_queue->SyncFence(callbacks);
     }
 
-    std::shared_ptr<Mesh> GetOrCreate(const std::shared_ptr<Model> &model)
-    {
-        auto found = m_modelMeshMap.find(model);
-        if (found != m_modelMeshMap.end())
-        {
-            return found->second;
-        }
-
-        auto mesh = std::make_shared<Mesh>();
-
-        if (model->VerticesByteLength())
-        {
-            auto vertices = ResourceItem::CreateDefault(m_device, model->VerticesByteLength());
-            mesh->VertexBuffer(vertices);
-            m_uploader->EnqueueUpload(vertices, model->Vertices(), model->VerticesByteLength(), model->VertexStride());
-        }
-
-        if (model->IndicesByteLength())
-        {
-            auto indices = ResourceItem::CreateDefault(m_device, model->IndicesByteLength());
-            mesh->IndexBuffer(indices);
-            m_uploader->EnqueueUpload(indices, model->Indices(), model->IndicesByteLength(), model->IndexStride());
-        }
-
-        m_modelMeshMap.insert(std::make_pair(model, mesh));
-        return mesh;
-    }
 };
 
 Renderer::Renderer(int maxModelCount)
@@ -261,7 +233,7 @@ Renderer::~Renderer()
 }
 
 void Renderer::OnFrame(void *hwnd, const screenstate::ScreenState &state,
-                       const std::shared_ptr<class Model> *models, int count)
+                       const std::shared_ptr<scngrph::Model> *models, int count)
 {
     m_impl->OnFrame((HWND)hwnd, state, models, count);
 }

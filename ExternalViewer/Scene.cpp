@@ -1,5 +1,4 @@
 #include "Scene.h"
-#include "Model.h"
 
 Scene::Scene(int trackerCount)
     : m_trackers(trackerCount)

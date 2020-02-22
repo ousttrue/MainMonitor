@@ -1,5 +1,4 @@
 #include "VR.h"
-#include "Model.h"
 #include "Scene.h"
 #include <iostream>
 
@@ -165,7 +164,7 @@ void VR::OnFrame(Scene *scene)
             auto vertexStride = (int)sizeof(data->rVertexData[0]);
             auto indexStride = (int)sizeof(data->rIndexData[0]);
 
-            auto model = Model::Create();
+            auto model = scngrph::Model::Create();
             model->SetVertices((uint8_t *)data->rVertexData, data->unVertexCount * vertexStride, vertexStride);
             model->SetIndices((uint8_t *)data->rIndexData, data->unTriangleCount * indexStride, indexStride);
             scene->SetModel(task->m_index, model);

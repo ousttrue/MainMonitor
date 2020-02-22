@@ -3,10 +3,12 @@
 
 namespace screenstate
 {
-    struct ScreenState;
+struct ScreenState;
 }
 
-/// Turntable
+namespace scngrph
+{
+/// TurnTable
 class Camera
 {
     // view
@@ -21,6 +23,7 @@ class Camera
     float m_aspectRatio = 1.0f;
 
     void Calc();
+
 public:
     struct SceneConstantBuffer
     {
@@ -31,3 +34,4 @@ public:
     Camera();
     bool OnFrame(const screenstate::ScreenState &state, const screenstate::ScreenState &prev);
 };
+} // namespace scngrph

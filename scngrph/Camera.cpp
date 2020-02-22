@@ -3,6 +3,8 @@
 
 using namespace DirectX;
 
+namespace scngrph
+{
 Camera::Camera()
 {
     Calc();
@@ -71,3 +73,4 @@ bool Camera::OnFrame(const screenstate::ScreenState &state, const screenstate::S
     Calc();
     return true;
 }
+} // namespace scngrph

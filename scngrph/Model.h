@@ -6,6 +6,8 @@
 // #include "ConstantBuffer.h"
 // #include "d12util.h"
 
+namespace scngrph
+{
 class Model
 {
     int m_id = -1;
@@ -53,3 +55,4 @@ public:
     uint32_t IndicesByteLength() const { return (uint32_t)m_indices.size(); }
     int IndexStride() const { return m_indexStride; }
 };
+} // namespace scngrph

@@ -1,5 +1,7 @@
 #include "Model.h"
 
+namespace scngrph
+{
 std::shared_ptr<Model> Model::Create()
 {
     static int s_id = 0;
@@ -18,3 +20,4 @@ void Model::SetIndices(const uint8_t *p, int byteLength, int stride)
     m_indices.assign(p, p + byteLength);
     m_indexStride = stride;
 }
+} // namespace scngraph
