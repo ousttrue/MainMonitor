@@ -5,7 +5,7 @@ subdirs(
     screenstate 
     imgui 
     d12util 
-    scngrph 
+    hierarchy 
     desktop_dupl 
     ExternalViewer 
     vrcui

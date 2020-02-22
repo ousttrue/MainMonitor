@@ -12,12 +12,12 @@ class SceneMapper
     using ComPtr = Microsoft::WRL::ComPtr<T>;
 
     std::unique_ptr<class Uploader> m_uploader;
-    std::unordered_map<std::shared_ptr<scngrph::Model>, std::shared_ptr<class Mesh>> m_modelMeshMap;
+    std::unordered_map<std::shared_ptr<hierarchy::Model>, std::shared_ptr<class Mesh>> m_modelMeshMap;
 
 public:
     SceneMapper();
     void Initialize(const ComPtr<ID3D12Device> &device);
     void Update(const ComPtr<ID3D12Device> &device);
-    std::shared_ptr<class Mesh> GetOrCreate(const ComPtr<ID3D12Device> &device, const std::shared_ptr<scngrph::Model> &model);
+    std::shared_ptr<class Mesh> GetOrCreate(const ComPtr<ID3D12Device> &device, const std::shared_ptr<hierarchy::Model> &model);
 };
 } // namespace d12u

@@ -3,7 +3,7 @@
 #include <list>
 #include <memory>
 
-namespace scngrph
+namespace hierarchy
 {
     class Scene;
 }
@@ -16,6 +16,6 @@ class VR
 
 public:
     bool Connect();
-    void OnFrame(scngrph::Scene *scene);
+    void OnFrame(hierarchy::Scene *scene);
     void StartLoadModel(int index);
 };

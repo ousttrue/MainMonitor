@@ -151,7 +151,7 @@ bool VR::Connect()
     return true;
 }
 
-void VR::OnFrame(scngrph::Scene *scene)
+void VR::OnFrame(hierarchy::Scene *scene)
 {
     // load task
     for (auto it = m_tasks.begin(); it != m_tasks.end();)
@@ -164,7 +164,7 @@ void VR::OnFrame(scngrph::Scene *scene)
             auto vertexStride = (int)sizeof(data->rVertexData[0]);
             auto indexStride = (int)sizeof(data->rIndexData[0]);
 
-            auto model = scngrph::Model::Create();
+            auto model = hierarchy::Model::Create();
             model->SetVertices((uint8_t *)data->rVertexData, data->unVertexCount * vertexStride, vertexStride);
             model->SetIndices((uint8_t *)data->rIndexData, data->unTriangleCount * indexStride, indexStride);
             scene->SetModel(task->m_index, model);

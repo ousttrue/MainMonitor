@@ -4,11 +4,11 @@
 #include <string>
 #include "Model.h"
 
-namespace scngrph
+namespace hierarchy
 {
 class Scene
 {
-    using Item = std::shared_ptr<scngrph::Model>;
+    using Item = std::shared_ptr<hierarchy::Model>;
     std::vector<Item> m_trackers;
 
 public:
@@ -25,10 +25,10 @@ public:
     {
         m_trackers.push_back(nullptr);
     }
-    void AddModel(const std::shared_ptr<scngrph::Model> &model)
+    void AddModel(const std::shared_ptr<hierarchy::Model> &model)
     {
         m_trackers.push_back(model);
     }
     void LoadFromPath(const std::wstring &path);
 };
-} // namespace scngrph
+} // namespace hierarchy

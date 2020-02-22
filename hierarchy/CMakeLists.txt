@@ -1,4 +1,4 @@
-set(TARGET_NAME scngrph)
+set(TARGET_NAME hierarchy)
 add_library(${TARGET_NAME}
     Model.cpp
     Camera.cpp

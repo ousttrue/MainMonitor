@@ -7,7 +7,7 @@ namespace screenstate
     struct ScreenState;
 }
 
-namespace scngrph
+namespace hierarchy
 {
     class Scene;
 }
@@ -20,5 +20,5 @@ public:
     Renderer(int maxModelCount);
     ~Renderer();
     void OnFrame(void *hwnd, const screenstate::ScreenState &state);
-    scngrph::Scene *GetScene();
+    hierarchy::Scene *GetScene();
 };

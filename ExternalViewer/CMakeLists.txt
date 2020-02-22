@@ -11,7 +11,7 @@ set_property(TARGET ${TARGET_NAME}
     )
 target_link_libraries(${TARGET_NAME} PRIVATE
     d12util
-    scngrph
+    hierarchy
     #
     imgui
     ${EXTERNAL_DIR}/openvr/lib/win64/openvr_api.lib

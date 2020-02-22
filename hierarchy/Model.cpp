@@ -1,6 +1,6 @@
 #include "Model.h"
 
-namespace scngrph
+namespace hierarchy
 {
 std::shared_ptr<Model> Model::Create()
 {

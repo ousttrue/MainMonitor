@@ -140,14 +140,14 @@ class Impl
     std::unique_ptr<SceneMapper> m_sceneMapper;
 
     std::unique_ptr<Heap> m_heap;
-    d12u::ConstantBuffer<scngrph::Camera::SceneConstantBuffer, 1> m_sceneConstant;
-    d12u::ConstantBuffer<scngrph::Model::ModelConstantBuffer, 64> m_modelConstant;
+    d12u::ConstantBuffer<hierarchy::Camera::SceneConstantBuffer, 1> m_sceneConstant;
+    d12u::ConstantBuffer<hierarchy::Model::ModelConstantBuffer, 64> m_modelConstant;
 
     std::unique_ptr<Gui> m_imgui;
 
     // scene
-    std::unique_ptr<scngrph::Camera> m_camera;
-    std::unique_ptr<scngrph::Scene> m_scene;
+    std::unique_ptr<hierarchy::Camera> m_camera;
+    std::unique_ptr<hierarchy::Scene> m_scene;
 
 public:
     Impl(int maxModelCount)
@@ -156,12 +156,12 @@ public:
           m_pipeline(new Pipeline),
           m_heap(new Heap),
           m_sceneMapper(new SceneMapper),
-          m_camera(new scngrph::Camera),
-          m_scene(new scngrph::Scene)
+          m_camera(new hierarchy::Camera),
+          m_scene(new hierarchy::Scene)
     {
     }
 
-    const std::unique_ptr<scngrph::Scene> &Scene() const { return m_scene; }
+    const std::unique_ptr<hierarchy::Scene> &Scene() const { return m_scene; }
 
     void Initialize(HWND hwnd)
     {
@@ -305,7 +305,7 @@ void Renderer::OnFrame(void *hwnd, const screenstate::ScreenState &state)
     m_impl->OnFrame((HWND)hwnd, state);
 }
 
-scngrph::Scene *Renderer::GetScene()
+hierarchy::Scene *Renderer::GetScene()
 {
     return m_impl->Scene().get();
 }

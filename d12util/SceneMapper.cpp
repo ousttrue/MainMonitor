@@ -20,7 +20,7 @@ void SceneMapper::Update(const ComPtr<ID3D12Device> &device)
     m_uploader->Update(device);
 }
 
-std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &device, const std::shared_ptr<scngrph::Model> &model)
+std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &device, const std::shared_ptr<hierarchy::Model> &model)
 {
     auto found = m_modelMeshMap.find(model);
     if (found != m_modelMeshMap.end())

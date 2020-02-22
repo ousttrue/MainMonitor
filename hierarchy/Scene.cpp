@@ -1,6 +1,6 @@
 #include "Scene.h"
 
-namespace scngrph
+namespace hierarchy
 {
 Scene::Scene()
 {
@@ -28,4 +28,4 @@ void Scene::LoadFromPath(const std::wstring &path)
 {
 }
 
-} // namespace scngrph
+} // namespace hierarchy

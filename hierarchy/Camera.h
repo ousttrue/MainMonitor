@@ -6,7 +6,7 @@ namespace screenstate
 struct ScreenState;
 }
 
-namespace scngrph
+namespace hierarchy
 {
 /// TurnTable
 class Camera
@@ -34,4 +34,4 @@ public:
     Camera();
     bool OnFrame(const screenstate::ScreenState &state, const screenstate::ScreenState &prev);
 };
-} // namespace scngrph
+} // namespace hierarchy
