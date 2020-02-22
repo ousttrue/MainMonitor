@@ -103,7 +103,7 @@ public:
         return true;
     }
 
-    void NewFrame(HWND hWnd, const screenstate::ScreenState &state)
+    void NewFrame(const screenstate::ScreenState &state)
     {
         // ImGui_ImplWin32_NewFrame();
         ImGuiIO &io = ImGui::GetIO();

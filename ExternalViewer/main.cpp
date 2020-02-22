@@ -32,7 +32,7 @@ static std::shared_ptr<scngrph::Model> CreateGrid()
 const auto CLASS_NAME = L"ExternalViewerClass";
 const auto WINDOW_NAME = L"ExternalViewer";
 
-int main()
+int main(int argc, char **argv)
 {
     screenstate::Win32Window window(CLASS_NAME);
 
@@ -54,7 +54,7 @@ int main()
         }
 
         auto scene = renderer.GetScene();
-        for(int i=0; i<vr::k_unMaxTrackedDeviceCount; ++i)
+        for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
         {
             scene->AddEmpty();
         }

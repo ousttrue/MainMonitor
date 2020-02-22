@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <string>
 #include "Model.h"
 
 namespace scngrph
@@ -28,5 +29,6 @@ public:
     {
         m_trackers.push_back(model);
     }
+    void LoadFromPath(const std::wstring &path);
 };
 } // namespace scngrph

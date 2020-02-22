@@ -115,25 +115,15 @@ public:
         ImGui::DestroyContext();
     }
 
-    void OnFrame(const ComPtr<ID3D12GraphicsCommandList> &commandList,
-                 HWND hwnd, const screenstate::ScreenState &state)
+    void BeginFrame(const screenstate::ScreenState &state)
     {
         // Start the Dear ImGui frame
-        m_win32.NewFrame(hwnd, state);
+        m_win32.NewFrame(state);
         ImGui::NewFrame();
+    }
 
-        // main window
-        ImGui::Begin("main");
-        {
-            if (ImGui::Button("open"))
-            {
-                // TODO: imgui log window
-                auto path = OpenFileDialog(L"");
-                std::wcout << path << std::endl;
-            }
-        }
-        ImGui::End();
-
+    void EndFrame(const ComPtr<ID3D12GraphicsCommandList> &commandList)
+    {
         ImGui::Render();
         m_dx12.RenderDrawData(commandList.Get(), ImGui::GetDrawData());
     }
@@ -275,7 +265,19 @@ public:
             }
         }
 
-        m_imgui->OnFrame(commandList->Get(), hwnd, state);
+        m_imgui->BeginFrame(state);
+
+        ImGui::Begin("main");
+        {
+            if (ImGui::Button("open"))
+            {
+                auto path = OpenFileDialog(L"");
+                m_scene->LoadFromPath(path);
+            }
+            ImGui::End();
+        }
+
+        m_imgui->EndFrame(commandList->Get());
 
         // barrier
         m_rt->End(commandList->Get(), rt);

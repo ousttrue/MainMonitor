@@ -23,4 +23,9 @@ void Scene::SetPose(int trackerID, const DirectX::XMFLOAT4X4 &pose)
         tracker->Data.world = pose;
     }
 }
+
+void Scene::LoadFromPath(const std::wstring &path)
+{
+}
+
 } // namespace scngrph
