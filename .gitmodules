@@ -4,3 +4,7 @@
 [submodule "external/imgui"]
 	path = external/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "external/sukonbu"]
+	path = external/sukonbu
+	url = git@github.com:ousttrue/sukonbu.git
+

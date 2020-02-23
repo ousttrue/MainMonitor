@@ -29,6 +29,8 @@ public:
     {
         m_trackers.push_back(model);
     }
+    void LoadFromPath(const std::string &path);
     void LoadFromPath(const std::wstring &path);
+    void LoadGlbBytes(const uint8_t *p, int size);
 };
 } // namespace hierarchy

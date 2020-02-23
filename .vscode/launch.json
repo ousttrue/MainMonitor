@@ -5,6 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "sukonbu: gen gltf",
+            "type": "python",
+            "request": "launch",
+            "module": "sukonbu.cli",
+            "args": [
+                "${workspaceFolder}/external/sukonbu/glTF/specification/2.0/schema/glTF.schema.json",
+                "--lang",
+                "cpp",
+                "--dst",
+                "${workspaceFolder}/hierarchy/gltf.h"
+            ],
+            "cwd": "${workspaceFolder}//external//sukonbu",
+            "console": "integratedTerminal",
+        },
+        {
             "name": "vrcui",
             "type": "cppvsdbg",
             "request": "launch",
@@ -25,7 +40,9 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/ExternalViewer/ExternalViewer.exe",
-            "args": [],
+            "args": [
+                "${workspaceFolder}/external/sukonbu/glTF-Sample-Models/2.0/Avocado/glTF-Binary/Avocado.glb"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [

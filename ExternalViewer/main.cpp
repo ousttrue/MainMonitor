@@ -62,6 +62,11 @@ int main(int argc, char **argv)
         auto grid = CreateGrid();
         scene->AddModel(grid);
 
+        if (argc > 1)
+        {
+            scene->LoadFromPath(argv[1]);
+        }
+
         screenstate::ScreenState state;
         while (window.Update(&state))
         {
