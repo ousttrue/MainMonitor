@@ -1,6 +1,6 @@
 #include <memory>
 #include <unordered_map>
-#include <SceneModel.h>
+#include <SceneMesh.h>
 #include <d3d12.h>
 #include <wrl/client.h>
 
@@ -12,12 +12,12 @@ class SceneMapper
     using ComPtr = Microsoft::WRL::ComPtr<T>;
 
     std::unique_ptr<class Uploader> m_uploader;
-    std::unordered_map<std::shared_ptr<hierarchy::SceneModel>, std::shared_ptr<class Mesh>> m_modelMeshMap;
+    std::unordered_map<std::shared_ptr<hierarchy::SceneMesh>, std::shared_ptr<class Mesh>> m_modelMeshMap;
 
 public:
     SceneMapper();
     void Initialize(const ComPtr<ID3D12Device> &device);
     void Update(const ComPtr<ID3D12Device> &device);
-    std::shared_ptr<class Mesh> GetOrCreate(const ComPtr<ID3D12Device> &device, const std::shared_ptr<hierarchy::SceneModel> &model);
+    std::shared_ptr<class Mesh> GetOrCreate(const ComPtr<ID3D12Device> &device, const std::shared_ptr<hierarchy::SceneMesh> &model);
 };
 } // namespace d12u

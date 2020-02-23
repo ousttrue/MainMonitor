@@ -8,7 +8,7 @@
 
 namespace hierarchy
 {
-class SceneModel
+class SceneMesh
 {
     int m_id = -1;
 
@@ -17,7 +17,7 @@ class SceneModel
     std::vector<uint8_t> m_indices;
     int m_indexStride = 0;
 
-    SceneModel(int id)
+    SceneMesh(int id)
         : m_id(id)
     {
     }
@@ -32,7 +32,7 @@ public:
             0, 0, 0, 1};
     };
     ModelConstantBuffer Data;
-    static std::shared_ptr<SceneModel> Create();
+    static std::shared_ptr<SceneMesh> Create();
 
     int ID() const { return m_id; }
     void SetVertices(const uint8_t *p, int byteLength, int stride);

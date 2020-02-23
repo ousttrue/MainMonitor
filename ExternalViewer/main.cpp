@@ -4,7 +4,7 @@
 #include "Scene.h"
 #include <d3d12.h>
 
-static std::shared_ptr<hierarchy::SceneModel> CreateGrid()
+static std::shared_ptr<hierarchy::SceneMesh> CreateGrid()
 {
     // /** A single vertex in a render model */
     // struct RenderModel_Vertex_t
@@ -23,7 +23,7 @@ static std::shared_ptr<hierarchy::SceneModel> CreateGrid()
         0, 1, 2, //
         2, 3, 0, //
     };
-    auto model = hierarchy::SceneModel::Create();
+    auto model = hierarchy::SceneMesh::Create();
     model->SetVertices(vertices);
     model->SetIndices(indices);
     return model;

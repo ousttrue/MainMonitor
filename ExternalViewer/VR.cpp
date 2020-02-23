@@ -164,7 +164,7 @@ void VR::OnFrame(hierarchy::Scene *scene)
             auto vertexStride = (int)sizeof(data->rVertexData[0]);
             auto indexStride = (int)sizeof(data->rIndexData[0]);
 
-            auto model = hierarchy::SceneModel::Create();
+            auto model = hierarchy::SceneMesh::Create();
             model->SetVertices((uint8_t *)data->rVertexData, data->unVertexCount * vertexStride, vertexStride);
             model->SetIndices((uint8_t *)data->rIndexData, data->unTriangleCount * indexStride, indexStride);
             scene->SetModel(task->m_index, model);
