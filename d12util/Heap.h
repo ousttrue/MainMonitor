@@ -8,7 +8,7 @@ namespace d12u
 struct HeapItem
 {
     const class ConstantBufferBase *ConstantBuffer;
-    int Count;
+    uint32_t Count;
 };
 class Heap : NonCopyable
 {

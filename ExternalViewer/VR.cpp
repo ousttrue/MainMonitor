@@ -164,10 +164,13 @@ void VR::OnFrame(hierarchy::Scene *scene)
             auto vertexStride = (int)sizeof(data->rVertexData[0]);
             auto indexStride = (int)sizeof(data->rIndexData[0]);
 
-            auto model = hierarchy::SceneMesh::Create();
-            model->SetVertices((uint8_t *)data->rVertexData, data->unVertexCount * vertexStride, vertexStride);
-            model->SetIndices((uint8_t *)data->rIndexData, data->unTriangleCount * indexStride, indexStride);
-            scene->SetModel(task->m_index, model);
+            auto mesh = hierarchy::SceneMesh::Create();
+            mesh->SetVertices((uint8_t *)data->rVertexData, data->unVertexCount * vertexStride, vertexStride);
+            mesh->SetIndices((uint8_t *)data->rIndexData, data->unTriangleCount * indexStride, indexStride);
+
+            auto node = scene->GetOrCreateNode(task->m_index);
+            node->AddMesh(mesh);
+
             it = m_tasks.erase(it);
         }
         else
@@ -210,7 +213,11 @@ void VR::OnFrame(hierarchy::Scene *scene)
         if (m_poses[i].bPoseIsValid)
         {
             auto pose = ConvertSteamVRMatrixToMatrix4(m_poses[i].mDeviceToAbsoluteTracking);
-            scene->SetPose(i, pose);
+            auto node = scene->GetNode(i);
+            if (node)
+            {
+                node->Data.world = pose;
+            }
         }
     }
 }

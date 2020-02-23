@@ -23,10 +23,10 @@ static std::shared_ptr<hierarchy::SceneMesh> CreateGrid()
         0, 1, 2, //
         2, 3, 0, //
     };
-    auto model = hierarchy::SceneMesh::Create();
-    model->SetVertices(vertices);
-    model->SetIndices(indices);
-    return model;
+    auto mesh = hierarchy::SceneMesh::Create();
+    mesh->SetVertices(vertices);
+    mesh->SetIndices(indices);
+    return mesh;
 }
 
 const auto CLASS_NAME = L"ExternalViewerClass";
@@ -56,11 +56,11 @@ int main(int argc, char **argv)
         auto scene = renderer.GetScene();
         for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
         {
-            scene->AddEmpty();
+            scene->AddNullNode();
         }
 
         auto grid = CreateGrid();
-        scene->AddModel(grid);
+        scene->AddMeshNode(grid);
 
         if (argc > 1)
         {

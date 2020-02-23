@@ -140,8 +140,8 @@ class Impl
     std::unique_ptr<SceneMapper> m_sceneMapper;
 
     std::unique_ptr<Heap> m_heap;
-    d12u::ConstantBuffer<hierarchy::SceneCamera::SceneConstantBuffer, 1> m_sceneConstant;
-    d12u::ConstantBuffer<hierarchy::SceneMesh::ModelConstantBuffer, 64> m_modelConstant;
+    d12u::ConstantBuffer<hierarchy::SceneCamera::SceneConstantBuffer> m_sceneConstant;
+    d12u::ConstantBuffer<hierarchy::SceneNode::ModelConstantBuffer> m_modelConstant;
 
     std::unique_ptr<Gui> m_imgui;
 
@@ -178,18 +178,18 @@ public:
         m_rt->Initialize(factory, m_queue->Get(), hwnd);
         m_sceneMapper->Initialize(m_device);
         m_pipeline->Initialize(m_device, g_shaderSource, 2);
-        m_sceneConstant.Initialize(m_device);
-        m_modelConstant.Initialize(m_device);
+        m_sceneConstant.Initialize(m_device, 1);
+        m_modelConstant.Initialize(m_device, 65);
 
         {
             HeapItem items[] = {
                 {
                     .ConstantBuffer = &m_sceneConstant,
-                    .Count = 1,
+                    .Count = m_sceneConstant.Count(),
                 },
                 {
                     .ConstantBuffer = &m_modelConstant,
-                    .Count = 64,
+                    .Count =m_modelConstant.Count(),
                 },
             };
             m_heap->Initialize(m_device, _countof(items), items);
@@ -222,14 +222,14 @@ public:
             m_sceneConstant.CopyToGpu();
         }
 
-        int count;
-        auto models = m_scene->GetModels(&count);
-        for (int i = 0; i < count; ++i)
+        int nodeCount;
+        auto nodes = m_scene->GetNodes(&nodeCount);
+        for (int i = 0; i < nodeCount; ++i)
         {
-            auto model = models[i];
-            if (model)
+            auto node = nodes[i];
+            if (node)
             {
-                m_modelConstant.Get(model->ID())->world = model->Data.world;
+                m_modelConstant.Get(node->ID())->world = node->Data.world;
             }
         }
 
@@ -252,16 +252,28 @@ public:
         commandList->Get()->SetGraphicsRootDescriptorTable(0, m_heap->GpuHandle(0));
 
         // model
-        for (int i = 0; i < count; ++i)
+        for (int i = 0; i < nodeCount; ++i)
         {
-            auto model = models[i];
-            if (model)
+            auto node = nodes[i];
+            if (node)
             {
-                auto mesh = m_sceneMapper->GetOrCreate(m_device, model);
-                // model constant
-                commandList->Get()->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(model->ID() + 1));
-                // draw or barrier
-                mesh->Command(commandList);
+                // node constant
+                // index[0] => camera
+                // index[1-64] => world matrix
+                commandList->Get()->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(node->ID() + 1));
+
+                int meshCount;
+                auto meshes = node->GetMeshes(&meshCount);
+                for (int j = 0; j < meshCount; ++j)
+                {
+                    auto mesh = meshes[j];
+                    if (mesh)
+                    {
+                        auto drawable = m_sceneMapper->GetOrCreate(m_device, mesh);
+                        // draw or barrier
+                        drawable->Command(commandList);
+                    }
+                }
             }
         }
 

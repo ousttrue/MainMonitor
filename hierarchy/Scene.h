@@ -2,32 +2,47 @@
 #include <memory>
 #include <vector>
 #include <string>
-#include "SceneMesh.h"
+#include <algorithm>
+#include "SceneNode.h"
 
 namespace hierarchy
 {
 class Scene
 {
-    using Item = std::shared_ptr<hierarchy::SceneMesh>;
-    std::vector<Item> m_trackers;
+    std::vector<SceneNodePtr> m_nodes;
 
 public:
     Scene();
-    const Item *GetModels(int *pCount) const
+    const SceneNodePtr *GetNodes(int *pCount) const
     {
-        *pCount = (int)m_trackers.size();
-        return m_trackers.data();
+        *pCount = (int)m_nodes.size();
+        return m_nodes.data();
     }
-    int Count() const { return (int)m_trackers.size(); }
-    void SetModel(int trackerID, const Item &model);
-    void SetPose(int trackerID, const DirectX::XMFLOAT4X4 &pose);
-    void AddEmpty()
+    const SceneNodePtr &GetNode(int index) const
     {
-        m_trackers.push_back(nullptr);
+        return m_nodes[index];
     }
-    void AddModel(const std::shared_ptr<hierarchy::SceneMesh> &model)
+    SceneNodePtr GetOrCreateNode(int index)
     {
-        m_trackers.push_back(model);
+        auto node = m_nodes[index];
+        if(!node)
+        {
+            node = SceneNode::Create();
+            m_nodes[index] = node;
+        }
+        return node;
+    }
+    int Count() const { return (int)m_nodes.size(); }
+
+    void AddNullNode()
+    {
+        m_nodes.push_back(nullptr);
+    }
+    void AddMeshNode(const std::shared_ptr<hierarchy::SceneMesh> &mesh)
+    {
+        auto node = SceneNode::Create();
+        node->AddMesh(mesh);
+        m_nodes.push_back(node);
     }
     void LoadFromPath(const std::string &path);
     void LoadFromPath(const std::wstring &path);

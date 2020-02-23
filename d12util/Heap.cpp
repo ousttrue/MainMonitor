@@ -7,8 +7,8 @@ namespace d12u
 void Heap::Initialize(const ComPtr<ID3D12Device> &device,
                       UINT resourceCount, const HeapItem *resources)
 {
+    UINT count = 0;
     {
-        UINT count = 0;
         for (UINT i = 0; i < resourceCount; ++i)
         {
             count += resources[i].Count;
@@ -34,10 +34,16 @@ void Heap::Initialize(const ComPtr<ID3D12Device> &device,
         {
             auto buffer = resource.ConstantBuffer;
             auto size = buffer->Size();
-            auto offset = buffer->Length() > 1
-                              ? buffer->Size() * j // each model cbv
-                              : 0                  // shared scene cbv
-                ;
+            auto offset = 0;
+            if (buffer->Count() > 1)
+            {
+                // each model cbv
+                offset = size * j;
+            }
+            else
+            {
+                // shared scene cbv
+            }
             D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {
                 .BufferLocation = buffer->Get()->GetGPUVirtualAddress() + offset,
                 .SizeInBytes = size,

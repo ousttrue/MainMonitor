@@ -2,11 +2,10 @@
 
 namespace hierarchy
 {
-std::shared_ptr<SceneMesh> SceneMesh::Create()
+
+SceneMeshPtr SceneMesh::Create()
 {
-    static int s_id = 0;
-    auto model = std::shared_ptr<SceneMesh>(new SceneMesh(s_id++));
-    return model;
+    return SceneMeshPtr(new SceneMesh);
 }
 
 void SceneMesh::SetVertices(const uint8_t *p, int byteLength, int stride)
