@@ -2,13 +2,13 @@
 #include <memory>
 #include <vector>
 #include <string>
-#include "Model.h"
+#include "SceneModel.h"
 
 namespace hierarchy
 {
 class Scene
 {
-    using Item = std::shared_ptr<hierarchy::Model>;
+    using Item = std::shared_ptr<hierarchy::SceneModel>;
     std::vector<Item> m_trackers;
 
 public:
@@ -25,7 +25,7 @@ public:
     {
         m_trackers.push_back(nullptr);
     }
-    void AddModel(const std::shared_ptr<hierarchy::Model> &model)
+    void AddModel(const std::shared_ptr<hierarchy::SceneModel> &model)
     {
         m_trackers.push_back(model);
     }

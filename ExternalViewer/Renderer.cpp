@@ -141,7 +141,7 @@ class Impl
 
     std::unique_ptr<Heap> m_heap;
     d12u::ConstantBuffer<hierarchy::Camera::SceneConstantBuffer, 1> m_sceneConstant;
-    d12u::ConstantBuffer<hierarchy::Model::ModelConstantBuffer, 64> m_modelConstant;
+    d12u::ConstantBuffer<hierarchy::SceneModel::ModelConstantBuffer, 64> m_modelConstant;
 
     std::unique_ptr<Gui> m_imgui;
 
