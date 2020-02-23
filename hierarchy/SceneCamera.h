@@ -9,7 +9,7 @@ struct ScreenState;
 namespace hierarchy
 {
 /// TurnTable
-class Camera
+class SceneCamera
 {
     // view
     float m_yaw = 0;
@@ -31,7 +31,7 @@ public:
         DirectX::XMFLOAT4X4 projection;
     };
     SceneConstantBuffer Data;
-    Camera();
+    SceneCamera();
     bool OnFrame(const screenstate::ScreenState &state, const screenstate::ScreenState &prev);
 };
 } // namespace hierarchy

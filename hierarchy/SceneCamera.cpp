@@ -1,16 +1,16 @@
-#include "Camera.h"
+#include "SceneCamera.h"
 #include "ScreenState.h"
 
 using namespace DirectX;
 
 namespace hierarchy
 {
-Camera::Camera()
+SceneCamera::SceneCamera()
 {
     Calc();
 }
 
-void Camera::Calc()
+void SceneCamera::Calc()
 {
     {
         auto m = XMMatrixPerspectiveFovRH(m_fovY, m_aspectRatio, m_near, m_far);
@@ -26,7 +26,7 @@ void Camera::Calc()
     }
 }
 
-bool Camera::OnFrame(const screenstate::ScreenState &state, const screenstate::ScreenState &prev)
+bool SceneCamera::OnFrame(const screenstate::ScreenState &state, const screenstate::ScreenState &prev)
 {
     bool changed = false;
     auto dx = state.X - prev.X;

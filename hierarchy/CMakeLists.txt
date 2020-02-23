@@ -1,7 +1,7 @@
 set(TARGET_NAME hierarchy)
 add_library(${TARGET_NAME}
     SceneModel.cpp
-    Camera.cpp
+    SceneCamera.cpp
     Scene.cpp
     GltfLoader.cpp
     )

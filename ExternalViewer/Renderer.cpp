@@ -8,7 +8,7 @@
 #include "ImGuiWin32.h"
 #include "ImGuiDX12.h"
 
-#include "Camera.h"
+#include "SceneCamera.h"
 #include "Scene.h"
 
 std::string g_shaderSource =
@@ -140,13 +140,13 @@ class Impl
     std::unique_ptr<SceneMapper> m_sceneMapper;
 
     std::unique_ptr<Heap> m_heap;
-    d12u::ConstantBuffer<hierarchy::Camera::SceneConstantBuffer, 1> m_sceneConstant;
+    d12u::ConstantBuffer<hierarchy::SceneCamera::SceneConstantBuffer, 1> m_sceneConstant;
     d12u::ConstantBuffer<hierarchy::SceneModel::ModelConstantBuffer, 64> m_modelConstant;
 
     std::unique_ptr<Gui> m_imgui;
 
     // scene
-    std::unique_ptr<hierarchy::Camera> m_camera;
+    std::unique_ptr<hierarchy::SceneCamera> m_camera;
     std::unique_ptr<hierarchy::Scene> m_scene;
 
 public:
@@ -156,7 +156,7 @@ public:
           m_pipeline(new Pipeline),
           m_heap(new Heap),
           m_sceneMapper(new SceneMapper),
-          m_camera(new hierarchy::Camera),
+          m_camera(new hierarchy::SceneCamera),
           m_scene(new hierarchy::Scene)
     {
     }
