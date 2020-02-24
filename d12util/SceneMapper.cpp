@@ -20,31 +20,38 @@ void SceneMapper::Update(const ComPtr<ID3D12Device> &device)
     m_uploader->Update(device);
 }
 
-std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &device, const std::shared_ptr<hierarchy::SceneMesh> &model)
+std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &device, const std::shared_ptr<hierarchy::SceneMesh> &sceneMesh)
 {
-    auto found = m_modelMeshMap.find(model);
+    auto found = m_modelMeshMap.find(sceneMesh);
     if (found != m_modelMeshMap.end())
     {
         return found->second;
     }
 
-    auto mesh = std::make_shared<Mesh>();
+    auto gpuMesh = std::make_shared<Mesh>();
 
-    if (model->VerticesByteLength())
+    auto positions = sceneMesh->GetVertices(hierarchy::Semantics::PositionNormalTexCoord);
+    if (positions)
     {
-        auto vertices = ResourceItem::CreateDefault(device, model->VerticesByteLength());
-        mesh->VertexBuffer(vertices);
-        m_uploader->EnqueueUpload(vertices, model->Vertices(), model->VerticesByteLength(), model->VertexStride());
+        auto resource = ResourceItem::CreateDefault(device, (UINT)positions->buffer.size());
+        gpuMesh->VertexBuffer(resource);
+        m_uploader->EnqueueUpload(resource, positions->buffer.data(), (UINT)positions->buffer.size(), positions->Stride());
+    }
+    else
+    {
+        // convert
+        auto a = 0;
     }
 
-    if (model->IndicesByteLength())
+    auto indices = sceneMesh->GetIndices();
+    if (indices)
     {
-        auto indices = ResourceItem::CreateDefault(device, model->IndicesByteLength());
-        mesh->IndexBuffer(indices);
-        m_uploader->EnqueueUpload(indices, model->Indices(), model->IndicesByteLength(), model->IndexStride());
+        auto resource = ResourceItem::CreateDefault(device, (UINT)indices->buffer.size());
+        gpuMesh->IndexBuffer(resource);
+        m_uploader->EnqueueUpload(resource, indices->buffer.data(), (UINT)indices->buffer.size(), indices->Stride());
     }
 
-    m_modelMeshMap.insert(std::make_pair(model, mesh));
-    return mesh;
+    m_modelMeshMap.insert(std::make_pair(sceneMesh, gpuMesh));
+    return gpuMesh;
 }
 } // namespace d12u

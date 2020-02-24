@@ -3,38 +3,54 @@
 #include <memory>
 #include <stdint.h>
 #include <DirectXMath.h>
+#include <ranges>
 
 namespace hierarchy
 {
+enum class Semantics
+{
+    Index,
+    Position,
+    Normal,
+    TexCoord,
+    PositionNormalTexCoord,
+};
+
+enum class ValueType
+{
+    UInt16 = 2,
+    UInt32 = 4,
+    Float2 = 8,
+    Float3 = 12,
+    Float4 = 16,
+    Float8 = 32, // Position, Normal, TexCoord,
+};
+
+struct VertexBuffer
+{
+    Semantics semantic;
+    std::vector<uint8_t> buffer;
+    ValueType valueType;
+    uint32_t Stride() const { return (uint32_t)valueType; }
+};
+
 class SceneMesh
 {
-    std::vector<uint8_t> m_vertices;
-    int m_vertexStride = 0;
-    std::vector<uint8_t> m_indices;
-    int m_indexStride = 0;
+    std::vector<VertexBuffer> m_vertices;
+    VertexBuffer m_indices;
 
 public:
     static std::shared_ptr<SceneMesh> Create();
 
-    void SetVertices(const uint8_t *p, int byteLength, int stride);
-    template <typename T, size_t N>
-    void SetVertices(T (&values)[N])
+    void SetVertices(Semantics semantic, ValueType valueType, const void *p, uint32_t size);
+    void SetVertices(const VertexBuffer &vertices)
     {
-        SetVertices((const uint8_t *)values, sizeof(values), sizeof(T));
+        m_vertices.push_back(vertices);
     }
-    const uint8_t *Vertices() const { return m_vertices.data(); }
-    uint32_t VerticesByteLength() const { return (uint32_t)m_vertices.size(); }
-    int VertexStride() const { return m_vertexStride; }
+    const VertexBuffer *GetVertices(Semantics semantic);
 
-    void SetIndices(const uint8_t *p, int byteLength, int stride);
-    template <typename T, size_t N>
-    void SetIndices(T (&values)[N])
-    {
-        SetIndices((const uint8_t *)values, sizeof(values), sizeof(T));
-    }
-    const uint8_t *Indices() const { return m_indices.data(); }
-    uint32_t IndicesByteLength() const { return (uint32_t)m_indices.size(); }
-    int IndexStride() const { return m_indexStride; }
+    void SetIndices(ValueType valueType, const void *indices, uint32_t size);
+    const VertexBuffer *GetIndices() const { return &m_indices; }
 };
 using SceneMeshPtr = std::shared_ptr<SceneMesh>;
 

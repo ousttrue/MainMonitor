@@ -1,9 +1,11 @@
 #include "Scene.h"
-#include "GltfLoader.h"
+#include "ParseGltf.h"
 #include <vector>
 #include <fstream>
 #include <string>
 #include <iostream>
+#include <gltfformat/glb.h>
+#include <gltfformat/bin.h>
 
 template <class T>
 static std::vector<uint8_t> read_allbytes(T path)
@@ -58,13 +60,59 @@ void Scene::LoadFromPath(const std::wstring &path)
 
 void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
 {
-    auto gltf = ::LoadGlb(bytes, byteLength);
+    gltfformat::glb glb;
+    if (!glb.load(bytes, byteLength))
+    {
+        return;
+    }
+
+    auto gltf = ::ParseGltf(glb.json.p, glb.json.size);
+
+    gltfformat::bin bin(gltf, glb.bin.p, glb.bin.size);
 
     // build scene
-    for (auto &mesh : gltf.meshes)
+    auto node = SceneNode::Create();
+    for (auto &gltfMesh : gltf.meshes)
     {
-        auto a = 0;
+        for (auto &gltfPrimitive : gltfMesh.primitives)
+        {
+            auto mesh = SceneMesh::Create();
+            node->AddMesh(mesh);
+
+            for (auto [k, v] : gltfPrimitive.attributes)
+            {
+                if (k == "POSITION")
+                {
+                    auto accessor = gltf.accessors[v];
+                    auto [p, size] = bin.get_bytes(accessor);
+                    mesh->SetVertices(Semantics::Position, ValueType::Float3, p, size);
+                }
+            }
+
+            {
+                auto index = gltfPrimitive.indices.value();
+                auto accessor = gltf.accessors[index];
+                auto [p, size] = bin.get_bytes(accessor);
+                ValueType valueType;
+                switch (accessor.componentType.value())
+                {
+                case gltfformat::AccessorComponentType::UNSIGNED_SHORT:
+                case gltfformat::AccessorComponentType::SHORT:
+                    valueType = ValueType::UInt16;
+                    break;
+
+                case gltfformat::AccessorComponentType::UNSIGNED_INT:
+                    valueType = ValueType::UInt32;
+                    break;
+
+                default:
+                    throw;
+                }
+                mesh->SetIndices(valueType, p, size);
+            }
+        }
     }
+    m_nodes.push_back(node);
 
     std::cout << "load" << std::endl;
 }

@@ -4,7 +4,7 @@ add_library(${TARGET_NAME}
     SceneNode.cpp
     SceneCamera.cpp
     Scene.cpp
-    GltfLoader.cpp
+    ParseGltf.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

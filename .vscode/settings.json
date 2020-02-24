@@ -89,8 +89,11 @@
     "cSpell.words": [
         "XMFLOAT",
         "countof",
+        "gltf",
+        "gltfformat",
         "hwnd",
         "imgui",
+        "nlohmann",
         "uploader"
     ],
     "python.pythonPath": "C:\\Python38\\python.exe"
