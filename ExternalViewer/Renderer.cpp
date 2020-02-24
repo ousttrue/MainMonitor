@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <dxgi.h>
 #include <imgui.h>
-#include "ImGuiWin32.h"
+#include <ImGuiImplScreenState.h>
 #include "ImGuiDX12.h"
 
 #include "SceneCamera.h"
@@ -71,9 +71,60 @@ std::wstring OpenFileDialog(const std::wstring &folder)
     return result;
 }
 
+static void ImGui_Impl_Win32_UpdateMouseCursor()
+{
+    ImGuiIO &io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange)
+    {
+        SetCursor(LoadCursor(NULL, IDC_ARROW));
+        return;
+    }
+
+    ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
+    if (imgui_cursor == ImGuiMouseCursor_None || io.MouseDrawCursor)
+    {
+        // Hide OS mouse cursor if imgui is drawing it or if it wants no cursor
+        ::SetCursor(NULL);
+        return;
+    }
+
+    // Show OS mouse cursor
+    LPTSTR win32_cursor = IDC_ARROW;
+    switch (imgui_cursor)
+    {
+    case ImGuiMouseCursor_Arrow:
+        win32_cursor = IDC_ARROW;
+        break;
+    case ImGuiMouseCursor_TextInput:
+        win32_cursor = IDC_IBEAM;
+        break;
+    case ImGuiMouseCursor_ResizeAll:
+        win32_cursor = IDC_SIZEALL;
+        break;
+    case ImGuiMouseCursor_ResizeEW:
+        win32_cursor = IDC_SIZEWE;
+        break;
+    case ImGuiMouseCursor_ResizeNS:
+        win32_cursor = IDC_SIZENS;
+        break;
+    case ImGuiMouseCursor_ResizeNESW:
+        win32_cursor = IDC_SIZENESW;
+        break;
+    case ImGuiMouseCursor_ResizeNWSE:
+        win32_cursor = IDC_SIZENWSE;
+        break;
+    case ImGuiMouseCursor_Hand:
+        win32_cursor = IDC_HAND;
+        break;
+    case ImGuiMouseCursor_NotAllowed:
+        win32_cursor = IDC_NO;
+        break;
+    }
+    ::SetCursor(::LoadCursor(NULL, win32_cursor));
+}
+
 class Gui
 {
-    ImGuiWin32 m_win32;
     ImGuiDX12 m_dx12;
 
 public:
@@ -92,7 +143,7 @@ public:
         //ImGui::StyleColorsClassic();
 
         // Setup Platform/Renderer bindings
-        m_win32.Init(hwnd);
+        ImGui_Impl_ScreenState_Init();
         m_dx12.Initialize(device.Get(), bufferCount);
 
         // Load Fonts
@@ -119,7 +170,19 @@ public:
     void BeginFrame(const screenstate::ScreenState &state)
     {
         // Start the Dear ImGui frame
-        m_win32.NewFrame(state);
+        ImGui_Impl_ScreenState_NewFrame(state);
+        if (state.Has(screenstate::MouseButtonFlags::CursorUpdate))
+        {
+            ImGui_Impl_Win32_UpdateMouseCursor();
+            // Update OS mouse cursor with the cursor requested by imgui
+            // ImGuiMouseCursor mouse_cursor = io.MouseDrawCursor ? ImGuiMouseCursor_None : ImGui::GetMouseCursor();
+            // if (g_LastMouseCursor != mouse_cursor)
+            // {
+            //     g_LastMouseCursor = mouse_cursor;
+            //     UpdateMouseCursor();
+            // }
+        }
+
         ImGui::NewFrame();
     }
 
