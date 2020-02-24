@@ -18,7 +18,7 @@ class SceneCamera
 
     // projection
     float m_near = 0.1f;
-    float m_far = 100.0f;
+    float m_far = 1000.0f;
     float m_fovY = 30.0f / 180.0f * DirectX::XM_PI;
     float m_aspectRatio = 1.0f;
 

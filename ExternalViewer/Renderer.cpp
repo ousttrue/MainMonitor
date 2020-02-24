@@ -179,7 +179,7 @@ public:
         m_sceneMapper->Initialize(m_device);
         m_pipeline->Initialize(m_device, g_shaderSource, 2);
         m_sceneConstant.Initialize(m_device, 1);
-        m_modelConstant.Initialize(m_device, 65);
+        m_modelConstant.Initialize(m_device, 128);
 
         {
             HeapItem items[] = {

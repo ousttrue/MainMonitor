@@ -87,6 +87,22 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                     auto [p, size] = bin.get_bytes(accessor);
                     mesh->SetVertices(Semantics::Position, ValueType::Float3, p, size);
                 }
+                else if (k == "NORMAL")
+                {
+                    auto accessor = gltf.accessors[v];
+                    auto [p, size] = bin.get_bytes(accessor);
+                    mesh->SetVertices(Semantics::Normal, ValueType::Float3, p, size);
+                }
+                else if (k == "TEXCOORD_0")
+                {
+                    auto accessor = gltf.accessors[v];
+                    auto [p, size] = bin.get_bytes(accessor);
+                    mesh->SetVertices(Semantics::TexCoord, ValueType::Float2, p, size);
+                }
+                else
+                {
+                    auto a = 0;
+                }
             }
 
             {

@@ -46,14 +46,49 @@ static std::shared_ptr<ResourceItem> CreateResourceItem(
         auto size = stride * count;
         command->Payload.resize(size);
         auto resource = ResourceItem::CreateDefault(device, size);
-        auto src = positions->buffer.data();
-        auto p = command->Payload.data();
-        for (UINT i = 0; i < count; ++i,
-                  src += positions->Stride(),
-                  p += stride)
+
+        // position
         {
-            *(DirectX::XMFLOAT3 *)p = *(DirectX::XMFLOAT3 *)src;
+            auto src = positions->buffer.data();
+            auto p = command->Payload.data();
+            for (UINT i = 0; i < count; ++i,
+                      src += positions->Stride(),
+                      p += stride)
+            {
+                *(DirectX::XMFLOAT3 *)p = *(DirectX::XMFLOAT3 *)src;
+            }
         }
+
+        {
+            auto normal = sceneMesh->GetVertices(hierarchy::Semantics::Normal);
+            if (normal)
+            {
+                auto src = normal->buffer.data();
+                auto p = command->Payload.data() + (4 * 3); // offset float3
+                for (UINT i = 0; i < count; ++i,
+                          src += normal->Stride(),
+                          p += stride)
+                {
+                    *(DirectX::XMFLOAT3 *)p = *(DirectX::XMFLOAT3 *)src;
+                }
+            }
+        }
+
+        {
+            auto uv = sceneMesh->GetVertices(hierarchy::Semantics::TexCoord);
+            if (uv)
+            {
+                auto src = uv->buffer.data();
+                auto p = command->Payload.data() + (4 * 6); // offset float3
+                for (UINT i = 0; i < count; ++i,
+                          src += uv->Stride(),
+                          p += stride)
+                {
+                    *(DirectX::XMFLOAT2 *)p = *(DirectX::XMFLOAT2 *)src;
+                }
+            }
+        }
+
         command->UsePayload(resource, stride);
         uploader->EnqueueUpload(command);
         return resource;
