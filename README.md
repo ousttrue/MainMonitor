@@ -15,7 +15,11 @@ TODO
 
 * [ ] Grid
 * [x] imgui
-* [ ] gizmo
+    * [ ] gizmo
 * [ ] light/lambert
 * [ ] material
 * [ ] texture
+* [ ] shader runtime load
+    * [ ] auto reload
+* [ ] logger
+    * [ ] imgui log widgets
