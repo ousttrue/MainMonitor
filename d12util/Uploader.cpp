@@ -33,13 +33,13 @@ void Uploader::Update(const ComPtr<ID3D12Device> &device)
         }
 
         // dequeue -> execute
-        auto command = m_commands.front();
+        auto command = std::move(m_commands.front());
         m_commands.pop();
 
         if (m_upload)
         {
             auto desc = m_upload->Resource()->GetDesc();
-            if (desc.Width * desc.Height < command.ByteLength)
+            if (desc.Width * desc.Height < command->ByteLength)
             {
                 // clear
                 m_upload.reset();
@@ -47,11 +47,11 @@ void Uploader::Update(const ComPtr<ID3D12Device> &device)
         }
         if (!m_upload)
         {
-            m_upload = ResourceItem::CreateUpload(device, command.ByteLength);
+            m_upload = ResourceItem::CreateUpload(device, command->ByteLength);
         }
 
         m_commandList->Reset(nullptr);
-        command.Item->EnqueueUpload(m_commandList, m_upload, command.Data, command.ByteLength, command.Stride);
+        command->Item->EnqueueUpload(m_commandList, m_upload, command->Data, command->ByteLength, command->Stride);
         auto callbacks = m_commandList->Close();
         m_queue->Execute(m_commandList->Get());
         m_callbackFenceValue = m_queue->Signal();

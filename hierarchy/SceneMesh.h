@@ -32,6 +32,7 @@ struct VertexBuffer
     std::vector<uint8_t> buffer;
     ValueType valueType;
     uint32_t Stride() const { return (uint32_t)valueType; }
+    uint32_t Count() const { return (uint32_t)buffer.size() / Stride(); }
 };
 
 class SceneMesh

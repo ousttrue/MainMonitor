@@ -8,12 +8,31 @@ namespace d12u
 struct UploadCommand
 {
     std::shared_ptr<class ResourceItem> Item;
-    const void *Data;
-    UINT ByteLength;
-    UINT Stride;
+    const void *Data = nullptr;
+    UINT ByteLength = 0;
+    UINT Stride = 0;
+    std::vector<uint8_t> Payload;
+
+    UploadCommand(const UploadCommand &rhs) = delete;
+    UploadCommand &operator=(const UploadCommand &rhs) = delete;
+    UploadCommand() {}
+    UploadCommand(const std::shared_ptr<class ResourceItem> &item,
+                  const void *data, UINT byteLength, UINT stride)
+        : Item(item), Data(data), ByteLength(byteLength), Stride(stride)
+    {
+    }
+
+    void UsePayload(const std::shared_ptr<class ResourceItem> &item, UINT stride)
+    {
+        Item = item;
+        Stride = stride;
+        // refer payload. payload has lifetime while MapCopyUnmap
+        Data = Payload.data();
+        ByteLength = (UINT)Payload.size();
+    }
 };
 
-class Uploader: NonCopyable
+class Uploader : NonCopyable
 {
     template <class T>
     using ComPtr = Microsoft::WRL::ComPtr<T>;
@@ -21,7 +40,7 @@ class Uploader: NonCopyable
     class CommandQueue *m_queue = nullptr;
     class CommandList *m_commandList = nullptr;
 
-    std::queue<UploadCommand> m_commands;
+    std::queue<std::shared_ptr<UploadCommand>> m_commands;
     using OnCompletedFunc = std::function<void()>;
     OnCompletedFunc m_callback;
     UINT64 m_callbackFenceValue = 0;
@@ -37,9 +56,10 @@ public:
     void EnqueueUpload(const std::shared_ptr<class ResourceItem> &item,
                        const void *p, UINT byteLength, UINT stride)
     {
-        EnqueueUpload({item, p, byteLength, stride});
+        auto command = std::make_shared<UploadCommand>(item, p, byteLength, stride);
+        EnqueueUpload(command);
     }
-    void EnqueueUpload(const UploadCommand &command)
+    void EnqueueUpload(const std::shared_ptr<UploadCommand> &command)
     {
         m_commands.push(command);
     }
