@@ -25,8 +25,8 @@ class SceneCamera
     void Calc();
 
 public:
-    DirectX::XMFLOAT4X4 view;
-    DirectX::XMFLOAT4X4 projection;
+    DirectX::XMFLOAT4X4 View;
+    DirectX::XMFLOAT4X4 Projection;
     SceneCamera();
     bool OnFrame(const screenstate::ScreenState &state, const screenstate::ScreenState &prev);
 };

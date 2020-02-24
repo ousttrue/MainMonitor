@@ -61,33 +61,36 @@ bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string 
                 .Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
                 // . OffsetInDescriptorsFromTableStart,
             },
-         };
+        };
         D3D12_ROOT_PARAMETER1 rootParameters[] = {
+            // scene
             {
                 .ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
                 .DescriptorTable = {
                     .NumDescriptorRanges = 1,
                     .pDescriptorRanges = &ranges[0],
                 },
-                .ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX,
+                .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
             },
+            // world
             {
                 .ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
                 .DescriptorTable = {
                     .NumDescriptorRanges = 1,
                     .pDescriptorRanges = &ranges[1],
                 },
-                .ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX,
+                .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
             },
         };
 
         // Allow input layout and deny unecessary access to certain pipeline stages.
         D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-            D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+            D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT //
+            | D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS     //
+            | D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS   //
+            | D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS //
+            // | D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS      //
+            ;
 
         D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc{
             .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
@@ -173,9 +176,9 @@ bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string 
             .SampleMask = UINT_MAX,
             .RasterizerState = {
                 .FillMode = D3D12_FILL_MODE_SOLID,
-                // .CullMode = D3D12_CULL_MODE_BACK,
-                .CullMode = D3D12_CULL_MODE_NONE,
-                .FrontCounterClockwise = FALSE,
+                .CullMode = D3D12_CULL_MODE_BACK,
+                // .CullMode = D3D12_CULL_MODE_NONE,
+                .FrontCounterClockwise = TRUE,
                 .DepthBias = D3D12_DEFAULT_DEPTH_BIAS,
                 .DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP,
                 .SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,

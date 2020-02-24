@@ -3,19 +3,19 @@ cbuffer SceneConstantBuffer : register(b0)
 {
     float4x4 b0View;
     float4x4 b0Projection;
-    float3 b0LightDir;
+    float3 b0LightDirection;
     float3 b0LightColor;
 };
 cbuffer NodeConstantBuffer : register(b1)
 {
     float4x4 b1World;
 };
-cbuffer MaterialConstantBuffer: register(b2)
-{
-	float4 b2Diffuse;
-	float3 b2Ambient;
-	float3 b2Specular;
-};
+// cbuffer MaterialConstantBuffer: register(b2)
+// {
+// 	float4 b2Diffuse;
+// 	float3 b2Ambient;
+// 	float3 b2Specular;
+// };
 
 struct VSInput
 {
@@ -26,6 +26,7 @@ struct VSInput
 struct PSInput
 {
     float4 position : SV_POSITION;
+    float3 normal: NORMAL;
     float2 uv : TEXCOORD0;
 };
 
@@ -34,6 +35,7 @@ PSInput VSMain(float3 position : POSITION, float3 normal : NORMAL, float2 uv : T
     PSInput result;
 
     result.position = mul(b0Projection, mul(b0View, mul(b1World, float4(position, 1))));
+    result.normal = normalize(mul(b1World, float4(normal, 0)).xyz);
     result.uv = uv;
 
     return result;
@@ -41,6 +43,10 @@ PSInput VSMain(float3 position : POSITION, float3 normal : NORMAL, float2 uv : T
 
 float4 PSMain(PSInput input) : SV_TARGET
 {
-    return float4(input.uv, 0, 1);
+    // float3 P = input.position.xyz;
+    float3 N = input.normal;
+    float3 L = normalize(-b0LightDirection);
+    float3 Shading = saturate(dot(N, L)) * 0.8 + float3(0.2, 0.2, 0.2);
+    return float4(Shading, 1);
 }
 )""

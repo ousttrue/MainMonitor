@@ -9,6 +9,7 @@
 #include "ImGuiDX12.h"
 
 #include "SceneCamera.h"
+#include "SceneLight.h"
 #include "Scene.h"
 
 std::string g_shaderSource =
@@ -155,6 +156,7 @@ class Impl
     };
     d12u::ConstantBuffer<SceneConstants> m_sceneConstantsBuffer;
     std::unique_ptr<hierarchy::SceneCamera> m_camera;
+    std::unique_ptr<hierarchy::SceneLight> m_light;
 
     // node
     struct NodeConstants
@@ -184,6 +186,7 @@ public:
           m_heap(new Heap),
           m_sceneMapper(new SceneMapper),
           m_camera(new hierarchy::SceneCamera),
+          m_light(new hierarchy::SceneLight),
           m_scene(new hierarchy::Scene)
     {
     }
@@ -241,8 +244,11 @@ public:
         }
         if (m_camera->OnFrame(state, m_lastState))
         {
-            m_sceneConstantsBuffer.Get(0)->b0Projection = m_camera->projection;
-            m_sceneConstantsBuffer.Get(0)->b0View = m_camera->view;
+            auto buffer = m_sceneConstantsBuffer.Get(0);
+            buffer->b0Projection = m_camera->Projection;
+            buffer->b0View = m_camera->View;
+            buffer->b0LightDir = m_light->LightDirection;
+            buffer->b0LightColor = m_light->LightColor;
             m_sceneConstantsBuffer.CopyToGpu();
         }
 
