@@ -5,13 +5,13 @@ namespace d12u
 {
 
 void Heap::Initialize(const ComPtr<ID3D12Device> &device,
-                      UINT resourceCount, const HeapItem *resources)
+                      UINT resourceCount, const ConstantBufferBase *const *resources)
 {
     UINT count = 0;
     {
         for (UINT i = 0; i < resourceCount; ++i)
         {
-            count += resources[i].Count;
+            count += resources[i]->Count();
         }
         D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc = {
             .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
@@ -28,14 +28,13 @@ void Heap::Initialize(const ComPtr<ID3D12Device> &device,
     for (UINT i = 0; i < resourceCount; ++i)
     {
         auto resource = resources[i];
-        for (int j = 0; j < resource.Count; ++j,
+        for (UINT j = 0; j < resource->Count(); ++j,
                  cpuHandle.ptr += descriptorSize,
                  gpuHandle.ptr += descriptorSize)
         {
-            auto buffer = resource.ConstantBuffer;
-            auto size = buffer->Size();
+            auto size = resource->Size();
             auto offset = 0;
-            if (buffer->Count() > 1)
+            if (resource->Count() > 1)
             {
                 // each model cbv
                 offset = size * j;
@@ -45,7 +44,7 @@ void Heap::Initialize(const ComPtr<ID3D12Device> &device,
                 // shared scene cbv
             }
             D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {
-                .BufferLocation = buffer->Get()->GetGPUVirtualAddress() + offset,
+                .BufferLocation = resource->Resource()->GetGPUVirtualAddress() + offset,
                 .SizeInBytes = size,
             };
             device->CreateConstantBufferView(&cbvDesc, cpuHandle);

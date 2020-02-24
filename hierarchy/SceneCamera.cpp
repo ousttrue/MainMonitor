@@ -14,7 +14,7 @@ void SceneCamera::Calc()
 {
     {
         auto m = XMMatrixPerspectiveFovRH(m_fovY, m_aspectRatio, m_near, m_far);
-        XMStoreFloat4x4(&Data.projection, m);
+        XMStoreFloat4x4(&projection, m);
     }
 
     {
@@ -22,7 +22,7 @@ void SceneCamera::Calc()
         auto pitch = XMMatrixRotationX(m_pitch);
         auto t = XMMatrixTranslation(m_translation.x, m_translation.y, m_translation.z);
         auto m = yaw * pitch * t;
-        XMStoreFloat4x4(&Data.view, m);
+        XMStoreFloat4x4(&view, m);
     }
 }
 

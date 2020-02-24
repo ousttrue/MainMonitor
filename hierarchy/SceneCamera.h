@@ -25,12 +25,8 @@ class SceneCamera
     void Calc();
 
 public:
-    struct SceneConstantBuffer
-    {
-        DirectX::XMFLOAT4X4 view;
-        DirectX::XMFLOAT4X4 projection;
-    };
-    SceneConstantBuffer Data;
+    DirectX::XMFLOAT4X4 view;
+    DirectX::XMFLOAT4X4 projection;
     SceneCamera();
     bool OnFrame(const screenstate::ScreenState &state, const screenstate::ScreenState &prev);
 };

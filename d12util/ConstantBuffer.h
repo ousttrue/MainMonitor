@@ -14,7 +14,7 @@ protected:
 public:
     virtual UINT Size() const = 0;
     UINT Count() const { return (UINT)(m_bytes.size() / Size()); }
-    virtual const Microsoft::WRL::ComPtr<ID3D12Resource> &Get() const = 0;
+    virtual const Microsoft::WRL::ComPtr<ID3D12Resource> &Resource() const = 0;
 };
 
 template <typename T>
@@ -28,7 +28,7 @@ class ConstantBuffer : public ConstantBufferBase
 
 public:
     UINT Size() const override { return SIZE; }
-    const Microsoft::WRL::ComPtr<ID3D12Resource> &Get() const override { return m_resource; }
+    const Microsoft::WRL::ComPtr<ID3D12Resource> &Resource() const override { return m_resource; }
 
     void Initialize(const Microsoft::WRL::ComPtr<ID3D12Device> &device, int count)
     {

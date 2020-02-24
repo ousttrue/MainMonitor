@@ -216,7 +216,7 @@ void VR::OnFrame(hierarchy::Scene *scene)
             auto node = scene->GetNode(i);
             if (node)
             {
-                node->Data.world = pose;
+                node->world = pose;
             }
         }
     }

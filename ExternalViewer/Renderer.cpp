@@ -140,14 +140,41 @@ class Impl
     std::unique_ptr<SceneMapper> m_sceneMapper;
 
     std::unique_ptr<Heap> m_heap;
-    d12u::ConstantBuffer<hierarchy::SceneCamera::SceneConstantBuffer> m_sceneConstant;
-    d12u::ConstantBuffer<hierarchy::SceneNode::ModelConstantBuffer> m_modelConstant;
 
     std::unique_ptr<Gui> m_imgui;
 
-    // scene
-    std::unique_ptr<hierarchy::SceneCamera> m_camera;
     std::unique_ptr<hierarchy::Scene> m_scene;
+
+    // scene
+    struct SceneConstants
+    {
+        DirectX::XMFLOAT4X4 b0View;
+        DirectX::XMFLOAT4X4 b0Projection;
+        DirectX::XMFLOAT3 b0LightDir;
+        DirectX::XMFLOAT3 b0LightColor;
+    };
+    d12u::ConstantBuffer<SceneConstants> m_sceneConstantsBuffer;
+    std::unique_ptr<hierarchy::SceneCamera> m_camera;
+
+    // node
+    struct NodeConstants
+    {
+        DirectX::XMFLOAT4X4 b1World{
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1};
+    };
+    d12u::ConstantBuffer<NodeConstants> m_nodeConstantsBuffer;
+
+    // material
+    struct MaterialConstants
+    {
+        DirectX::XMFLOAT4 b1Diffuse;
+        DirectX::XMFLOAT3 b1Ambient;
+        DirectX::XMFLOAT3 b1Specular;
+    };
+    d12u::ConstantBuffer<MaterialConstants> m_materialConstantsBuffer;
 
 public:
     Impl(int maxModelCount)
@@ -178,19 +205,15 @@ public:
         m_rt->Initialize(factory, m_queue->Get(), hwnd);
         m_sceneMapper->Initialize(m_device);
         m_pipeline->Initialize(m_device, g_shaderSource, 2);
-        m_sceneConstant.Initialize(m_device, 1);
-        m_modelConstant.Initialize(m_device, 128);
+        m_sceneConstantsBuffer.Initialize(m_device, 1);
+        m_nodeConstantsBuffer.Initialize(m_device, 128);
+        m_materialConstantsBuffer.Initialize(m_device, 128);
 
         {
-            HeapItem items[] = {
-                {
-                    .ConstantBuffer = &m_sceneConstant,
-                    .Count = m_sceneConstant.Count(),
-                },
-                {
-                    .ConstantBuffer = &m_modelConstant,
-                    .Count =m_modelConstant.Count(),
-                },
+            ConstantBufferBase *items[] = {
+                &m_sceneConstantsBuffer,
+                &m_nodeConstantsBuffer,
+                &m_nodeConstantsBuffer,
             };
             m_heap->Initialize(m_device, _countof(items), items);
         }
@@ -218,8 +241,9 @@ public:
         }
         if (m_camera->OnFrame(state, m_lastState))
         {
-            *m_sceneConstant.Get(0) = m_camera->Data;
-            m_sceneConstant.CopyToGpu();
+            m_sceneConstantsBuffer.Get(0)->b0Projection = m_camera->projection;
+            m_sceneConstantsBuffer.Get(0)->b0View = m_camera->view;
+            m_sceneConstantsBuffer.CopyToGpu();
         }
 
         int nodeCount;
@@ -229,11 +253,11 @@ public:
             auto node = nodes[i];
             if (node)
             {
-                m_modelConstant.Get(node->ID())->world = node->Data.world;
+                m_nodeConstantsBuffer.Get(node->ID())->b1World = node->world;
             }
         }
 
-        m_modelConstant.CopyToGpu();
+        m_nodeConstantsBuffer.CopyToGpu();
         m_lastState = state;
 
         // command

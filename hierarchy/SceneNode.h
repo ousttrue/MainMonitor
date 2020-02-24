@@ -23,19 +23,15 @@ class SceneNode
     }
 
 public:
+    DirectX::XMFLOAT4X4 world{
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1};
+
     static std::shared_ptr<SceneNode> Create();
 
     int ID() const { return m_id; }
-
-    struct ModelConstantBuffer
-    {
-        DirectX::XMFLOAT4X4 world{
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1};
-    };
-    ModelConstantBuffer Data;
 
     void AddMesh(const std::shared_ptr<SceneMesh> &mesh)
     {
