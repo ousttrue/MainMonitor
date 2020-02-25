@@ -72,8 +72,8 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam,
         return 0;
 
     case WM_MOUSEMOVE:
-        window->m_state.X = GET_X_LPARAM(lParam);
-        window->m_state.Y = GET_Y_LPARAM(lParam);
+        window->m_state.MouseX = GET_X_LPARAM(lParam);
+        window->m_state.MouseY = GET_Y_LPARAM(lParam);
         return 0;
 
     case WM_LBUTTONDOWN:
@@ -144,10 +144,13 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam,
         break;
 
     case WM_SETCURSOR:
-        if (LOWORD(lParam) == HTCLIENT)
+        if (!window->m_enableSetCursor)
         {
-            window->m_state.Set(MouseButtonFlags::CursorUpdate);
-            return 1;
+            if (LOWORD(lParam) == HTCLIENT)
+            {
+                window->m_state.Set(MouseButtonFlags::CursorUpdate);
+                return 1;
+            }
         }
         break;
     }
@@ -231,7 +234,31 @@ bool Win32Window::Update(ScreenState *pState)
     {
         return false;
     }
-    m_state.Time = timeGetTime();
+
+    auto now = timeGetTime();
+    if (m_startTime)
+    {
+        now -= m_startTime;
+    }
+    else
+    {
+        now = 0;
+    }
+    if (now > m_lastTime)
+    {
+        m_state.ElapsedSeconds = now * 0.001f;
+        auto delta = now - m_lastTime;
+        m_state.DeltaSeconds = delta * 0.001f;
+    }
+    else
+    {
+        // work around
+        m_startTime = now;
+        m_state.DeltaSeconds = 0.016f;
+        m_state.ElapsedSeconds = 0.016f;
+    }
+    m_lastTime = now;
+
     *pState = m_state;
     m_state.Clear();
     return true;

@@ -29,9 +29,9 @@ void SceneCamera::Calc()
 bool SceneCamera::OnFrame(const screenstate::ScreenState &state, const screenstate::ScreenState &prev)
 {
     bool changed = false;
-    auto dx = state.X - prev.X;
-    auto dy = state.Y - prev.Y;
-    auto dt = state.DeltaSeconds(prev);
+    auto dx = state.MouseX - prev.MouseX;
+    auto dy = state.MouseY - prev.MouseY;
+    auto dt = state.DeltaSeconds;
     if (state.Has(screenstate::MouseButtonFlags::RightDown) && prev.Has(screenstate::MouseButtonFlags::RightDown))
     {
         // right drag

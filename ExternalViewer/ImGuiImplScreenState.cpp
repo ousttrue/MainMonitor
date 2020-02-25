@@ -51,7 +51,6 @@ bool ImGui_Impl_ScreenState_Init()
     return true;
 }
 
-
 screenstate::ScreenState g_lastState{};
 
 void ImGui_Impl_ScreenState_NewFrame(const screenstate::ScreenState &state)
@@ -60,7 +59,7 @@ void ImGui_Impl_ScreenState_NewFrame(const screenstate::ScreenState &state)
     ImGuiIO &io = ImGui::GetIO();
     IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer back-end. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
 
-    io.MousePos = ImVec2(state.X, state.Y);
+    io.MousePos = ImVec2(state.MouseX, state.MouseY);
     io.MouseDown[0] = state.Has(screenstate::MouseButtonFlags::LeftDown);
     io.MouseDown[1] = state.Has(screenstate::MouseButtonFlags::RightDown);
     io.MouseDown[2] = state.Has(screenstate::MouseButtonFlags::MiddleDown);
@@ -85,10 +84,8 @@ void ImGui_Impl_ScreenState_NewFrame(const screenstate::ScreenState &state)
     // ::QueryPerformanceCounter((LARGE_INTEGER *)&current_time);
     // io.DeltaTime = (float)(current_time - g_Time) / g_TicksPerSecond;
     // g_Time = current_time;
-    if (g_lastState.Time > 0)
-    {
-        io.DeltaTime = state.DeltaSeconds(g_lastState);
-    }
+
+    io.DeltaTime = state.DeltaSeconds;
     g_lastState = state;
 
     // Read keyboard modifiers inputs

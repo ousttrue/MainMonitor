@@ -16,12 +16,14 @@ enum MouseButtonFlags
 
 struct ScreenState
 {
-    uint32_t Time;
-    MouseButtonFlags MouseFlag;
     int16_t Width;
     int16_t Height;
-    int16_t X;
-    int16_t Y;
+    // uint32_t Time;
+    float ElapsedSeconds;
+    float DeltaSeconds;
+    int16_t MouseX;
+    int16_t MouseY;
+    MouseButtonFlags MouseFlag;
 
     bool Has(MouseButtonFlags flag) const
     {
@@ -62,10 +64,15 @@ struct ScreenState
         return Width == rhs.Width && Height == rhs.Height;
     }
 
-    float DeltaSeconds(const ScreenState &rhs) const
-    {
-        return 0.001f * (Time - rhs.Time);
-    }
+    // float DeltaSeconds(const ScreenState &rhs) const
+    // {
+    //     auto delta = Time - rhs.Time;
+    //     if (delta == 0)
+    //     {
+    //         return 0.001f;
+    //     }
+    //     return 0.001f * delta;
+    // }
 };
-static_assert(sizeof(ScreenState) == 16, "sizeof(WindowMouseState)");
+static_assert(sizeof(ScreenState) == 20, "sizeof(WindowMouseState)");
 } // namespace screenstate
