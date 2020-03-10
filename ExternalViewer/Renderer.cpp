@@ -327,7 +327,7 @@ public:
             m_sceneConstantsBuffer.CopyToGpu();
         }
 
-        m_gizmo.Begin(m_camera->state, state.MouseLeftDown());
+        m_gizmo.Begin(state, m_camera->state);
 
         int nodeCount;
         auto nodes = m_scene->GetNodes(&nodeCount);
