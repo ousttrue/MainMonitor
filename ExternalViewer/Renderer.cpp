@@ -8,7 +8,8 @@
 #include "ImGuiImplScreenState.h"
 #include "ImGuiDX12.h"
 
-#include "SceneCamera.h"
+#include <OrbitCamera.h>
+#include <fpalg.h>
 #include "SceneLight.h"
 #include "Scene.h"
 
@@ -218,7 +219,7 @@ class Impl
         DirectX::XMFLOAT3 b0LightColor;
     };
     d12u::ConstantBuffer<SceneConstants> m_sceneConstantsBuffer;
-    std::unique_ptr<hierarchy::SceneCamera> m_camera;
+    std::unique_ptr<OrbitCamera> m_camera;
     std::unique_ptr<hierarchy::SceneLight> m_light;
 
     // node
@@ -248,7 +249,7 @@ public:
           m_pipeline(new Pipeline),
           m_heap(new Heap),
           m_sceneMapper(new SceneMapper),
-          m_camera(new hierarchy::SceneCamera),
+          m_camera(new OrbitCamera),
           m_light(new hierarchy::SceneLight),
           m_scene(new hierarchy::Scene)
     {
@@ -305,11 +306,12 @@ public:
             m_rt->Resize(m_queue->Get(),
                          hwnd, state.Width, state.Height);
         }
-        if (m_camera->OnFrame(state, m_lastState))
+
+        m_camera->Update(state);
         {
             auto buffer = m_sceneConstantsBuffer.Get(0);
-            buffer->b0Projection = m_camera->Projection;
-            buffer->b0View = m_camera->View;
+            buffer->b0Projection = fpalg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.projection);
+            buffer->b0View = fpalg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.view);
             buffer->b0LightDir = m_light->LightDirection;
             buffer->b0LightColor = m_light->LightColor;
             m_sceneConstantsBuffer.CopyToGpu();

@@ -2,7 +2,6 @@ set(TARGET_NAME hierarchy)
 add_library(${TARGET_NAME}
     SceneMesh.cpp
     SceneNode.cpp
-    SceneCamera.cpp
     Scene.cpp
     ParseGltf.cpp
     )
@@ -21,4 +20,5 @@ target_compile_definitions(${TARGET_NAME} PUBLIC
     )
 target_link_libraries(${TARGET_NAME} PUBLIC
     window_example
+    camera_example
     )
