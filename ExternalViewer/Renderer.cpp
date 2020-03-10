@@ -9,8 +9,7 @@
 #include "ImGuiDX12.h"
 
 #include <OrbitCamera.h>
-#include <fpalg.h>
-#include <gizmesh.h>
+#include "Gizmo.h"
 
 #include "SceneLight.h"
 #include "Scene.h"
@@ -196,8 +195,8 @@ public:
     }
 };
 
-class Impl
 
+class Impl
 {
     screenstate::ScreenState m_lastState = {};
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
@@ -245,9 +244,7 @@ class Impl
     d12u::ConstantBuffer<MaterialConstants> m_materialConstantsBuffer;
 
     // gizmo
-    gizmesh::GizmoSystem m_gizmo;
-    hierarchy::SceneNodePtr m_gizmoNode; // for node id
-    std::shared_ptr<hierarchy::SceneMesh> m_gizmoMesh;
+    Gizmo m_gizmo;
 
 public:
     Impl(int maxModelCount)
@@ -258,8 +255,7 @@ public:
           m_sceneMapper(new SceneMapper),
           m_camera(new OrbitCamera),
           m_light(new hierarchy::SceneLight),
-          m_scene(new hierarchy::Scene),
-          m_gizmoMesh(hierarchy::SceneMesh::CreateDynamic(65535, 65535))
+          m_scene(new hierarchy::Scene)
     {
     }
 
@@ -302,6 +298,12 @@ public:
         {
             // first time
             Initialize(hwnd);
+
+            m_nodeConstantsBuffer.Get(m_gizmo.GetNodeID())->b1World = {
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1};
         }
 
         m_sceneMapper->Update(m_device);
@@ -325,9 +327,7 @@ public:
             m_sceneConstantsBuffer.CopyToGpu();
         }
 
-        m_gizmo.begin(m_camera->state.position, m_camera->state.rotation,
-                      m_camera->state.ray_origin, m_camera->state.ray_direction,
-                      state.MouseLeftDown());
+        m_gizmo.Begin(m_camera->state, state.MouseLeftDown());
 
         int nodeCount;
         auto nodes = m_scene->GetNodes(&nodeCount);
@@ -340,7 +340,7 @@ public:
 
                 if (node->EnableGizmo())
                 {
-                    gizmesh::handle::translation(m_gizmo, 1, node->TRS, true);
+                    m_gizmo.Transform(node->ID(), node->TRS);
                 }
             }
         }
@@ -350,18 +350,8 @@ public:
 
         // gizmo: upload
         {
-            if (!m_gizmoNode)
-            {
-                m_gizmoNode = hierarchy::SceneNode::Create();
-                m_nodeConstantsBuffer.Get(m_gizmoNode->ID())->b1World = {
-                    1, 0, 0, 0,
-                    0, 1, 0, 0,
-                    0, 0, 1, 0,
-                    0, 0, 0, 1};
-            }
-
-            auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmoMesh);
-            auto buffer = m_gizmo.end();
+            auto buffer = m_gizmo.End();
+            auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh());
             drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
             drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
         }
@@ -409,8 +399,8 @@ public:
 
         // gizmo: draw
         {
-            commandList->Get()->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(m_gizmoNode->ID() + 1));
-            auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmoMesh);
+            commandList->Get()->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(m_gizmo.GetNodeID() + 1));
+            auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh());
             // draw or barrier
             drawable->Command(commandList);
         }

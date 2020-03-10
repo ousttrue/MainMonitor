@@ -15,7 +15,7 @@ TODO
 
 * [ ] Grid
 * [x] imgui
-    * [ ] gizmo
+* [x] gizmo
 * [ ] light/lambert
 * [ ] material
 * [ ] texture
