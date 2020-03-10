@@ -72,6 +72,7 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
 
     // build scene
     auto node = SceneNode::Create();
+    node->EnableGizmo(true);
     for (auto &gltfMesh : gltf.meshes)
     {
         for (auto &gltfPrimitive : gltfMesh.primitives)

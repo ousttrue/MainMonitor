@@ -1,8 +1,9 @@
 #pragma once
 #include "SceneMesh.h"
-#include <DirectXMath.h>
+// #include <DirectXMath.h>
 #include <vector>
 #include <memory>
+#include <fpalg.h>
 
 namespace hierarchy
 {
@@ -16,6 +17,7 @@ class SceneNode
     // unique
     int m_id = -1;
     std::vector<std::shared_ptr<SceneMesh>> m_meshes;
+    bool m_enableGizmo = false;
 
     SceneNode(int id)
         : m_id(id)
@@ -23,15 +25,14 @@ class SceneNode
     }
 
 public:
-    DirectX::XMFLOAT4X4 world{
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1};
+    fpalg::TRS TRS{};
 
     static std::shared_ptr<SceneNode> Create();
 
     int ID() const { return m_id; }
+
+    bool EnableGizmo() const { return m_enableGizmo; }
+    void EnableGizmo(bool enable) { m_enableGizmo = enable; }
 
     void AddMesh(const std::shared_ptr<SceneMesh> &mesh)
     {

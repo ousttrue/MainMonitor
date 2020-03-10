@@ -216,7 +216,8 @@ void VR::OnFrame(hierarchy::Scene *scene)
             auto node = scene->GetNode(i);
             if (node)
             {
-                node->world = pose;
+                node->TRS.position = fpalg::MatrixToTranslation(pose);
+                node->TRS.rotation = fpalg::MatrixToQuaternion(pose);
             }
         }
     }

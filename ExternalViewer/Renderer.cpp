@@ -10,6 +10,8 @@
 
 #include <OrbitCamera.h>
 #include <fpalg.h>
+#include <gizmesh.h>
+
 #include "SceneLight.h"
 #include "Scene.h"
 
@@ -225,7 +227,7 @@ class Impl
     // node
     struct NodeConstants
     {
-        DirectX::XMFLOAT4X4 b1World{
+        std::array<float, 16> b1World{
             1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
@@ -242,6 +244,11 @@ class Impl
     };
     d12u::ConstantBuffer<MaterialConstants> m_materialConstantsBuffer;
 
+    // gizmo
+    gizmesh::GizmoSystem m_gizmo;
+    hierarchy::SceneNodePtr m_gizmoNode; // for node id
+    std::shared_ptr<hierarchy::SceneMesh> m_gizmoMesh;
+
 public:
     Impl(int maxModelCount)
         : m_queue(new CommandQueue),
@@ -251,7 +258,8 @@ public:
           m_sceneMapper(new SceneMapper),
           m_camera(new OrbitCamera),
           m_light(new hierarchy::SceneLight),
-          m_scene(new hierarchy::Scene)
+          m_scene(new hierarchy::Scene),
+          m_gizmoMesh(hierarchy::SceneMesh::CreateDynamic(65535, 65535))
     {
     }
 
@@ -317,6 +325,10 @@ public:
             m_sceneConstantsBuffer.CopyToGpu();
         }
 
+        m_gizmo.begin(m_camera->state.position, m_camera->state.rotation,
+                      m_camera->state.ray_origin, m_camera->state.ray_direction,
+                      state.MouseLeftDown());
+
         int nodeCount;
         auto nodes = m_scene->GetNodes(&nodeCount);
         for (int i = 0; i < nodeCount; ++i)
@@ -324,12 +336,35 @@ public:
             auto node = nodes[i];
             if (node)
             {
-                m_nodeConstantsBuffer.Get(node->ID())->b1World = node->world;
+                m_nodeConstantsBuffer.Get(node->ID())->b1World = node->TRS.Matrix();
+
+                if (node->EnableGizmo())
+                {
+                    gizmesh::handle::translation(m_gizmo, 1, node->TRS, true);
+                }
             }
         }
 
         m_nodeConstantsBuffer.CopyToGpu();
         m_lastState = state;
+
+        // gizmo: upload
+        {
+            if (!m_gizmoNode)
+            {
+                m_gizmoNode = hierarchy::SceneNode::Create();
+                m_nodeConstantsBuffer.Get(m_gizmoNode->ID())->b1World = {
+                    1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, 0,
+                    0, 0, 0, 1};
+            }
+
+            auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmoMesh);
+            auto buffer = m_gizmo.end();
+            drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
+            drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
+        }
 
         // command
         auto commandList = m_pipeline->Reset();
@@ -370,6 +405,14 @@ public:
                     }
                 }
             }
+        }
+
+        // gizmo: draw
+        {
+            commandList->Get()->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(m_gizmoNode->ID() + 1));
+            auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmoMesh);
+            // draw or barrier
+            drawable->Command(commandList);
         }
 
         m_imgui->BeginFrame(state);

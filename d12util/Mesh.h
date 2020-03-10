@@ -4,7 +4,7 @@
 
 namespace d12u
 {
-class Mesh: NonCopyable
+class Mesh : NonCopyable
 {
     template <class T>
     using ComPtr = Microsoft::WRL::ComPtr<T>;
@@ -14,7 +14,9 @@ class Mesh: NonCopyable
 
 public:
     void VertexBuffer(const std::shared_ptr<class ResourceItem> &item) { m_vertexBuffer = item; }
+    const std::shared_ptr<class ResourceItem> &VertexBuffer() const { return m_vertexBuffer; }
     void IndexBuffer(const std::shared_ptr<class ResourceItem> &item) { m_indexBuffer = item; }
+    const std::shared_ptr<class ResourceItem> &IndexBuffer() const { return m_indexBuffer; }
     void Command(class CommandList *commandList)
     {
         if (m_indexBuffer && m_vertexBuffer)

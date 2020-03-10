@@ -26,14 +26,29 @@ static std::shared_ptr<ResourceItem> CreateResourceItem(
     const std::unique_ptr<Uploader> &uploader,
     const std::shared_ptr<hierarchy::SceneMesh> &sceneMesh)
 {
+    // interleaved
     auto positions = sceneMesh->GetVertices(hierarchy::Semantics::PositionNormalTexCoord);
+    if (!positions)
+    {
+        positions = sceneMesh->GetVertices(hierarchy::Semantics::PositionNormalColor);
+    }
     if (positions)
     {
-        auto resource = ResourceItem::CreateDefault(device, (UINT)positions->buffer.size());
-        uploader->EnqueueUpload(resource, positions->buffer.data(), (UINT)positions->buffer.size(), positions->Stride());
-        return resource;
+        if (positions->isDynamic)
+        {
+            auto resource = ResourceItem::CreateUpload(device, (UINT)positions->buffer.size());
+            // not enqueue
+            return resource;
+        }
+        else
+        {
+            auto resource = ResourceItem::CreateDefault(device, (UINT)positions->buffer.size());
+            uploader->EnqueueUpload(resource, positions->buffer.data(), (UINT)positions->buffer.size(), positions->Stride());
+            return resource;
+        }
     }
 
+    // planar
     positions = sceneMesh->GetVertices(hierarchy::Semantics::Position);
     if (positions)
     {
@@ -45,7 +60,6 @@ static std::shared_ptr<ResourceItem> CreateResourceItem(
         auto stride = (int)hierarchy::ValueType::Float8;
         auto size = stride * count;
         command->Payload.resize(size);
-        auto resource = ResourceItem::CreateDefault(device, size);
 
         // position
         {
@@ -89,11 +103,13 @@ static std::shared_ptr<ResourceItem> CreateResourceItem(
             }
         }
 
+        auto resource = ResourceItem::CreateDefault(device, size);
         command->UsePayload(resource, stride);
         uploader->EnqueueUpload(command);
         return resource;
     }
 
+    throw;
     return {};
 }
 
@@ -122,9 +138,18 @@ std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &devic
     auto indices = sceneMesh->GetIndices();
     if (indices)
     {
-        auto resource = ResourceItem::CreateDefault(device, (UINT)indices->buffer.size());
-        gpuMesh->IndexBuffer(resource);
-        m_uploader->EnqueueUpload(resource, indices->buffer.data(), (UINT)indices->buffer.size(), indices->Stride());
+        if (indices->isDynamic)
+        {
+            auto resource = ResourceItem::CreateUpload(device, (UINT)indices->buffer.size());
+            gpuMesh->IndexBuffer(resource);
+            // not enqueue
+        }
+        else
+        {
+            auto resource = ResourceItem::CreateDefault(device, (UINT)indices->buffer.size());
+            gpuMesh->IndexBuffer(resource);
+            m_uploader->EnqueueUpload(resource, indices->buffer.data(), (UINT)indices->buffer.size(), indices->Stride());
+        }
     }
 
     m_modelMeshMap.insert(std::make_pair(sceneMesh, gpuMesh));

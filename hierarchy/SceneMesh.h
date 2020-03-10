@@ -14,6 +14,7 @@ enum class Semantics
     Normal,
     TexCoord,
     PositionNormalTexCoord,
+    PositionNormalColor,
 };
 
 enum class ValueType
@@ -23,7 +24,8 @@ enum class ValueType
     Float2 = 8,
     Float3 = 12,
     Float4 = 16,
-    Float8 = 32, // Position, Normal, TexCoord,
+    Float8 = 32,  // Position, Normal, TexCoord
+    Float10 = 40, // Position, Normal, Color
 };
 
 struct VertexBuffer
@@ -31,6 +33,7 @@ struct VertexBuffer
     Semantics semantic;
     std::vector<uint8_t> buffer;
     ValueType valueType;
+    bool isDynamic = false;
     uint32_t Stride() const { return (uint32_t)valueType; }
     uint32_t Count() const { return (uint32_t)buffer.size() / Stride(); }
 };
@@ -42,6 +45,7 @@ class SceneMesh
 
 public:
     static std::shared_ptr<SceneMesh> Create();
+    static std::shared_ptr<SceneMesh> CreateDynamic(int vertexReserve, int indexReserve);
 
     void SetVertices(Semantics semantic, ValueType valueType, const void *p, uint32_t size);
     void SetVertices(const VertexBuffer &vertices)

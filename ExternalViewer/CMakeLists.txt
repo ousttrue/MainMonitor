@@ -16,6 +16,8 @@ target_include_directories(${TARGET_NAME} PRIVATE
 target_link_libraries(${TARGET_NAME} PRIVATE
     fpalg
     window_example
+    gizmesh
+    #
     d12util
     hierarchy
     #
