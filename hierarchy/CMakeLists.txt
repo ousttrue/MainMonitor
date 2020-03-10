@@ -2,6 +2,8 @@ set(TARGET_NAME hierarchy)
 add_library(${TARGET_NAME}
     SceneMesh.cpp
     SceneNode.cpp
+    SceneImage.cpp
+    SceneMaterial.cpp
     Scene.cpp
     ParseGltf.cpp
     )

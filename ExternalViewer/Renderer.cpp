@@ -195,7 +195,6 @@ public:
     }
 };
 
-
 class Impl
 {
     screenstate::ScreenState m_lastState = {};
@@ -306,6 +305,13 @@ public:
                 0, 0, 0, 1};
         }
 
+        Update(hwnd, state);
+        Draw(state);
+    }
+
+private:
+    void Update(HWND hwnd, const screenstate::ScreenState &state)
+    {
         m_sceneMapper->Update(m_device);
 
         // update
@@ -355,8 +361,13 @@ public:
             drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
             drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
         }
+    }
 
-        // command
+    //
+    // command
+    //
+    void Draw(const screenstate::ScreenState &state)
+    {
         auto commandList = m_pipeline->Reset();
         float color[] = {
             0,
@@ -372,6 +383,8 @@ public:
         commandList->Get()->SetGraphicsRootDescriptorTable(0, m_heap->GpuHandle(0));
 
         // model
+        int nodeCount;
+        auto nodes = m_scene->GetNodes(&nodeCount);
         for (int i = 0; i < nodeCount; ++i)
         {
             auto node = nodes[i];

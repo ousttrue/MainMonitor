@@ -71,6 +71,38 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
     gltfformat::bin bin(gltf, glb.bin.p, glb.bin.size);
 
     // build scene
+    std::vector<SceneImagePtr> images;
+    images.reserve(gltf.images.size());
+    for (auto &gltfImage : gltf.images)
+    {
+        auto &bufferView = gltf.bufferViews[gltfImage.bufferView.value()];
+        auto bytes = bin.get_bytes(bufferView);
+        auto image = SceneImage::Create(bytes.p, bytes.size);
+        images.push_back(image);
+    }
+
+    std::vector<SceneMaterialPtr> materials;
+    materials.reserve(gltf.materials.size());
+    for (auto &gltfMaterial : gltf.materials)
+    {
+        auto material = SceneMaterial::Create();
+        if (gltfMaterial.pbrMetallicRoughness.has_value())
+        {
+            auto &pbr = gltfMaterial.pbrMetallicRoughness.value();
+            if (pbr.baseColorTexture.has_value())
+            {
+                auto &gltfTexture = gltf.textures[pbr.baseColorTexture.value().index.value()];
+                auto image = images[gltfTexture.source.value()];
+                material->SetImage(image);
+            }
+
+            //material->SetColor(pbr.baseColorFactor.value());
+        }
+        material->SetName(gltfMaterial.name);
+
+        materials.push_back(material);
+    }
+
     auto node = SceneNode::Create();
     node->EnableGizmo(true);
     for (auto &gltfMesh : gltf.meshes)
@@ -78,6 +110,15 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         for (auto &gltfPrimitive : gltfMesh.primitives)
         {
             auto mesh = SceneMesh::Create();
+
+            if (gltfPrimitive.material.has_value())
+            {
+                auto material = materials[gltfPrimitive.material.value()];
+                mesh->SetMaterial(material);
+
+                auto a = 0;
+            }
+
             node->AddMesh(mesh);
 
             for (auto [k, v] : gltfPrimitive.attributes)

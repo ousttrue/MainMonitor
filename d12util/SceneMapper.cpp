@@ -113,10 +113,15 @@ static std::shared_ptr<ResourceItem> CreateResourceItem(
     return {};
 }
 
+std::shared_ptr<Material> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &device, const std::shared_ptr<hierarchy::SceneMaterial> &material)
+{
+    throw;
+}
+
 std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &device, const std::shared_ptr<hierarchy::SceneMesh> &sceneMesh)
 {
-    auto found = m_modelMeshMap.find(sceneMesh);
-    if (found != m_modelMeshMap.end())
+    auto found = m_meshMap.find(sceneMesh);
+    if (found != m_meshMap.end())
     {
         return found->second;
     }
@@ -152,7 +157,7 @@ std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &devic
         }
     }
 
-    m_modelMeshMap.insert(std::make_pair(sceneMesh, gpuMesh));
+    m_meshMap.insert(std::make_pair(sceneMesh, gpuMesh));
     return gpuMesh;
 }
 } // namespace d12u
