@@ -1,5 +1,5 @@
 #pragma once
-#include "ScreenState.h"
+#include <ScreenState.h>
 
 // HWND g_hWnd = nullptr;
 // INT64 g_Time = 0;

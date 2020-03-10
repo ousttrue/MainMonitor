@@ -16,9 +16,9 @@ target_include_directories(${TARGET_NAME}
     ${EXTERNAL_DIR}/sukonbu/gltfformat/include
     ${EXTERNAL_DIR}/sukonbu/gltfformat/nlohmann-json/single_include
     )
-target_link_libraries(${TARGET_NAME} PUBLIC
-    screenstate
-    )
 target_compile_definitions(${TARGET_NAME} PUBLIC
     NOMINMAX
+    )
+target_link_libraries(${TARGET_NAME} PUBLIC
+    window_example
     )
