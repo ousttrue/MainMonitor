@@ -9,6 +9,7 @@
 #include "Uploader.h"
 #include "Mesh.h"
 #include "ConstantBuffer.h"
-#include "Pipeline.h"
+#include "RootSignature.h"
 #include "Heap.h"
 #include "SceneMapper.h"
+#include "Material.h"

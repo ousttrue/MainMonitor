@@ -1,6 +1,7 @@
 #include "SceneMapper.h"
 #include "ResourceItem.h"
 #include "Mesh.h"
+#include "Material.h"
 #include "Uploader.h"
 #include <DirectXMath.h>
 
@@ -111,11 +112,6 @@ static std::shared_ptr<ResourceItem> CreateResourceItem(
 
     throw;
     return {};
-}
-
-std::shared_ptr<Material> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &device, const std::shared_ptr<hierarchy::SceneMaterial> &material)
-{
-    throw;
 }
 
 std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &device, const std::shared_ptr<hierarchy::SceneMesh> &sceneMesh)

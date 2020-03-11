@@ -39,17 +39,23 @@ struct VertexBuffer
     uint32_t Count() const { return (uint32_t)buffer.size() / Stride(); }
 };
 
+struct SceneSubmesh
+{
+    uint32_t draw_offset = 0;
+    uint32_t draw_count = 0;
+    SceneMaterialPtr material;
+};
+
 class SceneMesh
 {
     std::vector<VertexBuffer> m_vertices;
     VertexBuffer m_indices;
-    SceneMaterialPtr m_material;
 
 public:
     static std::shared_ptr<SceneMesh> Create();
     static std::shared_ptr<SceneMesh> CreateDynamic(int vertexReserve, int indexReserve);
 
-    void SetMaterial(const SceneMaterialPtr &material) { m_material = material; }
+    std::vector<SceneSubmesh> submeshes;
 
     void SetVertices(Semantics semantic, ValueType valueType, const void *p, uint32_t size);
     void SetVertices(const VertexBuffer &vertices)

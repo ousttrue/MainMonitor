@@ -27,7 +27,7 @@ void CommandList::Reset(const ComPtr<ID3D12PipelineState> &ps)
     ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), ps.Get()));
 }
 
-std::list<OnCompletedFunc> CommandList::Close()
+std::list<OnCompletedFunc> CommandList::CloseAndGetCallbacks()
 {
     m_commandList->Close();
 

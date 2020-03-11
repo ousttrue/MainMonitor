@@ -1,112 +1,13 @@
-#include "Pipeline.h"
-#include "SwapChain.h"
-#include "ResourceItem.h"
-#include "CommandList.h"
-#include "Mesh.h"
-#include <string>
+#include "Material.h"
 #include <d3dcompiler.h>
-#include <algorithm>
-#include <iostream>
 
 namespace d12u
 {
-using namespace DirectX;
 
-Pipeline::Pipeline()
-    : m_commandList(new CommandList)
+bool Material::Initialize(const ComPtr<ID3D12Device> &device,
+                          const ComPtr<ID3D12RootSignature> &rootSignature,
+                          const std::string &shaderSource, UINT cbvDescriptorCount)
 {
-}
-
-Pipeline::~Pipeline()
-{
-    delete m_commandList;
-}
-
-static void PrintBlob(const ComPtr<ID3DBlob> &blob)
-{
-    std::vector<uint8_t> buffer(blob->GetBufferSize());
-    memcpy(buffer.data(), blob->GetBufferPointer(), buffer.size());
-    std::string msg(buffer.begin(), buffer.end());
-    std::cerr << msg << std::endl;
-}
-
-bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string &shaderSource, UINT cbvDescriptorCount)
-{
-
-    // Create a root signature consisting of a descriptor table with a single CBV.
-    {
-        D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {
-            // This is the highest version the sample supports. If CheckFeatureSupport succeeds, the HighestVersion returned will not be greater than this.
-            .HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1,
-        };
-        if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
-        {
-            throw;
-        }
-
-        D3D12_DESCRIPTOR_RANGE1 ranges[] = {
-            {
-                .RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
-                .NumDescriptors = 1,
-                .BaseShaderRegister = 0,
-                .RegisterSpace = 0,
-                .Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
-                // . OffsetInDescriptorsFromTableStart,
-            },
-            {
-                .RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
-                .NumDescriptors = 1,
-                .BaseShaderRegister = 1,
-                .RegisterSpace = 0,
-                .Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
-                // . OffsetInDescriptorsFromTableStart,
-            },
-        };
-        D3D12_ROOT_PARAMETER1 rootParameters[] = {
-            // scene
-            {
-                .ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
-                .DescriptorTable = {
-                    .NumDescriptorRanges = 1,
-                    .pDescriptorRanges = &ranges[0],
-                },
-                .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
-            },
-            // world
-            {
-                .ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
-                .DescriptorTable = {
-                    .NumDescriptorRanges = 1,
-                    .pDescriptorRanges = &ranges[1],
-                },
-                .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
-            },
-        };
-
-        // Allow input layout and deny unecessary access to certain pipeline stages.
-        D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-            D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT //
-            | D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS     //
-            | D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS   //
-            | D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS //
-            // | D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS      //
-            ;
-
-        D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc{
-            .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
-            .Desc_1_1{
-                .NumParameters = _countof(rootParameters),
-                .pParameters = rootParameters,
-                .Flags = rootSignatureFlags,
-            },
-        };
-
-        ComPtr<ID3DBlob> signature;
-        ComPtr<ID3DBlob> error;
-        ThrowIfFailed(D3D12SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error));
-        ThrowIfFailed(device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
-    }
-
     // Create the pipeline state, which includes compiling and loading shaders.
     {
         ComPtr<ID3DBlob> vertexShader;
@@ -146,7 +47,7 @@ bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string 
 
         // Describe and create the graphics pipeline state object (PSO).
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {
-            .pRootSignature = m_rootSignature.Get(),
+            .pRootSignature = rootSignature.Get(),
             .VS = {
                 .pShaderBytecode = vertexShader->GetBufferPointer(),
                 .BytecodeLength = vertexShader->GetBufferSize(),
@@ -209,21 +110,15 @@ bool Pipeline::Initialize(const ComPtr<ID3D12Device> &device, const std::string 
         };
 
         ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
-        m_commandList->Initialize(device, m_pipelineState);
+        // m_commandList->Initialize(device, m_pipelineState);
     }
 
     return true;
 }
 
-CommandList *Pipeline::Reset()
+void Material::Set(const ComPtr<ID3D12GraphicsCommandList> &commandList)
 {
-    m_commandList->Reset(m_pipelineState);
-
-    auto commandList = m_commandList->Get();
-
-    // Set necessary state.
-    commandList->SetGraphicsRootSignature(m_rootSignature.Get());
-
-    return m_commandList;
+    commandList->SetPipelineState(m_pipelineState.Get());
 }
+
 } // namespace d12u

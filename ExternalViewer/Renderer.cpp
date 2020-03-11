@@ -14,10 +14,6 @@
 #include "SceneLight.h"
 #include "Scene.h"
 
-std::string g_shaderSource =
-#include "OpenVRRenderModel.hlsl"
-    ;
-
 using namespace d12u;
 
 #include <shobjidl.h>
@@ -201,46 +197,17 @@ class Impl
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
     std::unique_ptr<CommandQueue> m_queue;
     std::unique_ptr<SwapChain> m_rt;
-    std::unique_ptr<Pipeline> m_pipeline;
+    std::unique_ptr<RootSignature> m_rootSignature;
+    std::unique_ptr<CommandList> m_commandlist;
     std::unique_ptr<SceneMapper> m_sceneMapper;
-
-    std::unique_ptr<Heap> m_heap;
 
     std::unique_ptr<Gui> m_imgui;
 
     std::unique_ptr<hierarchy::Scene> m_scene;
 
     // scene
-    struct SceneConstants
-    {
-        DirectX::XMFLOAT4X4 b0View;
-        DirectX::XMFLOAT4X4 b0Projection;
-        DirectX::XMFLOAT3 b0LightDir;
-        DirectX::XMFLOAT3 b0LightColor;
-    };
-    d12u::ConstantBuffer<SceneConstants> m_sceneConstantsBuffer;
     std::unique_ptr<OrbitCamera> m_camera;
     std::unique_ptr<hierarchy::SceneLight> m_light;
-
-    // node
-    struct NodeConstants
-    {
-        std::array<float, 16> b1World{
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1};
-    };
-    d12u::ConstantBuffer<NodeConstants> m_nodeConstantsBuffer;
-
-    // material
-    struct MaterialConstants
-    {
-        DirectX::XMFLOAT4 b1Diffuse;
-        DirectX::XMFLOAT3 b1Ambient;
-        DirectX::XMFLOAT3 b1Specular;
-    };
-    d12u::ConstantBuffer<MaterialConstants> m_materialConstantsBuffer;
 
     // gizmo
     Gizmo m_gizmo;
@@ -249,8 +216,8 @@ public:
     Impl(int maxModelCount)
         : m_queue(new CommandQueue),
           m_rt(new SwapChain(2)),
-          m_pipeline(new Pipeline),
-          m_heap(new Heap),
+          m_commandlist(new CommandList),
+          m_rootSignature(new RootSignature),
           m_sceneMapper(new SceneMapper),
           m_camera(new OrbitCamera),
           m_light(new hierarchy::SceneLight),
@@ -274,19 +241,8 @@ public:
         m_queue->Initialize(m_device);
         m_rt->Initialize(factory, m_queue->Get(), hwnd);
         m_sceneMapper->Initialize(m_device);
-        m_pipeline->Initialize(m_device, g_shaderSource, 2);
-        m_sceneConstantsBuffer.Initialize(m_device, 1);
-        m_nodeConstantsBuffer.Initialize(m_device, 128);
-        m_materialConstantsBuffer.Initialize(m_device, 128);
-
-        {
-            ConstantBufferBase *items[] = {
-                &m_sceneConstantsBuffer,
-                &m_nodeConstantsBuffer,
-                &m_nodeConstantsBuffer,
-            };
-            m_heap->Initialize(m_device, _countof(items), items);
-        }
+        m_commandlist->InitializeDirect(m_device);
+        m_rootSignature->Initialize(m_device);
 
         m_imgui.reset(new Gui(m_device, m_rt->BufferCount(), hwnd));
     }
@@ -298,7 +254,7 @@ public:
             // first time
             Initialize(hwnd);
 
-            m_nodeConstantsBuffer.Get(m_gizmo.GetNodeID())->b1World = {
+            m_rootSignature->GetNodeConstantsBuffer(m_gizmo.GetNodeID())->b1World = {
                 1, 0, 0, 0,
                 0, 1, 0, 0,
                 0, 0, 1, 0,
@@ -325,12 +281,12 @@ private:
 
         m_camera->Update(state);
         {
-            auto buffer = m_sceneConstantsBuffer.Get(0);
+            auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
             buffer->b0Projection = fpalg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.projection);
             buffer->b0View = fpalg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.view);
             buffer->b0LightDir = m_light->LightDirection;
             buffer->b0LightColor = m_light->LightColor;
-            m_sceneConstantsBuffer.CopyToGpu();
+            m_rootSignature->UploadSceneConstantsBuffer();
         }
 
         m_gizmo.Begin(state, m_camera->state);
@@ -342,7 +298,7 @@ private:
             auto node = nodes[i];
             if (node)
             {
-                m_nodeConstantsBuffer.Get(node->ID())->b1World = node->TRS.Matrix();
+                m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = node->TRS.Matrix();
 
                 if (node->EnableGizmo())
                 {
@@ -351,7 +307,7 @@ private:
             }
         }
 
-        m_nodeConstantsBuffer.CopyToGpu();
+        m_rootSignature->UploadNodeConstantsBuffer();
         m_lastState = state;
 
         // gizmo: upload
@@ -368,19 +324,21 @@ private:
     //
     void Draw(const screenstate::ScreenState &state)
     {
-        auto commandList = m_pipeline->Reset();
+        // new frame
+        m_commandlist->Reset(nullptr);
+        auto commandList = m_commandlist->Get();
+
+        // clear
         float color[] = {
             0,
             0,
             0,
             1.0f,
         };
-        auto &rt = m_rt->Begin(commandList->Get(), color);
-        ID3D12DescriptorHeap *ppHeaps[] = {m_heap->Get()};
-        commandList->Get()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+        auto &rt = m_rt->Begin(commandList, color);
 
-        // scene constant
-        commandList->Get()->SetGraphicsRootDescriptorTable(0, m_heap->GpuHandle(0));
+        // global settings
+        m_rootSignature->Begin(commandList);
 
         // model
         int nodeCount;
@@ -390,10 +348,7 @@ private:
             auto node = nodes[i];
             if (node)
             {
-                // node constant
-                // index[0] => camera
-                // index[1-64] => world matrix
-                commandList->Get()->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(node->ID() + 1));
+                m_rootSignature->SetNodeDescriptorTable(commandList, node->ID());
 
                 int meshCount;
                 auto meshes = node->GetMeshes(&meshCount);
@@ -404,7 +359,16 @@ private:
                     {
                         auto drawable = m_sceneMapper->GetOrCreate(m_device, mesh);
                         // draw or barrier
-                        drawable->Command(commandList);
+                        drawable->Setup(m_commandlist.get());
+                        int offset = 0;
+                        for (auto &submesh : mesh->submeshes)
+                        {
+                            auto material = m_rootSignature->GetOrCreate(m_device, submesh.material);
+                            material->Set(commandList);
+
+                            m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, 0, 0, 0);
+                            offset += submesh.draw_count;
+                        }
                     }
                 }
             }
@@ -412,10 +376,10 @@ private:
 
         // gizmo: draw
         {
-            commandList->Get()->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(m_gizmo.GetNodeID() + 1));
+            m_rootSignature->SetNodeDescriptorTable(commandList, m_gizmo.GetNodeID());
             auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh());
             // draw or barrier
-            drawable->Command(commandList);
+            drawable->Setup(m_commandlist.get());
         }
 
         m_imgui->BeginFrame(state);
@@ -430,14 +394,14 @@ private:
             ImGui::End();
         }
 
-        m_imgui->EndFrame(commandList->Get());
+        m_imgui->EndFrame(commandList);
 
         // barrier
-        m_rt->End(commandList->Get(), rt);
+        m_rt->End(commandList, rt);
 
         // execute
-        auto callbacks = commandList->Close();
-        m_queue->Execute(commandList->Get());
+        auto callbacks = m_commandlist->CloseAndGetCallbacks();
+        m_queue->Execute(commandList);
         m_rt->Present();
         m_queue->SyncFence(callbacks);
     }

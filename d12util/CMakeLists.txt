@@ -7,9 +7,10 @@ add_library(${TARGET_NAME}
     ResourceItem.cpp
     Uploader.cpp
     Mesh.cpp
-    Pipeline.cpp
+    RootSignature.cpp
     Heap.cpp
     SceneMapper.cpp
+    Material.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

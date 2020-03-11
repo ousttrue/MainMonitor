@@ -7,6 +7,10 @@
 #include <gltfformat/glb.h>
 #include <gltfformat/bin.h>
 
+std::string g_shaderSource =
+#include "OpenVRRenderModel.hlsl"
+    ;
+
 template <class T>
 static std::vector<uint8_t> read_allbytes(T path)
 {
@@ -93,12 +97,14 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
             {
                 auto &gltfTexture = gltf.textures[pbr.baseColorTexture.value().index.value()];
                 auto image = images[gltfTexture.source.value()];
-                material->SetImage(image);
+                material->colorImage = image;
             }
 
             //material->SetColor(pbr.baseColorFactor.value());
         }
-        material->SetName(gltfMaterial.name);
+        material->name = gltfMaterial.name;
+
+        material->shader = g_shaderSource;
 
         materials.push_back(material);
     }
@@ -110,14 +116,6 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         for (auto &gltfPrimitive : gltfMesh.primitives)
         {
             auto mesh = SceneMesh::Create();
-
-            if (gltfPrimitive.material.has_value())
-            {
-                auto material = materials[gltfPrimitive.material.value()];
-                mesh->SetMaterial(material);
-
-                auto a = 0;
-            }
 
             node->AddMesh(mesh);
 
@@ -147,6 +145,7 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                 }
             }
 
+            if (gltfPrimitive.material.has_value())
             {
                 auto index = gltfPrimitive.indices.value();
                 auto accessor = gltf.accessors[index];
@@ -167,6 +166,17 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                     throw;
                 }
                 mesh->SetIndices(valueType, p, size);
+
+                auto material = materials[gltfPrimitive.material.value()];                
+                mesh->submeshes.push_back({
+                    .draw_offset = 0,
+                    .draw_count = (uint32_t)accessor.count.value(),
+                    .material = material,
+                });
+            }
+            else
+            {
+                throw "not indices";
             }
         }
     }

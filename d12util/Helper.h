@@ -3,6 +3,9 @@
 #include <d3d12.h>
 #include <dxgi1_4.h>
 #include <wrl/client.h>
+#include <iostream>
+#include <vector>
+#include <string>
 
 namespace d12u
 {
@@ -92,4 +95,13 @@ class NonCopyable
 protected:
     NonCopyable() = default;
 };
+
+static void PrintBlob(const ComPtr<ID3DBlob> &blob)
+{
+    std::vector<uint8_t> buffer(blob->GetBufferSize());
+    memcpy(buffer.data(), blob->GetBufferPointer(), buffer.size());
+    std::string msg(buffer.begin(), buffer.end());
+    std::cerr << msg << std::endl;
+}
+
 } // namespace d12u

@@ -9,13 +9,13 @@ namespace hierarchy
 
 class SceneMaterial
 {
-    SceneImagePtr m_colorImage;
-    std::string m_name;
 
 public:
     static std::shared_ptr<SceneMaterial> Create();
-    void SetName(const std::string &name) { m_name = name; }
-    void SetImage(const SceneImagePtr &image) { m_colorImage = image; }
+
+    SceneImagePtr colorImage;
+    std::string name;
+    std::string shader;
 };
 using SceneMaterialPtr = std::shared_ptr<SceneMaterial>;
 

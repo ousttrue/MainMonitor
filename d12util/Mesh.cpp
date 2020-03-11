@@ -1,20 +1,22 @@
 #include "Mesh.h"
 #include "ResourceItem.h"
 #include "CommandList.h"
+#include "Material.h"
 
 namespace d12u
 {
-void Mesh::IndexedCommand(CommandList *commandList)
-{
-    auto indexState = m_indexBuffer->State();
-    if (indexState.State == D3D12_RESOURCE_STATE_COPY_DEST)
-    {
-        if (indexState.Upload == UploadStates::Uploaded)
-        {
-            m_indexBuffer->EnqueueTransition(commandList, D3D12_RESOURCE_STATE_INDEX_BUFFER);
-        }
-    }
 
+void Mesh::Setup(class CommandList *commandList)
+{
+    auto _commandList = commandList->Get();
+
+    //
+    // vertexState
+    //
+    if (!m_vertexBuffer)
+    {
+        return;
+    }
     auto vertexState = m_vertexBuffer->State();
     if (vertexState.State == D3D12_RESOURCE_STATE_COPY_DEST)
     {
@@ -24,33 +26,56 @@ void Mesh::IndexedCommand(CommandList *commandList)
         }
     }
 
-    if (vertexState.Drawable() && indexState.Drawable())
+    //
+    // indexState
+    //
+    if (!m_indexBuffer)
     {
-        auto _commandList = commandList->Get();
-        _commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        _commandList->IASetVertexBuffers(0, 1, &m_vertexBuffer->VertexBufferView());
-        _commandList->IASetIndexBuffer(&m_indexBuffer->IndexBufferView());
-        _commandList->DrawIndexedInstanced(m_indexBuffer->Count(), 1, 0, 0, 0);
+        // //
+        // // draw non indexed: deprecated
+        // //
+        // if (vertexState.Drawable())
+        // {
+        //     _commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        //     _commandList->IASetVertexBuffers(0, 1, &m_vertexBuffer->VertexBufferView());
+        //     _commandList->DrawInstanced(m_vertexBuffer->Count(), 1, 0, 0);
+        // }
+        return;
     }
-}
-
-void Mesh::NonIndexedCommand(CommandList *commandList)
-{
-    auto state = m_vertexBuffer->State();
-    if (state.State == D3D12_RESOURCE_STATE_COPY_DEST)
+    auto indexState = m_indexBuffer->State();
+    if (indexState.State == D3D12_RESOURCE_STATE_COPY_DEST)
     {
-        if (state.Upload == UploadStates::Uploaded)
+        if (indexState.Upload == UploadStates::Uploaded)
         {
-            m_vertexBuffer->EnqueueTransition(commandList, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+            m_indexBuffer->EnqueueTransition(commandList, D3D12_RESOURCE_STATE_INDEX_BUFFER);
         }
     }
 
-    if (state.Drawable())
+    //
+    // draw Indexed
+    //
+    if (vertexState.Drawable() && indexState.Drawable())
     {
-        auto _commandList = commandList->Get();
         _commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         _commandList->IASetVertexBuffers(0, 1, &m_vertexBuffer->VertexBufferView());
-        _commandList->DrawInstanced(m_vertexBuffer->Count(), 1, 0, 0);
+        _commandList->IASetIndexBuffer(&m_indexBuffer->IndexBufferView());
+
+        // // draw
+        // if (submeshes.empty())
+        // {
+        //     _commandList->DrawIndexedInstanced(m_indexBuffer->Count(), 1, 0, 0, 0);
+        // }
+        // else
+        // {
+        //     int offset = 0;
+        //     for (auto &submesh : submeshes)
+        //     {
+        //         submesh.material->Set(_commandList);
+        //         _commandList->DrawIndexedInstanced(submesh.draw_count, 1, 0, 0, 0);
+        //         offset += submesh.draw_count;
+        //     }
+        // }
     }
 }
+
 } // namespace d12u

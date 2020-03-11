@@ -19,8 +19,12 @@ public:
     void Initialize(const ComPtr<ID3D12Device> &device,
                     const ComPtr<ID3D12PipelineState> &ps,
                     D3D12_COMMAND_LIST_TYPE type = D3D12_COMMAND_LIST_TYPE_DIRECT);
+    void InitializeDirect(const ComPtr<ID3D12Device> &device)
+    {
+        Initialize(device, nullptr, D3D12_COMMAND_LIST_TYPE_DIRECT);
+    }
     void Reset(const ComPtr<ID3D12PipelineState> &ps);
-    std::list<OnCompletedFunc> Close();
+    std::list<OnCompletedFunc> CloseAndGetCallbacks();
     void AddOnCompleted(const OnCompletedFunc &callback)
     {
         m_callbacks.push_back(callback);

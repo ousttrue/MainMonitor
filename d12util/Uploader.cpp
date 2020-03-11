@@ -52,7 +52,7 @@ void Uploader::Update(const ComPtr<ID3D12Device> &device)
 
         m_commandList->Reset(nullptr);
         command->Item->EnqueueUpload(m_commandList, m_upload, command->Data, command->ByteLength, command->Stride);
-        auto callbacks = m_commandList->Close();
+        auto callbacks = m_commandList->CloseAndGetCallbacks();
         m_queue->Execute(m_commandList->Get());
         m_callbackFenceValue = m_queue->Signal();
         m_callback = [callbacks]() {
