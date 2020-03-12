@@ -223,6 +223,7 @@ public:
           m_light(new hierarchy::SceneLight),
           m_scene(new hierarchy::Scene)
     {
+        m_camera->zNear = 0.01f;
     }
 
     const std::unique_ptr<hierarchy::Scene> &Scene() const { return m_scene; }
@@ -298,11 +299,11 @@ private:
             auto node = nodes[i];
             if (node)
             {
-                m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = node->TRS.Matrix();
+                m_rootSignature->GetNodeConstantsBuffer(i)->b1World = node->TRS.Matrix();
 
                 if (node->EnableGizmo())
                 {
-                    m_gizmo.Transform(node->ID(), node->TRS);
+                    m_gizmo.Transform(i, node->TRS);
                 }
             }
         }
@@ -330,9 +331,9 @@ private:
 
         // clear
         float color[] = {
-            0,
-            0,
-            0,
+            0.2f,
+            0.2f,
+            0.3f,
             1.0f,
         };
         auto &rt = m_rt->Begin(commandList, color);
@@ -348,7 +349,7 @@ private:
             auto node = nodes[i];
             if (node)
             {
-                m_rootSignature->SetNodeDescriptorTable(commandList, node->ID());
+                m_rootSignature->SetNodeDescriptorTable(commandList, i);
 
                 int meshCount;
                 auto meshes = node->GetMeshes(&meshCount);
@@ -366,10 +367,15 @@ private:
                                 auto material = m_rootSignature->GetOrCreate(m_device, submesh.material);
 
                                 // texture setup
-                                auto texture = m_sceneMapper->GetOrCreate(m_device, submesh.material->colorImage);
+                                auto [texture, textureSlot] = m_rootSignature->GetOrCreate(m_device, submesh.material->colorImage,
+                                                                                           m_sceneMapper->GetUploader());
                                 if (texture)
                                 {
-                                    if (!texture->IsDrawable(m_commandlist.get(), 0))
+                                    if (texture->IsDrawable(m_commandlist.get(), 0))
+                                    {
+                                        m_rootSignature->SetTextureDescriptorTable(commandList, textureSlot);
+                                    }
+                                    else
                                     {
                                         // wait upload
                                         continue;

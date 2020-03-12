@@ -5,9 +5,10 @@ namespace d12u
 {
 
 void Heap::Initialize(const ComPtr<ID3D12Device> &device,
-                      UINT resourceCount, const ConstantBufferBase *const *resources)
+                      UINT resourceCount, const ConstantBufferBase *const *resources,
+                      UINT srvSlots)
 {
-    UINT count = 0;
+    UINT count = srvSlots;
     {
         for (UINT i = 0; i < resourceCount; ++i)
         {
@@ -18,19 +19,18 @@ void Heap::Initialize(const ComPtr<ID3D12Device> &device,
             .NumDescriptors = count,
             .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
         };
-        ThrowIfFailed(device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(&m_cbvHeap)));
+        ThrowIfFailed(device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(&m_heap)));
     }
 
-    auto descriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    auto cpuHandle = m_cbvHeap->GetCPUDescriptorHandleForHeapStart();
-    auto gpuHandle = m_cbvHeap->GetGPUDescriptorHandleForHeapStart();
+    m_descriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    m_cpuHandle = m_heap->GetCPUDescriptorHandleForHeapStart();
+    m_gpuHandle = m_heap->GetGPUDescriptorHandleForHeapStart();
 
+    auto index = 0;
     for (UINT i = 0; i < resourceCount; ++i)
     {
         auto resource = resources[i];
-        for (UINT j = 0; j < resource->Count(); ++j,
-                 cpuHandle.ptr += descriptorSize,
-                 gpuHandle.ptr += descriptorSize)
+        for (UINT j = 0; j < resource->Count(); ++j, ++index)
         {
             auto size = resource->Size();
             auto offset = 0;
@@ -47,9 +47,7 @@ void Heap::Initialize(const ComPtr<ID3D12Device> &device,
                 .BufferLocation = resource->Resource()->GetGPUVirtualAddress() + offset,
                 .SizeInBytes = size,
             };
-            device->CreateConstantBufferView(&cbvDesc, cpuHandle);
-            m_cpuHandles.push_back(cpuHandle);
-            m_gpuHandles.push_back(gpuHandle);
+            device->CreateConstantBufferView(&cbvDesc, CpuHandle(index));
         }
     }
 }

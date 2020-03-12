@@ -1,7 +1,15 @@
 #include "RootSignature.h"
 #include "Material.h"
+#include "ResourceItem.h"
+#include "Texture.h"
+#include "Uploader.h"
 #include <d3dcompiler.h>
 #include <algorithm>
+
+// SCENE_SLOTS=1;
+const int NODE_SLOTS = 128;
+const int MATERIAL_SLOTS = 128;
+const int TEXTURE_SLOTS = MATERIAL_SLOTS;
 
 namespace d12u
 {
@@ -40,7 +48,15 @@ bool RootSignature::Initialize(const ComPtr<ID3D12Device> &device)
             .Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
             // . OffsetInDescriptorsFromTableStart,
         },
+        {
+            .RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+            .NumDescriptors = 1,
+            .BaseShaderRegister = 0,
+            .RegisterSpace = 0,
+            // .Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
+        },
     };
+
     D3D12_ROOT_PARAMETER1 rootParameters[] = {
         // scene
         {
@@ -59,6 +75,15 @@ bool RootSignature::Initialize(const ComPtr<ID3D12Device> &device)
                 .pDescriptorRanges = &ranges[1],
             },
             .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+        },
+        // SRV
+        {
+            .ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+            .DescriptorTable = {
+                .NumDescriptorRanges = 1,
+                .pDescriptorRanges = &ranges[2],
+            },
+            .ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL,
         },
     };
 
@@ -80,6 +105,18 @@ bool RootSignature::Initialize(const ComPtr<ID3D12Device> &device)
         },
     };
 
+    D3D12_STATIC_SAMPLER_DESC sampler = {
+        .Filter = D3D12_FILTER_MIN_MAG_MIP_POINT,
+        .AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        .AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        .AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        .ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER,
+        .MaxLOD = D3D12_FLOAT32_MAX,
+        .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+    };
+    rootSignatureDesc.Desc_1_1.pStaticSamplers = &sampler;
+    rootSignatureDesc.Desc_1_1.NumStaticSamplers = 1;
+
     ComPtr<ID3DBlob> signature;
     ComPtr<ID3DBlob> error;
     ThrowIfFailed(D3D12SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error));
@@ -89,14 +126,14 @@ bool RootSignature::Initialize(const ComPtr<ID3D12Device> &device)
     // buffers
     //
     m_sceneConstantsBuffer.Initialize(device, 1);
-    m_nodeConstantsBuffer.Initialize(device, 128);
-    m_materialConstantsBuffer.Initialize(device, 128);
+    m_nodeConstantsBuffer.Initialize(device, NODE_SLOTS);
+    m_materialConstantsBuffer.Initialize(device, MATERIAL_SLOTS);
     ConstantBufferBase *items[] = {
         &m_sceneConstantsBuffer,
         &m_nodeConstantsBuffer,
-        &m_nodeConstantsBuffer,
+        &m_materialConstantsBuffer,
     };
-    m_heap->Initialize(device, _countof(items), items);
+    m_heap->Initialize(device, _countof(items), items, TEXTURE_SLOTS);
 
     return true;
 }
@@ -127,6 +164,52 @@ std::shared_ptr<Material> RootSignature::GetOrCreate(const ComPtr<ID3D12Device> 
 
     m_materialMap.insert(std::make_pair(sceneMaterial, gpuMaterial));
     return gpuMaterial;
+}
+
+std::pair<std::shared_ptr<class Texture>, UINT> RootSignature::GetOrCreate(const ComPtr<ID3D12Device> &device, const hierarchy::SceneImagePtr &image,
+                                                                           Uploader *uploader)
+{
+    auto found = m_textureMap.find(image);
+    if (found != m_textureMap.end())
+    {
+        return std::make_pair(m_textures[found->second], found->second);
+    }
+
+    // create texture
+    auto gpuTexture = std::make_shared<Texture>();
+    {
+        auto resource = ResourceItem::CreateDefaultImage(device, image->width, image->height);
+        gpuTexture->ImageBuffer(resource);
+        uploader->EnqueueUpload(resource, image->buffer.data(), (UINT)image->buffer.size(), image->width * 4);
+    }
+
+    auto index = (UINT)m_textures.size();
+    m_textures.push_back(gpuTexture);
+    m_textureMap.insert(std::make_pair(image, index));
+
+    // create view
+    D3D12_SHADER_RESOURCE_VIEW_DESC desc{
+        .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+        .ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D,
+        .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+        .Texture2D = {
+            .MostDetailedMip = 0,
+            .MipLevels = 1,
+        },
+    };
+    device->CreateShaderResourceView(gpuTexture->Resource().Get(), &desc, m_heap->CpuHandle(index + 1 + NODE_SLOTS + MATERIAL_SLOTS));
+
+    return std::make_pair(gpuTexture, index);
+}
+
+void RootSignature::SetNodeDescriptorTable(const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT nodeIndex)
+{
+    commandList->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(nodeIndex + 1));
+}
+
+void RootSignature::SetTextureDescriptorTable(const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT textureIndex)
+{
+    commandList->SetGraphicsRootDescriptorTable(2, m_heap->GpuHandle(textureIndex + 1 + NODE_SLOTS + MATERIAL_SLOTS));
 }
 
 } // namespace d12u

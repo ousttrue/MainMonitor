@@ -5,6 +5,11 @@
 namespace d12u
 {
 
+const Microsoft::WRL::ComPtr<ID3D12Resource> &Texture::Resource() const
+{
+    return m_imageBuffer->Resource();
+}
+
 bool Texture::IsDrawable(class CommandList *commandList, UINT rootParameterIndex)
 {
     auto _commandList = commandList->Get();

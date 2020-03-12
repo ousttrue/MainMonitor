@@ -16,9 +16,10 @@ TODO
 * [ ] Grid
 * [x] imgui
 * [x] gizmo
+    * [ ] color
 * [ ] light/lambert
 * [x] material
-* [ ] texture
+* [x] texture
 * [ ] shader runtime load
     * [ ] auto reload
 * [ ] logger

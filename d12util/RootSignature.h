@@ -52,12 +52,15 @@ class RootSignature : NonCopyable
     d12u::ConstantBuffer<MaterialConstants> m_materialConstantsBuffer;
 
     std::unordered_map<hierarchy::SceneMaterialPtr, std::shared_ptr<class Material>> m_materialMap;
+    std::vector<std::shared_ptr<class Texture>> m_textures;
+    std::unordered_map<hierarchy::SceneImagePtr, uint32_t> m_textureMap;
 
 public:
     RootSignature();
     bool Initialize(const ComPtr<ID3D12Device> &device);
     void Begin(const ComPtr<ID3D12GraphicsCommandList> &commandList);
     std::shared_ptr<class Material> GetOrCreate(const ComPtr<ID3D12Device> &device, const std::shared_ptr<hierarchy::SceneMaterial> &material);
+    std::pair<std::shared_ptr<class Texture>, UINT> GetOrCreate(const ComPtr<ID3D12Device> &device, const hierarchy::SceneImagePtr &image, class Uploader *uploader);
 
     SceneConstants *GetSceneConstantsBuffer(UINT index)
     {
@@ -75,13 +78,8 @@ public:
     {
         m_nodeConstantsBuffer.CopyToGpu();
     }
-    void SetNodeDescriptorTable(const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT nodeIndex)
-    {
-        // node constant
-        // index[0] => camera
-        // index[1-64] => world matrix
-        commandList->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(nodeIndex + 1));
-    }
+    void SetNodeDescriptorTable(const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT nodeIndex);
+    void SetTextureDescriptorTable(const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT textureIndex);
 };
 
 } // namespace d12u

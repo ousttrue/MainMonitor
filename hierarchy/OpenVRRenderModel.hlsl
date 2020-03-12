@@ -1,4 +1,6 @@
-R""(
+R""(   
+SamplerState s0 : register(s0);
+Texture2D t0 : register(t0);    
 cbuffer SceneConstantBuffer : register(b0)
 {
     float4x4 b0View;
@@ -44,9 +46,10 @@ PSInput VSMain(float3 position : POSITION, float3 normal : NORMAL, float2 uv : T
 float4 PSMain(PSInput input) : SV_TARGET
 {
     // float3 P = input.position.xyz;
+	float4 vColor = t0.Sample(s0, input.uv);
     float3 N = input.normal;
     float3 L = normalize(-b0LightDirection);
-    float3 Shading = saturate(dot(N, L)) * 0.8 + float3(0.2, 0.2, 0.2);
+    float3 Shading = vColor * (saturate(dot(N, L)) + float3(0.2, 0.2, 0.2));
     return float4(Shading, 1);
 }
 )""
