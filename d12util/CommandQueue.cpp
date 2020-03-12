@@ -54,6 +54,11 @@ UINT64 CommandQueue::CurrentValue() const
 
 void CommandQueue::SyncFence(const CallbackList &callbacks)
 {
+    if(!m_fence)
+    {
+        return;
+    }
+    
     auto fence = Signal();
 
     // Wait until the previous frame is finished.

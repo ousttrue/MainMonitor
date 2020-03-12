@@ -15,7 +15,7 @@ target_include_directories(${TARGET_NAME}
     ${CMAKE_CURRENT_LIST_DIR}
     PRIVATE
     ${EXTERNAL_DIR}/sukonbu/gltfformat/include
-    ${EXTERNAL_DIR}/sukonbu/gltfformat/nlohmann-json/single_include
+    ${EXTERNAL_DIR}/sukonbu/gltfformat/external_include
     )
 target_compile_definitions(${TARGET_NAME} PUBLIC
     NOMINMAX
