@@ -81,7 +81,8 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
     {
         auto &bufferView = gltf.bufferViews[gltfImage.bufferView.value()];
         auto bytes = bin.get_bytes(bufferView);
-        auto image = SceneImage::Create(bytes.p, bytes.size);
+        auto image = SceneImage::Create();
+        image->buffer.assign(bytes.p, bytes.p + bytes.size);
         images.push_back(image);
     }
 
@@ -167,7 +168,7 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                 }
                 mesh->SetIndices(valueType, p, size);
 
-                auto material = materials[gltfPrimitive.material.value()];                
+                auto material = materials[gltfPrimitive.material.value()];
                 mesh->submeshes.push_back({
                     .draw_offset = 0,
                     .draw_count = (uint32_t)accessor.count.value(),

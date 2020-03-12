@@ -84,11 +84,20 @@ public:
         return view;
     }
 
+    D3D12_GPU_VIRTUAL_ADDRESS GpuAddress() const
+    {
+        return m_resource->GetGPUVirtualAddress();
+    }
+
     void MapCopyUnmap(const void *p, UINT byteLength, UINT stride);
     void EnqueueTransition(class CommandList *commandList, D3D12_RESOURCE_STATES state);
     void EnqueueUpload(class CommandList *commandList, const std::shared_ptr<class ResourceItem> &upload,
                        const void *p, UINT byteLength, UINT stride);
+    // dynamic
     static std::shared_ptr<ResourceItem> CreateUpload(const ComPtr<ID3D12Device> &device, UINT byteLength);
+    // static
     static std::shared_ptr<ResourceItem> CreateDefault(const ComPtr<ID3D12Device> &device, UINT byteLength);
+    // static image
+    static std::shared_ptr<ResourceItem> CreateDefaultImage(const ComPtr<ID3D12Device> &device, UINT width, UINT height);
 };
 } // namespace d12u

@@ -11,6 +11,7 @@ add_library(${TARGET_NAME}
     Heap.cpp
     SceneMapper.cpp
     Material.cpp
+    Texture.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

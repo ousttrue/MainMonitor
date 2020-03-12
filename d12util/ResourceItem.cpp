@@ -58,8 +58,42 @@ void ResourceItem::EnqueueUpload(CommandList *commandList,
     // upload
     upload->MapCopyUnmap(p, byteLength, stride);
     // copy command
-    // TODO: footprint, offset
-    commandList->Get()->CopyBufferRegion(m_resource.Get(), 0, upload->Resource().Get(), 0, byteLength);
+    auto desc = upload->Resource()->GetDesc();
+    switch (desc.Dimension)
+    {
+    case D3D12_RESOURCE_DIMENSION_BUFFER:
+        // TODO: footprint, offset
+        commandList->Get()->CopyBufferRegion(m_resource.Get(), 0,
+                                             upload->Resource().Get(), 0, byteLength);
+        break;
+
+    case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+    {
+        D3D12_TEXTURE_COPY_LOCATION src{
+            .pResource = m_resource.Get(),
+            .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+            .PlacedFootprint = {
+                .Offset = 0,
+                .Footprint = {
+                    .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+                    .Width = byteLength,
+                    .Height = stride,
+                    .Depth = 1,
+                    .RowPitch = byteLength * 4,
+                }}};
+        D3D12_TEXTURE_COPY_LOCATION dst{
+            .pResource = upload->Resource().Get(),
+            .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+            .SubresourceIndex = 0};
+        commandList->Get()->CopyTextureRegion(&src,
+                                              0, 0, 0, &dst, nullptr);
+    }
+    break;
+
+    default:
+        // not implemented
+        throw;
+    }
 
     std::weak_ptr weak = shared_from_this();
     auto callback = [weak]() {
@@ -136,4 +170,35 @@ std::shared_ptr<ResourceItem> ResourceItem::CreateDefault(const ComPtr<ID3D12Dev
     return std::shared_ptr<ResourceItem>(
         new ResourceItem(resource, D3D12_RESOURCE_STATE_COPY_DEST));
 }
+
+std::shared_ptr<ResourceItem> ResourceItem::CreateDefaultImage(const ComPtr<ID3D12Device> &device, UINT width, UINT height)
+{
+    D3D12_HEAP_PROPERTIES prop{
+        .Type = D3D12_HEAP_TYPE_DEFAULT,
+    };
+    D3D12_RESOURCE_DESC desc{
+        .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+        .Alignment = 0,
+        .Width = width,
+        .Height = height,
+        .DepthOrArraySize = 1,
+        .MipLevels = 1,
+        .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+        .SampleDesc = {1, 0},
+        .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+        .Flags = D3D12_RESOURCE_FLAG_NONE,
+    };
+    ComPtr<ID3D12Resource> resource;
+    ThrowIfFailed(device->CreateCommittedResource(
+        &prop,
+        D3D12_HEAP_FLAG_NONE,
+        &desc,
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        nullptr,
+        IID_PPV_ARGS(&resource)));
+
+    return std::shared_ptr<ResourceItem>(
+        new ResourceItem(resource, D3D12_RESOURCE_STATE_COPY_DEST));
+}
+
 } // namespace d12u

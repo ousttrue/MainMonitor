@@ -3,7 +3,7 @@
 namespace hierarchy
 {
 
-std::shared_ptr<SceneImage> SceneImage::Create(const uint8_t *p, int length)
+std::shared_ptr<SceneImage> SceneImage::Create()
 {
     return SceneImagePtr(new SceneImage);
 }

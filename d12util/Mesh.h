@@ -15,12 +15,11 @@ class Mesh : NonCopyable
     std::shared_ptr<class ResourceItem> m_indexBuffer;
 
 public:
-
     void VertexBuffer(const std::shared_ptr<class ResourceItem> &item) { m_vertexBuffer = item; }
     const std::shared_ptr<class ResourceItem> &VertexBuffer() const { return m_vertexBuffer; }
     void IndexBuffer(const std::shared_ptr<class ResourceItem> &item) { m_indexBuffer = item; }
     const std::shared_ptr<class ResourceItem> &IndexBuffer() const { return m_indexBuffer; }
-    void Setup(class CommandList *commandList);
+    bool IsDrawable(class CommandList *commandList);
 };
 
 } // namespace d12u

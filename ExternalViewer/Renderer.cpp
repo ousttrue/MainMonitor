@@ -358,16 +358,29 @@ private:
                     if (mesh)
                     {
                         auto drawable = m_sceneMapper->GetOrCreate(m_device, mesh);
-                        // draw or barrier
-                        drawable->Setup(m_commandlist.get());
-                        int offset = 0;
-                        for (auto &submesh : mesh->submeshes)
+                        if (drawable->IsDrawable(m_commandlist.get()))
                         {
-                            auto material = m_rootSignature->GetOrCreate(m_device, submesh.material);
-                            material->Set(commandList);
+                            int offset = 0;
+                            for (auto &submesh : mesh->submeshes)
+                            {
+                                auto material = m_rootSignature->GetOrCreate(m_device, submesh.material);
 
-                            m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, 0, 0, 0);
-                            offset += submesh.draw_count;
+                                // texture setup
+                                auto texture = m_sceneMapper->GetOrCreate(m_device, submesh.material->colorImage);
+                                if (texture)
+                                {
+                                    if (!texture->IsDrawable(m_commandlist.get(), 0))
+                                    {
+                                        // wait upload
+                                        continue;
+                                    }
+                                }
+
+                                material->Set(commandList);
+                                m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, offset, 0, 0);
+
+                                offset += submesh.draw_count;
+                            }
                         }
                     }
                 }
@@ -378,8 +391,18 @@ private:
         {
             m_rootSignature->SetNodeDescriptorTable(commandList, m_gizmo.GetNodeID());
             auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh());
-            // draw or barrier
-            drawable->Setup(m_commandlist.get());
+            if (drawable->IsDrawable(m_commandlist.get()))
+            {
+                int offset = 0;
+                for (auto &submesh : m_gizmo.GetMesh()->submeshes)
+                {
+                    auto material = m_rootSignature->GetOrCreate(m_device, submesh.material);
+                    material->Set(commandList);
+                    m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, offset, 0, 0);
+
+                    offset += submesh.draw_count;
+                }
+            }
         }
 
         m_imgui->BeginFrame(state);

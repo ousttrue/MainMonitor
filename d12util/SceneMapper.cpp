@@ -1,7 +1,7 @@
 #include "SceneMapper.h"
 #include "ResourceItem.h"
 #include "Mesh.h"
-#include "Material.h"
+#include "Texture.h"
 #include "Uploader.h"
 #include <DirectXMath.h>
 
@@ -156,4 +156,27 @@ std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &devic
     m_meshMap.insert(std::make_pair(sceneMesh, gpuMesh));
     return gpuMesh;
 }
+
+std::shared_ptr<class Texture> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &device, const hierarchy::SceneImagePtr &image)
+{
+    auto found = m_textureMap.find(image);
+    if (found != m_textureMap.end())
+    {
+        return found->second;
+    }
+
+    auto gpuTexture = std::make_shared<Texture>();
+
+    {
+        auto resource = ResourceItem::CreateDefaultImage(device, image->width, image->height);
+        gpuTexture->ImageBuffer(resource);
+        m_uploader->EnqueueUpload(resource, image->buffer.data(), (UINT)image->buffer.size(), image->width);
+
+        gpuTexture->ImageBuffer(resource);
+    }
+
+    m_textureMap.insert(std::make_pair(image, gpuTexture));
+    return gpuTexture;
+}
+
 } // namespace d12u

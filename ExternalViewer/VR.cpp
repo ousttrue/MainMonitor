@@ -168,6 +168,20 @@ void VR::OnFrame(hierarchy::Scene *scene)
             mesh->SetVertices(hierarchy::Semantics::PositionNormalTexCoord, hierarchy::ValueType::Float8, (uint8_t *)data->rVertexData, data->unVertexCount * vertexStride);
             mesh->SetIndices((hierarchy::ValueType)indexStride, (uint8_t *)data->rIndexData, data->unTriangleCount * indexStride);
 
+            auto texture = task->Texture();
+
+            auto image = hierarchy::SceneImage::Create();
+            image->SetRawBytes(texture->rubTextureMapData, texture->unWidth, texture->unHeight);
+
+            auto material = hierarchy::SceneMaterial::Create();
+            material->colorImage = image;
+
+            mesh->submeshes.push_back({
+                .draw_offset = 0,
+                .draw_count = data->unTriangleCount,
+                .material = material,
+            });
+
             auto node = scene->GetOrCreateNode(task->m_index);
             node->AddMesh(mesh);
 

@@ -6,7 +6,7 @@
 namespace d12u
 {
 
-void Mesh::Setup(class CommandList *commandList)
+bool Mesh::IsDrawable(class CommandList *commandList)
 {
     auto _commandList = commandList->Get();
 
@@ -15,7 +15,7 @@ void Mesh::Setup(class CommandList *commandList)
     //
     if (!m_vertexBuffer)
     {
-        return;
+        return false;
     }
     auto vertexState = m_vertexBuffer->State();
     if (vertexState.State == D3D12_RESOURCE_STATE_COPY_DEST)
@@ -40,7 +40,7 @@ void Mesh::Setup(class CommandList *commandList)
         //     _commandList->IASetVertexBuffers(0, 1, &m_vertexBuffer->VertexBufferView());
         //     _commandList->DrawInstanced(m_vertexBuffer->Count(), 1, 0, 0);
         // }
-        return;
+        return false;
     }
     auto indexState = m_indexBuffer->State();
     if (indexState.State == D3D12_RESOURCE_STATE_COPY_DEST)
@@ -54,28 +54,32 @@ void Mesh::Setup(class CommandList *commandList)
     //
     // draw Indexed
     //
-    if (vertexState.Drawable() && indexState.Drawable())
+    if (!vertexState.Drawable() || !indexState.Drawable())
     {
-        _commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        _commandList->IASetVertexBuffers(0, 1, &m_vertexBuffer->VertexBufferView());
-        _commandList->IASetIndexBuffer(&m_indexBuffer->IndexBufferView());
-
-        // // draw
-        // if (submeshes.empty())
-        // {
-        //     _commandList->DrawIndexedInstanced(m_indexBuffer->Count(), 1, 0, 0, 0);
-        // }
-        // else
-        // {
-        //     int offset = 0;
-        //     for (auto &submesh : submeshes)
-        //     {
-        //         submesh.material->Set(_commandList);
-        //         _commandList->DrawIndexedInstanced(submesh.draw_count, 1, 0, 0, 0);
-        //         offset += submesh.draw_count;
-        //     }
-        // }
+        return false;
     }
+
+    _commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    _commandList->IASetVertexBuffers(0, 1, &m_vertexBuffer->VertexBufferView());
+    _commandList->IASetIndexBuffer(&m_indexBuffer->IndexBufferView());
+
+    // // draw
+    // if (submeshes.empty())
+    // {
+    //     _commandList->DrawIndexedInstanced(m_indexBuffer->Count(), 1, 0, 0, 0);
+    // }
+    // else
+    // {
+    //     int offset = 0;
+    //     for (auto &submesh : submeshes)
+    //     {
+    //         submesh.material->Set(_commandList);
+    //         _commandList->DrawIndexedInstanced(submesh.draw_count, 1, 0, 0, 0);
+    //         offset += submesh.draw_count;
+    //     }
+    // }}
+
+    return true;
 }
 
 } // namespace d12u
