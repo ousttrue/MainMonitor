@@ -17,7 +17,7 @@ TODO
 * [x] imgui
 * [x] gizmo
 * [ ] light/lambert
-* [ ] material
+* [x] material
 * [ ] texture
 * [ ] shader runtime load
     * [ ] auto reload

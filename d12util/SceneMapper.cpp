@@ -170,9 +170,7 @@ std::shared_ptr<class Texture> SceneMapper::GetOrCreate(const ComPtr<ID3D12Devic
     {
         auto resource = ResourceItem::CreateDefaultImage(device, image->width, image->height);
         gpuTexture->ImageBuffer(resource);
-        m_uploader->EnqueueUpload(resource, image->buffer.data(), (UINT)image->buffer.size(), image->width);
-
-        gpuTexture->ImageBuffer(resource);
+        m_uploader->EnqueueUpload(resource, image->buffer.data(), (UINT)image->buffer.size(), image->width * 4);
     }
 
     m_textureMap.insert(std::make_pair(image, gpuTexture));

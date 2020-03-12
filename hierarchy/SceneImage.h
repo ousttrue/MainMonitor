@@ -15,7 +15,11 @@ enum class ImageType
 class SceneImage
 {
 public:
+    // empty
     static std::shared_ptr<SceneImage> Create();
+
+    // load
+    static std::shared_ptr<SceneImage> Load(const uint8_t *p, int size);
 
     std::vector<uint8_t> buffer;
     ImageType type = ImageType::Unknown;

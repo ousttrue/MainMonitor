@@ -16,6 +16,7 @@ target_include_directories(${TARGET_NAME}
     PRIVATE
     ${EXTERNAL_DIR}/sukonbu/gltfformat/include
     ${EXTERNAL_DIR}/sukonbu/gltfformat/external_include
+    ${EXTERNAL_DIR}/stb
     )
 target_compile_definitions(${TARGET_NAME} PUBLIC
     NOMINMAX

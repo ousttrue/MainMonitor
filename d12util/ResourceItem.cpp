@@ -57,8 +57,9 @@ void ResourceItem::EnqueueUpload(CommandList *commandList,
 {
     // upload
     upload->MapCopyUnmap(p, byteLength, stride);
+
     // copy command
-    auto desc = upload->Resource()->GetDesc();
+    auto desc = m_resource->GetDesc();
     switch (desc.Dimension)
     {
     case D3D12_RESOURCE_DIMENSION_BUFFER:
@@ -70,23 +71,23 @@ void ResourceItem::EnqueueUpload(CommandList *commandList,
     case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
     {
         D3D12_TEXTURE_COPY_LOCATION src{
-            .pResource = m_resource.Get(),
+            .pResource = upload->Resource().Get(),
             .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
             .PlacedFootprint = {
                 .Offset = 0,
                 .Footprint = {
                     .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
-                    .Width = byteLength,
-                    .Height = stride,
+                    .Width = stride / 4,
+                    .Height = byteLength / stride,
                     .Depth = 1,
-                    .RowPitch = byteLength * 4,
+                    .RowPitch = stride,
                 }}};
         D3D12_TEXTURE_COPY_LOCATION dst{
-            .pResource = upload->Resource().Get(),
+            .pResource = m_resource.Get(),
             .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
             .SubresourceIndex = 0};
-        commandList->Get()->CopyTextureRegion(&src,
-                                              0, 0, 0, &dst, nullptr);
+        commandList->Get()->CopyTextureRegion(&dst,
+                                              0, 0, 0, &src, nullptr);
     }
     break;
 
@@ -185,7 +186,7 @@ std::shared_ptr<ResourceItem> ResourceItem::CreateDefaultImage(const ComPtr<ID3D
         .MipLevels = 1,
         .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
         .SampleDesc = {1, 0},
-        .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+        .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
         .Flags = D3D12_RESOURCE_FLAG_NONE,
     };
     ComPtr<ID3D12Resource> resource;

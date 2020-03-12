@@ -34,7 +34,17 @@ class ResourceItem : public std::enable_shared_from_this<ResourceItem>
             {
                 return false;
             }
-            return State == D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER || State == D3D12_RESOURCE_STATE_GENERIC_READ || State == D3D12_RESOURCE_STATE_INDEX_BUFFER;
+
+            switch (State)
+            {
+            case D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER:
+            case D3D12_RESOURCE_STATE_GENERIC_READ:
+            case D3D12_RESOURCE_STATE_INDEX_BUFFER:
+            case D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE:
+                return true;
+            }
+
+            return false;
         }
     };
     ItemState m_state = {};

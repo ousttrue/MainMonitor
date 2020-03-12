@@ -7,10 +7,6 @@
 #include <gltfformat/glb.h>
 #include <gltfformat/bin.h>
 
-std::string g_shaderSource =
-#include "OpenVRRenderModel.hlsl"
-    ;
-
 template <class T>
 static std::vector<uint8_t> read_allbytes(T path)
 {
@@ -81,8 +77,10 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
     {
         auto &bufferView = gltf.bufferViews[gltfImage.bufferView.value()];
         auto bytes = bin.get_bytes(bufferView);
-        auto image = SceneImage::Create();
-        image->buffer.assign(bytes.p, bytes.p + bytes.size);
+
+        // TO_PNG
+        auto image = SceneImage::Load(bytes.p, bytes.size);
+
         images.push_back(image);
     }
 
@@ -104,8 +102,6 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
             //material->SetColor(pbr.baseColorFactor.value());
         }
         material->name = gltfMaterial.name;
-
-        material->shader = g_shaderSource;
 
         materials.push_back(material);
     }
