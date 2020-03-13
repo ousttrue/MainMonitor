@@ -10,7 +10,7 @@ cbuffer SceneConstantBuffer : register(b0)
 };
 cbuffer NodeConstantBuffer : register(b1)
 {
-    float4x4 b1World;
+    float4x4 b1World : WORLD;
 };
 // cbuffer MaterialConstantBuffer: register(b2)
 // {

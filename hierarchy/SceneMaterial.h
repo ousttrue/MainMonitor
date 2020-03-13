@@ -15,7 +15,7 @@ public:
 
     SceneImagePtr colorImage;
     std::string name;
-    std::string shader;
+    std::string shaderName;
 };
 using SceneMaterialPtr = std::shared_ptr<SceneMaterial>;
 

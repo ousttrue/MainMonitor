@@ -382,7 +382,7 @@ private:
                                     }
                                 }
 
-                                material->Set(commandList);
+                                material->m_shader->Set(commandList);
                                 m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, offset, 0, 0);
 
                                 offset += submesh.draw_count;
@@ -403,7 +403,7 @@ private:
                 for (auto &submesh : m_gizmo.GetMesh()->submeshes)
                 {
                     auto material = m_rootSignature->GetOrCreate(m_device, submesh.material);
-                    material->Set(commandList);
+                    material->m_shader->Set(commandList);
                     m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, offset, 0, 0);
 
                     offset += submesh.draw_count;

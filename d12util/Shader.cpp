@@ -1,12 +1,11 @@
-#include "Material.h"
+#include "Shader.h"
 #include <d3dcompiler.h>
 
 namespace d12u
 {
 
-bool Material::Initialize(const ComPtr<ID3D12Device> &device,
-                          const ComPtr<ID3D12RootSignature> &rootSignature,
-                          const std::string &shaderSource, UINT cbvDescriptorCount)
+bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
+                        const ComPtr<ID3D12RootSignature> &rootSignature)
 {
     // Create the pipeline state, which includes compiling and loading shaders.
     {
@@ -22,7 +21,7 @@ bool Material::Initialize(const ComPtr<ID3D12Device> &device,
 
         {
             ComPtr<ID3DBlob> error;
-            if (FAILED(D3DCompile(shaderSource.data(), shaderSource.size(), "shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &error)))
+            if (FAILED(D3DCompile(m_vs.data(), m_vs.size(), "shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &error)))
             {
                 PrintBlob(error);
                 throw;
@@ -30,7 +29,7 @@ bool Material::Initialize(const ComPtr<ID3D12Device> &device,
         }
         {
             ComPtr<ID3DBlob> error;
-            if (FAILED(D3DCompile(shaderSource.data(), shaderSource.size(), "shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr)))
+            if (FAILED(D3DCompile(m_ps.data(), m_ps.size(), "shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr)))
             {
                 PrintBlob(error);
                 throw;
@@ -116,7 +115,7 @@ bool Material::Initialize(const ComPtr<ID3D12Device> &device,
     return true;
 }
 
-void Material::Set(const ComPtr<ID3D12GraphicsCommandList> &commandList)
+void Shader::Set(const ComPtr<ID3D12GraphicsCommandList> &commandList)
 {
     commandList->SetPipelineState(m_pipelineState.Get());
 }

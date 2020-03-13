@@ -10,7 +10,7 @@ add_library(${TARGET_NAME}
     RootSignature.cpp
     Heap.cpp
     SceneMapper.cpp
-    Material.cpp
+    Shader.cpp
     Texture.cpp
     )
 set_property(TARGET ${TARGET_NAME} 

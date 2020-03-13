@@ -1,10 +1,15 @@
 #include "RootSignature.h"
+#include "Shader.h"
 #include "Material.h"
 #include "ResourceItem.h"
 #include "Texture.h"
 #include "Uploader.h"
 #include <d3dcompiler.h>
 #include <algorithm>
+
+std::string g_shaderSource =
+#include "OpenVRRenderModel.hlsl"
+    ;
 
 // SCENE_SLOTS=1;
 const int NODE_SLOTS = 128;
@@ -146,6 +151,26 @@ void RootSignature::Begin(const ComPtr<ID3D12GraphicsCommandList> &commandList)
     commandList->SetGraphicsRootDescriptorTable(0, m_heap->GpuHandle(0));
 }
 
+std::shared_ptr<Shader> RootSignature::GetOrCreateShader(const ComPtr<ID3D12Device> &device, const std::string &shaderName)
+{
+    auto found = m_shaderMap.find(shaderName);
+    if (found != m_shaderMap.end())
+    {
+        return found->second;
+    }
+
+    auto gpuShader = std::make_shared<Shader>();
+    gpuShader->m_vs = g_shaderSource;
+    gpuShader->m_ps = g_shaderSource;
+    if (!gpuShader->Initialize(device, m_rootSignature))
+    {
+        return nullptr;
+    }
+
+    m_shaderMap.insert(std::make_pair(shaderName, gpuShader));
+    return gpuShader;
+}
+
 std::shared_ptr<Material> RootSignature::GetOrCreate(const ComPtr<ID3D12Device> &device, const std::shared_ptr<hierarchy::SceneMaterial> &sceneMaterial)
 {
     auto found = m_materialMap.find(sceneMaterial);
@@ -154,13 +179,15 @@ std::shared_ptr<Material> RootSignature::GetOrCreate(const ComPtr<ID3D12Device> 
         return found->second;
     }
 
-    auto gpuMaterial = std::make_shared<Material>();
-
     // shader
-    if (!gpuMaterial->Initialize(device, m_rootSignature, sceneMaterial->shader, 2))
+    auto gpuShader = GetOrCreateShader(device, sceneMaterial->shaderName);
+    if (!gpuShader)
     {
         return nullptr;
     }
+
+    auto gpuMaterial = std::make_shared<Material>();
+    gpuMaterial->m_shader = gpuShader;
 
     m_materialMap.insert(std::make_pair(sceneMaterial, gpuMaterial));
     return gpuMaterial;
