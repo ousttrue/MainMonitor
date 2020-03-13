@@ -1,13 +1,15 @@
 #include "Gizmo.h"
 #include <gizmesh.h>
-#include <SceneNode.h>
+#include <hierarchy.h>
 
 Gizmo::Gizmo()
     : m_gizmo(new gizmesh::GizmoSystem),
       m_gizmoMesh(hierarchy::SceneMesh::CreateDynamic(65535, 65535))
 {
+    auto material = hierarchy::SceneMaterial::Create();
+    material->shader = hierarchy::ShaderManager::Instance().get("gizmo");
     m_gizmoMesh->submeshes.push_back({
-        .material = hierarchy::SceneMaterial::Create(),
+        .material = material,
     });
 }
 
