@@ -16,11 +16,16 @@ TODO
 * [ ] Grid
 * [x] imgui
 * [x] gizmo
-    * [ ] color
+    * [ ] VertexColor
+    * [ ] light transform
 * [ ] light/lambert
 * [x] material
 * [x] texture
-* [ ] shader runtime load
-    * [ ] auto reload
+* [x] shader runtime load
+    * [x] shader reload when hlsl updated
 * [ ] logger
     * [ ] imgui log widgets
+* [ ] Shader Reflection
+    * [ ] Constants Semantics
+* [ ] glTF node
+* [ ] glTF pbr

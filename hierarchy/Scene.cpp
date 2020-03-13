@@ -166,7 +166,7 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
 
                 auto material = materials[gltfPrimitive.material.value()];
                 mesh->submeshes.push_back({
-                    .draw_offset = 0,
+                    // .draw_offset = 0,
                     .draw_count = (uint32_t)accessor.count.value(),
                     .material = material,
                 });

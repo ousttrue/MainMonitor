@@ -41,7 +41,7 @@ struct VertexBuffer
 
 struct SceneSubmesh
 {
-    uint32_t draw_offset = 0;
+    // uint32_t draw_offset = 0;
     uint32_t draw_count = 0;
     SceneMaterialPtr material;
 };

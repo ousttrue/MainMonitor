@@ -177,7 +177,7 @@ void VR::OnFrame(hierarchy::Scene *scene)
             material->colorImage = image;
 
             mesh->submeshes.push_back({
-                .draw_offset = 0,
+                // .draw_offset = 0,
                 .draw_count = data->unTriangleCount,
                 .material = material,
             });

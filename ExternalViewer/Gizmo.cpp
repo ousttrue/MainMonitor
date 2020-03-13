@@ -6,6 +6,9 @@ Gizmo::Gizmo()
     : m_gizmo(new gizmesh::GizmoSystem),
       m_gizmoMesh(hierarchy::SceneMesh::CreateDynamic(65535, 65535))
 {
+    m_gizmoMesh->submeshes.push_back({
+        .material = hierarchy::SceneMaterial::Create(),
+    });
 }
 
 Gizmo::~Gizmo()
@@ -35,7 +38,9 @@ void Gizmo::Begin(const screenstate::ScreenState &state, const camera::CameraSta
 
 gizmesh::GizmoSystem::Buffer Gizmo::End()
 {
-    return m_gizmo->end();
+    auto buffer = m_gizmo->end();
+    m_gizmoMesh->submeshes.back().draw_count = buffer.indicesBytes / buffer.indexStride;
+    return buffer;
 }
 
 void Gizmo::Transform(int id, fpalg::TRS &trs)
