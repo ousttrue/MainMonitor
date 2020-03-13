@@ -35,11 +35,11 @@ const auto WINDOW_NAME = L"ExternalViewer";
 int main(int argc, char **argv)
 {
     auto path = std::filesystem::current_path();
-    if(argc>1)
+    if (argc > 1)
     {
         path = argv[1];
     }
-    hierarchy::ShaderManager::Instance().setPath(path);
+    hierarchy::ShaderManager::Instance().watch(path);
 
     screenstate::Win32Window window(CLASS_NAME);
 

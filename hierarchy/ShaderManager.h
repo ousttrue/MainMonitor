@@ -2,29 +2,31 @@
 #include "ShaderWatcher.h"
 #include <unordered_map>
 #include <filesystem>
+#include <mutex>
 
 namespace hierarchy
 {
 
 class ShaderManager
 {
-    std::filesystem::path m_path;
-    std::unordered_map<std::string, ShaderWatcherPtr> m_shaderMap;
+    std::unordered_map<std::wstring, ShaderWatcherPtr> m_shaderMap;
+    std::mutex m_mutex;
+
+    class DirectoryWatcher *m_watcher = nullptr;
 
     // avoid copy
     ShaderManager(const ShaderManager &) = delete;
     ShaderManager &operator=(const ShaderManager &) = delete;
 
-    ShaderManager() = default;
+    ShaderManager();
+    ~ShaderManager();
 
 public:
     // singleton
     static ShaderManager &Instance();
 
-    void setPath(std::filesystem::path &path)
-    {
-        m_path = path;
-    }
+    void watch(std::filesystem::path &path);
+    void stop();
 
     // default
     ShaderWatcherPtr get(const std::string &shaderName);
@@ -32,6 +34,8 @@ public:
     {
         return get("default");
     }
+
+    void onFile(const std::wstring &fileName, int action);
 };
 
 } // namespace hierarchy
