@@ -84,7 +84,7 @@ public:
                 for (DWORD i = 0; i < dwBytesReturned; i += p->NextEntryOffset)
                 {
                     p = (FILE_NOTIFY_INFORMATION *)&buffer[i];
-                    callback(std::wstring(p->FileName, p->FileName + p->FileNameLength), p->Action);
+                    callback(std::wstring(p->FileName, p->FileName + p->FileNameLength / 2), p->Action);
                     // switch (p->Action)
                     // {
                     // case FILE_ACTION_ADDED:
@@ -133,9 +133,10 @@ public:
         m_thread.join();
     }
 
-    std::filesystem::path getPath(const std::wstring &shaderName)
+    std::filesystem::path getPath(const std::wstring &shaderName) const
     {
-        return m_path.append(shaderName);
+        auto path = m_path;
+        return path.append(shaderName);
     }
 
 }; // namespace hierarchy
