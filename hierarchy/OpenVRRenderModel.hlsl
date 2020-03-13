@@ -49,7 +49,14 @@ float4 PSMain(PSInput input) : SV_TARGET
 	float4 vColor = t0.Sample(s0, input.uv);
     float3 N = input.normal;
     float3 L = normalize(-b0LightDirection);
-    float3 Shading = vColor * (saturate(dot(N, L)) + float3(0.2, 0.2, 0.2));
+    float3 Shading = vColor.xyz * (saturate(dot(N, L)) + float3(0.2, 0.2, 0.2));
     return float4(Shading, 1);
+}
+
+technique MainTec0 {
+    pass DrawObject {
+        VertexShader = compile vs_3_0 VSMain();
+        PixelShader  = compile ps_3_0 PSMain();
+    }
 }
 )""
