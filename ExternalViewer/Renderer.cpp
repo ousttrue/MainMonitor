@@ -318,6 +318,9 @@ private:
             drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
             drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
         }
+
+        // shader udpate
+        m_rootSignature->Update(m_device);
     }
 
     //
@@ -382,8 +385,10 @@ private:
                                     }
                                 }
 
-                                material->m_shader->Set(commandList);
-                                m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, offset, 0, 0);
+                                if (material->m_shader->Set(commandList))
+                                {
+                                    m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, offset, 0, 0);
+                                }
 
                                 offset += submesh.draw_count;
                             }
@@ -403,8 +408,10 @@ private:
                 for (auto &submesh : m_gizmo.GetMesh()->submeshes)
                 {
                     auto material = m_rootSignature->GetOrCreate(m_device, submesh.material);
-                    material->m_shader->Set(commandList);
-                    m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, offset, 0, 0);
+                    if (material->m_shader->Set(commandList))
+                    {
+                        m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, offset, 0, 0);
+                    }
 
                     offset += submesh.draw_count;
                 }

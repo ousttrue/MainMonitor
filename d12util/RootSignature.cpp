@@ -7,10 +7,6 @@
 #include <d3dcompiler.h>
 #include <algorithm>
 
-std::string g_shaderSource =
-#include "OpenVRRenderModel.hlsl"
-    ;
-
 // SCENE_SLOTS=1;
 const int NODE_SLOTS = 128;
 const int MATERIAL_SLOTS = 128;
@@ -143,6 +139,15 @@ bool RootSignature::Initialize(const ComPtr<ID3D12Device> &device)
     return true;
 }
 
+void RootSignature::Update(const ComPtr<ID3D12Device> &device)
+{
+    for (auto kv : m_shaderMap)
+    {
+        auto [source, generation] = kv.first->source();
+        kv.second->Initialize(device, m_rootSignature, source, generation);
+    }
+}
+
 void RootSignature::Begin(const ComPtr<ID3D12GraphicsCommandList> &commandList)
 {
     commandList->SetGraphicsRootSignature(m_rootSignature.Get());
@@ -151,23 +156,17 @@ void RootSignature::Begin(const ComPtr<ID3D12GraphicsCommandList> &commandList)
     commandList->SetGraphicsRootDescriptorTable(0, m_heap->GpuHandle(0));
 }
 
-std::shared_ptr<Shader> RootSignature::GetOrCreateShader(const ComPtr<ID3D12Device> &device, const std::string &shaderName)
+std::shared_ptr<Shader> RootSignature::GetOrCreate(const ComPtr<ID3D12Device> &device, const hierarchy::ShaderWatcherPtr &shader)
 {
-    auto found = m_shaderMap.find(shaderName);
+    auto found = m_shaderMap.find(shader);
     if (found != m_shaderMap.end())
     {
         return found->second;
     }
 
     auto gpuShader = std::make_shared<Shader>();
-    gpuShader->m_vs = g_shaderSource;
-    gpuShader->m_ps = g_shaderSource;
-    if (!gpuShader->Initialize(device, m_rootSignature))
-    {
-        return nullptr;
-    }
 
-    m_shaderMap.insert(std::make_pair(shaderName, gpuShader));
+    m_shaderMap.insert(std::make_pair(shader, gpuShader));
     return gpuShader;
 }
 
@@ -180,7 +179,7 @@ std::shared_ptr<Material> RootSignature::GetOrCreate(const ComPtr<ID3D12Device> 
     }
 
     // shader
-    auto gpuShader = GetOrCreateShader(device, sceneMaterial->shaderName);
+    auto gpuShader = GetOrCreate(device, sceneMaterial->shader);
     if (!gpuShader)
     {
         return nullptr;

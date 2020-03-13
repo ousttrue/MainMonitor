@@ -4,6 +4,8 @@ add_library(${TARGET_NAME}
     SceneNode.cpp
     SceneImage.cpp
     SceneMaterial.cpp
+    ShaderWatcher.cpp
+    ShaderManager.cpp
     Scene.cpp
     ParseGltf.cpp
     )

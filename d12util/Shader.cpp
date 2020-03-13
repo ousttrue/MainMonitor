@@ -5,8 +5,21 @@ namespace d12u
 {
 
 bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
-                        const ComPtr<ID3D12RootSignature> &rootSignature)
+                        const ComPtr<ID3D12RootSignature> &rootSignature,
+                        const std::string &source,
+                        int generation)
 {
+    if (m_pipelineState && generation>m_generation)
+    {
+        // clear
+        m_pipelineState = nullptr;
+    }
+
+    if(source.empty())
+    {
+        return false;
+    }
+
     // Create the pipeline state, which includes compiling and loading shaders.
     {
         ComPtr<ID3DBlob> vertexShader;
@@ -21,7 +34,7 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
 
         {
             ComPtr<ID3DBlob> error;
-            if (FAILED(D3DCompile(m_vs.data(), m_vs.size(), "shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &error)))
+            if (FAILED(D3DCompile(source.data(), source.size(), "shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &error)))
             {
                 PrintBlob(error);
                 throw;
@@ -29,7 +42,7 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
         }
         {
             ComPtr<ID3DBlob> error;
-            if (FAILED(D3DCompile(m_ps.data(), m_ps.size(), "shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr)))
+            if (FAILED(D3DCompile(source.data(), source.size(), "shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr)))
             {
                 PrintBlob(error);
                 throw;
@@ -112,12 +125,18 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
         // m_commandList->Initialize(device, m_pipelineState);
     }
 
+    m_generation = generation;
     return true;
 }
 
-void Shader::Set(const ComPtr<ID3D12GraphicsCommandList> &commandList)
+bool Shader::Set(const ComPtr<ID3D12GraphicsCommandList> &commandList)
 {
+    if(!m_pipelineState)
+    {
+        return false;
+    }
     commandList->SetPipelineState(m_pipelineState.Get());
+    return true;
 }
 
 } // namespace d12u

@@ -41,7 +41,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/ExternalViewer/ExternalViewer.exe",
             "args": [
-                "${workspaceFolder}/external/sukonbu/glTF-Sample-Models/2.0/Avocado/glTF-Binary/Avocado.glb"
+                "${workspaceFolder}/shaders",
+                "${env:GLTF_SAMPLE_MODELS}/2.0/Avocado/glTF-Binary/Avocado.glb"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

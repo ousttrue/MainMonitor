@@ -1,7 +1,7 @@
-#include "Win32Window.h"
 #include "Renderer.h"
 #include "VR.h"
-#include "Scene.h"
+#include <Win32Window.h>
+#include <hierarchy.h>
 #include <d3d12.h>
 
 static std::shared_ptr<hierarchy::SceneMesh> CreateGrid()
@@ -34,6 +34,13 @@ const auto WINDOW_NAME = L"ExternalViewer";
 
 int main(int argc, char **argv)
 {
+    auto path = std::filesystem::current_path();
+    if(argc>1)
+    {
+        path = argv[1];
+    }
+    hierarchy::ShaderManager::Instance().setPath(path);
+
     screenstate::Win32Window window(CLASS_NAME);
 
     auto hwnd = window.Create(WINDOW_NAME);
@@ -62,9 +69,9 @@ int main(int argc, char **argv)
         auto grid = CreateGrid();
         scene->AddMeshNode(grid);
 
-        if (argc > 1)
+        if (argc > 2)
         {
-            scene->LoadFromPath(argv[1]);
+            scene->LoadFromPath(argv[2]);
         }
 
         screenstate::ScreenState state;

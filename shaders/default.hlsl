@@ -1,4 +1,3 @@
-R""(   
 SamplerState s0 : register(s0);
 Texture2D t0 : register(t0);    
 cbuffer SceneConstantBuffer : register(b0)
@@ -59,4 +58,3 @@ technique MainTec0 {
         PixelShader  = compile ps_3_0 PSMain();
     }
 }
-)""
