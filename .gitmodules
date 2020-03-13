@@ -6,7 +6,7 @@
 	url = https://github.com/ocornut/imgui.git
 [submodule "external/sukonbu"]
 	path = external/sukonbu
-	url = git@github.com:ousttrue/sukonbu.git
+	url = https://github.com/ousttrue/sukonbu.git
 
 [submodule "external/gizmesh"]
 	path = external/gizmesh
