@@ -1,5 +1,6 @@
 #include "Shader.h"
 #include <d3dcompiler.h>
+#include <plog/log.h>
 
 namespace d12u
 {
@@ -123,7 +124,7 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
             ComPtr<ID3DBlob> error;
             if (FAILED(D3DCompile(source.data(), source.size(), "shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &error)))
             {
-                PrintBlob(error);
+                LOGW << ToString(error);
                 return false;
             }
         }
@@ -131,7 +132,7 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
             ComPtr<ID3DBlob> error;
             if (FAILED(D3DCompile(source.data(), source.size(), "shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr)))
             {
-                PrintBlob(error);
+                LOGW << ToString(error);
                 return false;
             }
         }

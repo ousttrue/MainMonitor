@@ -23,7 +23,7 @@ TODO
 * [x] texture
 * [x] shader runtime load
     * [x] shader reload when hlsl updated
-* [ ] logger
+* [x] logger
     * [ ] imgui log widgets
 * [x] Shader Reflection
     * [ ] Constants Semantics

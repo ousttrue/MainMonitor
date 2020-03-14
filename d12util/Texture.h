@@ -1,5 +1,6 @@
 #pragma once
 #include "Helper.h"
+#include <memory>
 
 namespace d12u
 {

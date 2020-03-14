@@ -3,7 +3,6 @@
 #include <vector>
 #include <fstream>
 #include <string>
-#include <iostream>
 #include <gltfformat/glb.h>
 #include <gltfformat/bin.h>
 
@@ -184,8 +183,6 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         }
     }
     m_nodes.push_back(node);
-
-    std::cout << "load" << std::endl;
 }
 
 } // namespace hierarchy

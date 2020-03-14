@@ -3,6 +3,8 @@
 #include <Win32Window.h>
 #include <hierarchy.h>
 #include <d3d12.h>
+#include <plog/Log.h>
+#include <plog/Appenders/ColorConsoleAppender.h>
 
 static std::shared_ptr<hierarchy::SceneMesh> CreateGrid()
 {
@@ -36,8 +38,41 @@ static std::shared_ptr<hierarchy::SceneMesh> CreateGrid()
 const auto CLASS_NAME = L"ExternalViewerClass";
 const auto WINDOW_NAME = L"ExternalViewer";
 
+namespace plog
+{
+class MyFormatter
+{
+public:
+    static util::nstring header()
+    {
+        return util::nstring();
+    }
+
+    static util::nstring format(const Record &r)
+    {
+        tm t;
+        util::localtime_s(&t, &r.getTime().time);
+
+        util::nostringstream ss;
+        ss
+            << std::setw(2) << t.tm_hour << ':' << std::setw(2) << t.tm_min << '.' << std::setw(2) << t.tm_sec
+            << '[' << severityToString(r.getSeverity()) << ']'
+            << r.getFunc() << '(' << r.getLine() << ") "
+            << r.getMessage()
+
+            << "\n"; // Produce a simple string with a log message.
+
+        return ss.str();
+    }
+};
+
+} // namespace plog
+
 int main(int argc, char **argv)
 {
+    static plog::ColorConsoleAppender<plog::MyFormatter> consoleAppender;
+    plog::init(plog::debug, &consoleAppender);
+
     auto path = std::filesystem::current_path();
     if (argc > 1)
     {
@@ -50,6 +85,7 @@ int main(int argc, char **argv)
     auto hwnd = window.Create(WINDOW_NAME);
     if (!hwnd)
     {
+        LOGE << "fail to window.Create";
         return 1;
     }
 
@@ -59,9 +95,13 @@ int main(int argc, char **argv)
         Renderer renderer(65);
         VR vr;
 
-        if (!vr.Connect())
+        if (vr.Connect())
         {
-            return 2;
+            LOGI << "vr.Connect";
+        }
+        else
+        {
+            LOGW << "fail to vr.Connect";
         }
 
         auto scene = renderer.GetScene();
@@ -71,6 +111,7 @@ int main(int argc, char **argv)
         if (argc > 2)
         {
             scene->LoadFromPath(argv[2]);
+            LOGI << "load: " << argv[2];
         }
 
         screenstate::ScreenState state;
@@ -81,5 +122,6 @@ int main(int argc, char **argv)
         }
     }
 
+    LOGI << "exit";
     return 0;
 }

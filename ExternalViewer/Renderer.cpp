@@ -1,10 +1,10 @@
 #include "Renderer.h"
 #include <d12util.h>
 #include <memory>
-#include <iostream>
 #include <unordered_map>
 #include <dxgi.h>
 #include <imgui.h>
+#include <plog/Log.h>
 #include "ImGuiImplScreenState.h"
 #include "ImGuiDX12.h"
 
@@ -432,6 +432,7 @@ private:
             {
                 auto path = OpenFileDialog(L"");
                 m_scene->LoadFromPath(path);
+                LOGI << "load: " << path;
             }
             ImGui::End();
         }

@@ -90,6 +90,9 @@
     "C_Cpp.errorSquiggles": "Disabled",
     "cSpell.words": [
         "DXGI",
+        "LOGD",
+        "LOGI",
+        "LOGW",
         "TEXCOORD",
         "XMFLOAT",
         "countof",

@@ -1,7 +1,7 @@
 #include "VR.h"
 #include "Scene.h"
-#include <iostream>
 #include <sstream>
+#include <plog/Log.h>
 
 struct LoadTask
 {
@@ -54,17 +54,17 @@ public:
             auto error = vr::VRRenderModels()->LoadRenderModel_Async(m_modelName.c_str(), &m_pModel);
             if (error == vr::VRRenderModelError_Loading)
             {
-                std::cout << m_modelName << " model loading..." << std::endl;
+                LOGD << m_modelName << " model loading...";
                 return false;
             }
             else if (error != vr::VRRenderModelError_None)
             {
-                std::cout << m_modelName << "fail to model load: " << vr::VRRenderModels()->GetRenderModelErrorNameFromEnum(error);
+                LOGW << m_modelName << "fail to model load: " << vr::VRRenderModels()->GetRenderModelErrorNameFromEnum(error);
                 m_state = TrackerState::Error;
                 return false;
             }
 
-            std::cout << m_modelName << " model loaded" << std::endl;
+            LOGD << m_modelName << " model loaded";
             m_state = TrackerState::TextureLoading;
             return false;
         }
@@ -73,17 +73,17 @@ public:
             auto error = vr::VRRenderModels()->LoadTexture_Async(m_pModel->diffuseTextureId, &m_pTexture);
             if (error == vr::VRRenderModelError_Loading)
             {
-                std::cout << m_modelName << " texture loading..." << std::endl;
+                LOGD << m_modelName << " texture loading...";
                 return false;
             }
             else if (error != vr::VRRenderModelError_None)
             {
-                std::cout << m_modelName << "fail to texture load: " << vr::VRRenderModels()->GetRenderModelErrorNameFromEnum(error);
+                LOGW << m_modelName << "fail to texture load: " << vr::VRRenderModels()->GetRenderModelErrorNameFromEnum(error);
                 m_state = TrackerState::Error;
                 return false;
             }
 
-            std::cout << m_modelName << " texture loaded" << std::endl;
+            LOGD << m_modelName << " texture loaded";
             m_state = TrackerState::Completed;
             return true;
         }
@@ -201,23 +201,21 @@ void VR::OnFrame(hierarchy::Scene *scene)
     vr::VREvent_t event;
     while (m_system->PollNextEvent(&event, sizeof(event)))
     {
-        // ProcessVREvent(event, pCommandList);
         switch (event.eventType)
         {
         case vr::VREvent_TrackedDeviceActivated:
         {
-            // std::cout << "VREvent_TrackedDeviceActivated: " <<  << std::endl;
             StartLoadModel(event.trackedDeviceIndex);
         }
         break;
         case vr::VREvent_TrackedDeviceDeactivated:
         {
-            std::cout << "VREvent_TrackedDeviceDeactivated: " << event.trackedDeviceIndex << std::endl;
+            LOGD << "VREvent_TrackedDeviceDeactivated: " << event.trackedDeviceIndex;
         }
         break;
         case vr::VREvent_TrackedDeviceUpdated:
         {
-            std::cout << "VREvent_TrackedDeviceUpdated: " << event.trackedDeviceIndex << std::endl;
+            LOGD << "VREvent_TrackedDeviceUpdated: " << event.trackedDeviceIndex;
         }
         break;
         }
@@ -233,11 +231,8 @@ void VR::OnFrame(hierarchy::Scene *scene)
         {
             auto pose = ConvertSteamVRMatrixToMatrix4(m_poses[kv.first].mDeviceToAbsoluteTracking);
             auto node = kv.second;
-            // if (node)
-            {
-                node->TRS.position = fpalg::MatrixToTranslation(pose);
-                node->TRS.rotation = fpalg::MatrixToQuaternion(pose);
-            }
+            node->TRS.position = fpalg::MatrixToTranslation(pose);
+            node->TRS.rotation = fpalg::MatrixToQuaternion(pose);
         }
     }
 }
@@ -256,6 +251,6 @@ void VR::StartLoadModel(int index)
     {
         return;
     }
-    std::cout << "#" << index << " loadModel: " << modelName << std::endl;
+    LOGD << "#" << index << " loadModel: " << modelName;
     m_tasks.push_back(std::make_shared<LoadTask>(index, modelName));
 }
