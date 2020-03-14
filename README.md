@@ -13,26 +13,25 @@ TODO
 
 ## ExternalViewer(OpenVR tracker viewer)
 
-* [x] Grid
-* [x] imgui
-* [x] gizmo
+* shader/material
+    * [ ] light/lambert
+    * [x] Grid
+    * [ ] glTF pbr
+    * [ ] alpha blending
+    * [ ] reflection Constants Semantics
+* imgui
+    * [ ] frame rate
+    * [ ] clear color
+    * [ ] scene tree
+* gizmo
     * [x] VertexColor
     * [ ] Hover
-* [ ] light/lambert
-* [x] material
-    * [ ] alpha blending
-* [x] texture
-* [x] shader runtime load
-    * [x] shader reload when hlsl updated
-* [x] logger
-    * [x] imgui log widgets
-* [x] Shader Reflection
-    * [ ] Constants Semantics
-* [ ] glTF node
-* [ ] glTF pbr
-* [ ] glTF animation
+* glTF
+    * [ ] node
+    * [ ] CPU skinning
+    * [ ] GPU skinning
+    * [ ] animation
 * scene
-    * [ ] node name
     * [ ] select node
     * [ ] light node
 
