@@ -4,6 +4,7 @@
 #include <ScreenState.h>
 #include <list>
 #include <memory>
+#include <mutex>
 
 class Gui
 {
@@ -19,5 +20,6 @@ public:
     void BeginFrame(const screenstate::ScreenState &state);
     void EndFrame(const ComPtr<ID3D12GraphicsCommandList> &commandList);
 
-    void Logger();
+    void Log(const char *msg);
+    void ShowLogger();
 };

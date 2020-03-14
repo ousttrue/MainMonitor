@@ -66,12 +66,40 @@ public:
     }
 };
 
+template <class Formatter>          // Typically a formatter is passed as a template parameter.
+class MyAppender : public IAppender // All appenders MUST inherit IAppender interface.
+{
+    using OnWrite = std::function<void(const char *)>;
+    OnWrite m_onWrite;
+
+public:
+    void write(const Record &record) override // This is a method from IAppender that MUST be implemented.
+    {
+        util::nstring str = Formatter::format(record); // Use the formatter to get a string from a record.
+        if (m_onWrite)
+        {
+            auto utf8 = UTF8Converter::convert(str);
+            m_onWrite(utf8.c_str());
+        }
+    }
+
+    void onWrite(const OnWrite &callback)
+    {
+        m_onWrite = callback;
+    }
+};
+
 } // namespace plog
 
 int main(int argc, char **argv)
 {
     static plog::ColorConsoleAppender<plog::MyFormatter> consoleAppender;
-    plog::init(plog::debug, &consoleAppender);
+
+    static plog::MyAppender<plog::MyFormatter> imGuiAppender;
+    Renderer renderer(65);
+    imGuiAppender.onWrite(std::bind(&Renderer::log, &renderer, std::placeholders::_1));
+
+    plog::init(plog::debug, &consoleAppender).addAppender(&imGuiAppender);
 
     auto path = std::filesystem::current_path();
     if (argc > 1)
@@ -92,7 +120,6 @@ int main(int argc, char **argv)
     window.Show();
 
     {
-        Renderer renderer(65);
         VR vr;
 
         if (vr.Connect())

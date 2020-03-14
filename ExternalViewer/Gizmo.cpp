@@ -3,14 +3,8 @@
 #include <hierarchy.h>
 
 Gizmo::Gizmo()
-    : m_gizmo(new gizmesh::GizmoSystem),
-      m_gizmoMesh(hierarchy::SceneMesh::CreateDynamic(65535, 65535))
+    : m_gizmoMesh(hierarchy::SceneMesh::CreateDynamic(65535, 65535))
 {
-    auto material = hierarchy::SceneMaterial::Create();
-    material->shader = hierarchy::ShaderManager::Instance().get("gizmo");
-    m_gizmoMesh->submeshes.push_back({
-        .material = material,
-    });
 }
 
 Gizmo::~Gizmo()
@@ -20,6 +14,16 @@ Gizmo::~Gizmo()
 
 void Gizmo::Begin(const screenstate::ScreenState &state, const camera::CameraState &camera)
 {
+    if (!m_gizmo)
+    {
+        m_gizmo = new gizmesh::GizmoSystem;
+        auto material = hierarchy::SceneMaterial::Create();
+        material->shader = hierarchy::ShaderManager::Instance().get("gizmo");
+        m_gizmoMesh->submeshes.push_back({
+            .material = material,
+        });
+    }
+
     if (state.KeyCode['T'])
     {
         m_mode = GizmoModes::Translate;

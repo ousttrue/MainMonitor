@@ -117,6 +117,14 @@ public:
         m_camera->zNear = 0.01f;
     }
 
+    void log(const char *msg)
+    {
+        if (m_imgui)
+        {
+            m_imgui->Log(msg);
+        }
+    }
+
     const std::unique_ptr<hierarchy::Scene> &Scene() const { return m_scene; }
 
     void Initialize(HWND hwnd)
@@ -330,7 +338,7 @@ private:
             ImGui::End();
         }
         {
-            m_imgui->Logger();
+            m_imgui->ShowLogger();
         }
         {
             ImGui::ShowDemoWindow();
@@ -366,4 +374,9 @@ void Renderer::OnFrame(void *hwnd, const screenstate::ScreenState &state)
 hierarchy::Scene *Renderer::GetScene()
 {
     return m_impl->Scene().get();
+}
+
+void Renderer::log(const char *msg)
+{
+    m_impl->log(msg);
 }

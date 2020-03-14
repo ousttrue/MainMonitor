@@ -25,7 +25,7 @@ TODO
 * [x] shader runtime load
     * [x] shader reload when hlsl updated
 * [x] logger
-    * [ ] imgui log widgets
+    * [x] imgui log widgets
 * [x] Shader Reflection
     * [ ] Constants Semantics
 * [ ] glTF node

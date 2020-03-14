@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.hlsl": "c",
         "memory": "cpp",
         "xlocale": "cpp",
         "xstring": "cpp",
@@ -85,7 +86,8 @@
         "xtr1common": "cpp",
         "xtree": "cpp",
         "ranges": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "*.ipp": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled",
     "cSpell.words": [
