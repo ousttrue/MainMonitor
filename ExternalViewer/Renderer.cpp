@@ -3,16 +3,15 @@
 #include <memory>
 #include <unordered_map>
 #include <dxgi.h>
-#include <imgui.h>
 #include <plog/Log.h>
-#include "ImGuiImplScreenState.h"
-#include "ImGuiDX12.h"
+#include <imgui.h>
 
 #include <OrbitCamera.h>
 #include "Gizmo.h"
 
 #include "SceneLight.h"
 #include "Scene.h"
+#include "Gui.h"
 
 using namespace d12u;
 
@@ -69,127 +68,19 @@ std::wstring OpenFileDialog(const std::wstring &folder)
     return result;
 }
 
-static void ImGui_Impl_Win32_UpdateMouseCursor()
+namespace plog
 {
-    ImGuiIO &io = ImGui::GetIO();
-    if (io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange)
-    {
-        SetCursor(LoadCursor(NULL, IDC_ARROW));
-        return;
-    }
 
-    ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
-    if (imgui_cursor == ImGuiMouseCursor_None || io.MouseDrawCursor)
-    {
-        // Hide OS mouse cursor if imgui is drawing it or if it wants no cursor
-        ::SetCursor(NULL);
-        return;
-    }
-
-    // Show OS mouse cursor
-    LPTSTR win32_cursor = IDC_ARROW;
-    switch (imgui_cursor)
-    {
-    case ImGuiMouseCursor_Arrow:
-        win32_cursor = IDC_ARROW;
-        break;
-    case ImGuiMouseCursor_TextInput:
-        win32_cursor = IDC_IBEAM;
-        break;
-    case ImGuiMouseCursor_ResizeAll:
-        win32_cursor = IDC_SIZEALL;
-        break;
-    case ImGuiMouseCursor_ResizeEW:
-        win32_cursor = IDC_SIZEWE;
-        break;
-    case ImGuiMouseCursor_ResizeNS:
-        win32_cursor = IDC_SIZENS;
-        break;
-    case ImGuiMouseCursor_ResizeNESW:
-        win32_cursor = IDC_SIZENESW;
-        break;
-    case ImGuiMouseCursor_ResizeNWSE:
-        win32_cursor = IDC_SIZENWSE;
-        break;
-    case ImGuiMouseCursor_Hand:
-        win32_cursor = IDC_HAND;
-        break;
-    case ImGuiMouseCursor_NotAllowed:
-        win32_cursor = IDC_NO;
-        break;
-    }
-    ::SetCursor(::LoadCursor(NULL, win32_cursor));
-}
-
-class Gui
+template <class Formatter>
+class MyAppender : public IAppender
 {
-    ImGuiDX12 m_dx12;
-
 public:
-    Gui(const ComPtr<ID3D12Device> &device, int bufferCount, HWND hwnd)
+    void write(const Record &record) override
     {
-        // Setup Dear ImGui context
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO &io = ImGui::GetIO();
-        (void)io;
-        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
-        //ImGui::StyleColorsClassic();
-
-        // Setup Platform/Renderer bindings
-        ImGui_Impl_ScreenState_Init();
-        m_dx12.Initialize(device.Get(), bufferCount);
-
-        // Load Fonts
-        // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-        // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-        // - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-        // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-        // - Read 'docs/FONTS.txt' for more instructions and details.
-        // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-        //io.Fonts->AddFontDefault();
-        //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-        //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-        //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-        //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
-        //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
-        //IM_ASSERT(font != NULL);
-    }
-
-    ~Gui()
-    {
-        ImGui::DestroyContext();
-    }
-
-    void BeginFrame(const screenstate::ScreenState &state)
-    {
-        // Start the Dear ImGui frame
-        ImGui_Impl_ScreenState_NewFrame(state);
-        if (state.Has(screenstate::MouseButtonFlags::CursorUpdate))
-        {
-            ImGui_Impl_Win32_UpdateMouseCursor();
-            // Update OS mouse cursor with the cursor requested by imgui
-            // ImGuiMouseCursor mouse_cursor = io.MouseDrawCursor ? ImGuiMouseCursor_None : ImGui::GetMouseCursor();
-            // if (g_LastMouseCursor != mouse_cursor)
-            // {
-            //     g_LastMouseCursor = mouse_cursor;
-            //     UpdateMouseCursor();
-            // }
-        }
-
-        ImGui::NewFrame();
-    }
-
-    void EndFrame(const ComPtr<ID3D12GraphicsCommandList> &commandList)
-    {
-        ImGui::Render();
-        m_dx12.RenderDrawData(commandList.Get(), ImGui::GetDrawData());
     }
 };
+
+} // namespace plog
 
 class Impl
 {
@@ -424,10 +315,12 @@ private:
             }
         }
 
+        //
+        // imgui
+        //
         m_imgui->BeginFrame(state);
-
-        ImGui::Begin("main");
         {
+            ImGui::Begin("main");
             if (ImGui::Button("open"))
             {
                 auto path = OpenFileDialog(L"");
@@ -436,7 +329,12 @@ private:
             }
             ImGui::End();
         }
-
+        {
+            m_imgui->Logger();
+        }
+        {
+            ImGui::ShowDemoWindow();
+        }
         m_imgui->EndFrame(commandList);
 
         // barrier

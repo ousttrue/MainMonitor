@@ -7,6 +7,7 @@ add_executable(${TARGET_NAME}
     ImGuiDX12FrameResources.cpp
     ImGuiImplScreenState.cpp
     Gizmo.cpp
+    Gui.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20
