@@ -1,17 +1,15 @@
 #include "Renderer.h"
+#include "Gizmo.h"
+#include "Gui.h"
 #include <d12util.h>
-#include <memory>
 #include <unordered_map>
-#include <dxgi.h>
+#include <OrbitCamera.h>
+#include <hierarchy.h>
+
 #include <plog/Log.h>
 #include <imgui.h>
-
-#include <OrbitCamera.h>
-#include "Gizmo.h"
-
-#include "SceneLight.h"
-#include "Scene.h"
-#include "Gui.h"
+#include <dxgi.h>
+#include <memory>
 
 using namespace d12u;
 
@@ -200,7 +198,7 @@ private:
         m_gizmo.Begin(state, m_camera->state);
 
         int nodeCount;
-        auto nodes = m_scene->GetNodes(&nodeCount);
+        auto nodes = m_scene->GetRootNodes(&nodeCount);
         for (int i = 0; i < nodeCount; ++i)
         {
             auto node = nodes[i];
@@ -241,8 +239,16 @@ private:
             if (ImGui::Button("open"))
             {
                 auto path = OpenFileDialog(L"");
-                m_scene->LoadFromPath(path);
-                LOGI << "load: " << path;
+                auto node = hierarchy::SceneGltf::LoadFromPath(path);
+                if (node)
+                {
+                    LOGI << "load: " << path;
+                    m_scene->AddRootNode(node);
+                }
+                else
+                {
+                    LOGW << "fail to load: " << path;
+                }
             }
             ImGui::End();
         }
@@ -297,7 +303,7 @@ private:
 
         // model
         int nodeCount;
-        auto nodes = m_scene->GetNodes(&nodeCount);
+        auto nodes = m_scene->GetRootNodes(&nodeCount);
         for (int i = 0; i < nodeCount; ++i)
         {
             auto node = nodes[i];

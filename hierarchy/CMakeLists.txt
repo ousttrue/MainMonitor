@@ -8,6 +8,7 @@ add_library(${TARGET_NAME}
     ShaderManager.cpp
     Scene.cpp
     ParseGltf.cpp
+    SceneGltf.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

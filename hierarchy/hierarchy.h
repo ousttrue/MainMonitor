@@ -4,3 +4,4 @@
 #include "ShaderManager.h"
 #include "ShaderWatcher.h"
 #include "SceneLight.h"
+#include "SceneGltf.h"

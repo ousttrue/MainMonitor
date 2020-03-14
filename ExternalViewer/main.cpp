@@ -132,13 +132,23 @@ int main(int argc, char **argv)
         }
 
         auto scene = renderer.GetScene();
-        auto node = scene->CreateNode("grid");
+
+        auto node = hierarchy::SceneNode::Create("grid");
         node->AddMesh(CreateGrid());
+        scene->AddRootNode(node);
 
         if (argc > 2)
         {
-            scene->LoadFromPath(argv[2]);
-            LOGI << "load: " << argv[2];
+            auto node = hierarchy::SceneGltf::LoadFromPath(argv[2]);
+            if (node)
+            {
+                scene->AddRootNode(node);
+                LOGI << "load: " << argv[2];
+            }
+            else
+            {
+                LOGW << "fail to load: " << argv[2];
+            }
         }
 
         screenstate::ScreenState state;

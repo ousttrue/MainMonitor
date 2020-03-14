@@ -11,30 +11,24 @@ namespace hierarchy
 {
 class Scene
 {
-    std::vector<SceneNodePtr> m_nodes;
+    std::vector<SceneNodePtr> m_rootNodes;
 
 public:
     Scene();
-    const SceneNodePtr *GetNodes(int *pCount) const
+    const SceneNodePtr *GetRootNodes(int *pCount) const
     {
-        *pCount = (int)m_nodes.size();
-        return m_nodes.data();
+        *pCount = (int)m_rootNodes.size();
+        return m_rootNodes.data();
     }
-    const SceneNodePtr &GetNode(int index) const
+    const SceneNodePtr &GetRootNode(int index) const
     {
-        return m_nodes[index];
+        return m_rootNodes[index];
     }
-    int Count() const { return (int)m_nodes.size(); }
-    SceneNodePtr CreateNode(const std::string &name)
+    int RootNodeCount() const { return (int)m_rootNodes.size(); }
+    void AddRootNode(const SceneNodePtr &node)
     {
-        auto node = SceneNode::Create(name);
-        m_nodes.push_back(node);
-        return node;
+        m_rootNodes.push_back(node);
     }
-
-    void LoadFromPath(const std::string &path);
-    void LoadFromPath(const std::wstring &path);
-    void LoadGlbBytes(const uint8_t *p, int size);
 };
 
 } // namespace hierarchy
