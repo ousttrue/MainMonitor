@@ -171,6 +171,14 @@ std::shared_ptr<Shader> RootSignature::GetOrCreate(const ComPtr<ID3D12Device> &d
     }
 
     auto gpuShader = std::make_shared<Shader>();
+    auto [source, generation] = shader->source();
+    if (!source.empty())
+    {
+        if (!gpuShader->Initialize(device, m_rootSignature, source, generation))
+        {
+            shader->clear();
+        }
+    }
 
     m_shaderMap.insert(std::make_pair(shader, gpuShader));
     return gpuShader;

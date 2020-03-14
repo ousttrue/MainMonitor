@@ -122,19 +122,19 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                 {
                     auto accessor = gltf.accessors[v];
                     auto [p, size] = bin.get_bytes(accessor);
-                    mesh->SetVertices(Semantics::Position, ValueType::Float3, p, size);
+                    mesh->SetVertices(Semantics::Position, 12, p, size);
                 }
                 else if (k == "NORMAL")
                 {
                     auto accessor = gltf.accessors[v];
                     auto [p, size] = bin.get_bytes(accessor);
-                    mesh->SetVertices(Semantics::Normal, ValueType::Float3, p, size);
+                    mesh->SetVertices(Semantics::Normal, 12, p, size);
                 }
                 else if (k == "TEXCOORD_0")
                 {
                     auto accessor = gltf.accessors[v];
                     auto [p, size] = bin.get_bytes(accessor);
-                    mesh->SetVertices(Semantics::TexCoord, ValueType::Float2, p, size);
+                    mesh->SetVertices(Semantics::TexCoord, 8, p, size);
                 }
                 else
                 {
@@ -147,22 +147,22 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                 auto index = gltfPrimitive.indices.value();
                 auto accessor = gltf.accessors[index];
                 auto [p, size] = bin.get_bytes(accessor);
-                ValueType valueType;
+                int stride = 0;
                 switch (accessor.componentType.value())
                 {
                 case gltfformat::AccessorComponentType::UNSIGNED_SHORT:
                 case gltfformat::AccessorComponentType::SHORT:
-                    valueType = ValueType::UInt16;
+                    stride = 2;
                     break;
 
                 case gltfformat::AccessorComponentType::UNSIGNED_INT:
-                    valueType = ValueType::UInt32;
+                    stride = 4;
                     break;
 
                 default:
                     throw;
                 }
-                mesh->SetIndices(valueType, p, size);
+                mesh->SetIndices(stride, p, size);
 
                 auto material = materials[gltfPrimitive.material.value()];
                 mesh->submeshes.push_back({

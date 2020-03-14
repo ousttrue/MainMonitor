@@ -15,8 +15,8 @@ std::shared_ptr<SceneMesh> SceneMesh::CreateDynamic(int vertexReserve, int index
     // vertices
     {
         VertexBuffer buffer{
-            .semantic = Semantics::PositionNormalColor,
-            .valueType = ValueType::Float10,
+            .semantic = Semantics::Interleaved,
+            .stride = 40,
             .isDynamic = true,
         };
         // auto bytes = (uint8_t *)p;
@@ -28,7 +28,7 @@ std::shared_ptr<SceneMesh> SceneMesh::CreateDynamic(int vertexReserve, int index
     {
         mesh->m_indices = VertexBuffer{
             .semantic = Semantics::Index,
-            .valueType = ValueType::UInt16,
+            .stride = 2,
             .isDynamic = true,
         };
         mesh->m_indices.buffer.resize(indexReserve);
@@ -37,11 +37,11 @@ std::shared_ptr<SceneMesh> SceneMesh::CreateDynamic(int vertexReserve, int index
     return mesh;
 }
 
-void SceneMesh::SetVertices(Semantics semantic, ValueType valueType, const void *p, uint32_t size)
+void SceneMesh::SetVertices(Semantics semantic, uint32_t stride, const void *p, uint32_t size)
 {
     VertexBuffer buffer;
     buffer.semantic = semantic;
-    buffer.valueType = valueType;
+    buffer.stride = stride;
     auto bytes = (uint8_t *)p;
     buffer.buffer.assign(bytes, bytes + size);
     SetVertices(buffer);
@@ -59,11 +59,11 @@ const VertexBuffer *SceneMesh::GetVertices(Semantics semantic)
     return nullptr;
 }
 
-void SceneMesh::SetIndices(ValueType valueType, const void *indices, uint32_t size)
+void SceneMesh::SetIndices(uint32_t stride, const void *indices, uint32_t size)
 {
     auto bytes = (uint8_t *)indices;
     m_indices.semantic = Semantics::Index;
-    m_indices.valueType = valueType;
+    m_indices.stride = stride;
     m_indices.buffer.assign(bytes, bytes + size);
 }
 

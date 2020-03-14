@@ -89,6 +89,8 @@
     },
     "C_Cpp.errorSquiggles": "Disabled",
     "cSpell.words": [
+        "DXGI",
+        "TEXCOORD",
         "XMFLOAT",
         "countof",
         "gizmesh",

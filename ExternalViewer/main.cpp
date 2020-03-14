@@ -24,8 +24,8 @@ static std::shared_ptr<hierarchy::SceneMesh> CreateGrid()
         2, 3, 0, //
     };
     auto mesh = hierarchy::SceneMesh::Create();
-    mesh->SetVertices(hierarchy::Semantics::PositionNormalTexCoord, hierarchy::ValueType::Float8, vertices, sizeof(vertices));
-    mesh->SetIndices(hierarchy::ValueType::UInt16, indices, sizeof(indices));
+    mesh->SetVertices(hierarchy::Semantics::Interleaved, 32, vertices, sizeof(vertices));
+    mesh->SetIndices(2, indices, sizeof(indices));
     return mesh;
 }
 

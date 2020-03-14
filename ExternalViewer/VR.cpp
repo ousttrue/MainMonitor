@@ -165,8 +165,8 @@ void VR::OnFrame(hierarchy::Scene *scene)
             auto indexStride = (int)sizeof(data->rIndexData[0]);
 
             auto mesh = hierarchy::SceneMesh::Create();
-            mesh->SetVertices(hierarchy::Semantics::PositionNormalTexCoord, hierarchy::ValueType::Float8, (uint8_t *)data->rVertexData, data->unVertexCount * vertexStride);
-            mesh->SetIndices((hierarchy::ValueType)indexStride, (uint8_t *)data->rIndexData, data->unTriangleCount * indexStride);
+            mesh->SetVertices(hierarchy::Semantics::Interleaved, 32, (uint8_t *)data->rVertexData, data->unVertexCount * vertexStride);
+            mesh->SetIndices(indexStride, (uint8_t *)data->rIndexData, data->unTriangleCount * indexStride);
 
             auto texture = task->Texture();
 

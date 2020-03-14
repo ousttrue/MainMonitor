@@ -10,33 +10,20 @@ namespace hierarchy
 {
 enum class Semantics
 {
+    Interleaved,
     Index,
     Position,
     Normal,
     TexCoord,
-    PositionNormalTexCoord,
-    PositionNormalColor,
-};
-
-enum class ValueType
-{
-    UInt16 = 2,
-    UInt32 = 4,
-    Float2 = 8,
-    Float3 = 12,
-    Float4 = 16,
-    Float8 = 32,  // Position, Normal, TexCoord
-    Float10 = 40, // Position, Normal, Color
 };
 
 struct VertexBuffer
 {
     Semantics semantic;
     std::vector<uint8_t> buffer;
-    ValueType valueType;
+    uint32_t stride;
     bool isDynamic = false;
-    uint32_t Stride() const { return (uint32_t)valueType; }
-    uint32_t Count() const { return (uint32_t)buffer.size() / Stride(); }
+    uint32_t Count() const { return (uint32_t)buffer.size() / stride; }
 };
 
 struct SceneSubmesh
@@ -57,14 +44,14 @@ public:
 
     std::vector<SceneSubmesh> submeshes;
 
-    void SetVertices(Semantics semantic, ValueType valueType, const void *p, uint32_t size);
+    void SetVertices(Semantics semantic, uint32_t stride, const void *p, uint32_t size);
     void SetVertices(const VertexBuffer &vertices)
     {
         m_vertices.push_back(vertices);
     }
     const VertexBuffer *GetVertices(Semantics semantic);
 
-    void SetIndices(ValueType valueType, const void *indices, uint32_t size);
+    void SetIndices(uint32_t stride, const void *indices, uint32_t size);
     const VertexBuffer *GetIndices() const { return &m_indices; }
 };
 using SceneMeshPtr = std::shared_ptr<SceneMesh>;

@@ -19,6 +19,8 @@ public:
     class Uploader *GetUploader() { return m_uploader.get(); }
     void Initialize(const ComPtr<ID3D12Device> &device);
     void Update(const ComPtr<ID3D12Device> &device);
-    std::shared_ptr<class Mesh> GetOrCreate(const ComPtr<ID3D12Device> &device, const hierarchy::SceneMeshPtr &model);
+    std::shared_ptr<class Mesh> GetOrCreate(const ComPtr<ID3D12Device> &device,
+                                            const hierarchy::SceneMeshPtr &model,
+                                            class RootSignature *rootSignature);
 };
 } // namespace d12u

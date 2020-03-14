@@ -315,7 +315,8 @@ private:
         // gizmo: upload
         {
             auto buffer = m_gizmo.End();
-            auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh());
+
+            auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh(), m_rootSignature.get());
             drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
             drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
         }
@@ -362,8 +363,8 @@ private:
                     auto mesh = meshes[j];
                     if (mesh)
                     {
-                        auto drawable = m_sceneMapper->GetOrCreate(m_device, mesh);
-                        if (drawable->IsDrawable(m_commandlist.get()))
+                        auto drawable = m_sceneMapper->GetOrCreate(m_device, mesh, m_rootSignature.get());
+                        if (drawable && drawable->IsDrawable(m_commandlist.get()))
                         {
                             int offset = 0;
                             for (auto &submesh : mesh->submeshes)
@@ -402,7 +403,7 @@ private:
         // gizmo: draw
         {
             m_rootSignature->SetNodeDescriptorTable(commandList, m_gizmo.GetNodeID());
-            auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh());
+            auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh(), m_rootSignature.get());
             if (drawable->IsDrawable(m_commandlist.get()))
             {
                 int offset = 0;
