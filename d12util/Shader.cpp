@@ -37,7 +37,7 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
             if (FAILED(D3DCompile(source.data(), source.size(), "shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &error)))
             {
                 PrintBlob(error);
-                throw;
+                return false;
             }
         }
         {
@@ -45,7 +45,7 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
             if (FAILED(D3DCompile(source.data(), source.size(), "shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr)))
             {
                 PrintBlob(error);
-                throw;
+                return false;
             }
         }
 

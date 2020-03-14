@@ -25,6 +25,7 @@ public:
         m_generation++;
     }
     std::pair<std::string, int> source() const { return std::make_pair(m_source, m_generation); }
+    void clear() { m_source = ""; };
 };
 using ShaderWatcherPtr = std::shared_ptr<ShaderWatcher>;
 

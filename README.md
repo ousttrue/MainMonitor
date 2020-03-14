@@ -29,3 +29,13 @@ TODO
     * [ ] Constants Semantics
 * [ ] glTF node
 * [ ] glTF pbr
+* [ ] select scene node
+
+## hlsl memo
+
+VSInput vs;
+PSInput ps;
+constants
+    scene: sProjection
+    node: nModel
+    material: mDiffuse

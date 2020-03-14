@@ -287,6 +287,7 @@ private:
             buffer->b0View = fpalg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.view);
             buffer->b0LightDir = m_light->LightDirection;
             buffer->b0LightColor = m_light->LightColor;
+            buffer->b0Eye = fpalg::size_cast<DirectX::XMFLOAT3>(m_camera->state.position);
             m_rootSignature->UploadSceneConstantsBuffer();
         }
 

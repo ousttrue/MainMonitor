@@ -94,6 +94,7 @@
         "gizmesh",
         "gltf",
         "gltfformat",
+        "hlsl",
         "hwnd",
         "imgui",
         "nlohmann",

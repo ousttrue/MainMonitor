@@ -144,7 +144,13 @@ void RootSignature::Update(const ComPtr<ID3D12Device> &device)
     for (auto kv : m_shaderMap)
     {
         auto [source, generation] = kv.first->source();
-        kv.second->Initialize(device, m_rootSignature, source, generation);
+        if (!source.empty())
+        {
+            if (!kv.second->Initialize(device, m_rootSignature, source, generation))
+            {
+                kv.first->clear();
+            }
+        }
     }
 }
 
