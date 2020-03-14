@@ -300,7 +300,7 @@ private:
             auto node = nodes[i];
             if (node)
             {
-                m_rootSignature->GetNodeConstantsBuffer(i)->b1World = node->TRS.Matrix();
+                m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = node->TRS.Matrix();
 
                 if (node->EnableGizmo())
                 {
@@ -353,7 +353,7 @@ private:
             auto node = nodes[i];
             if (node)
             {
-                m_rootSignature->SetNodeDescriptorTable(commandList, i);
+                m_rootSignature->SetNodeDescriptorTable(commandList, node->ID());
 
                 int meshCount;
                 auto meshes = node->GetMeshes(&meshCount);
