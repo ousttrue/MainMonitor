@@ -201,16 +201,7 @@ private:
         auto nodes = m_scene->GetRootNodes(&nodeCount);
         for (int i = 0; i < nodeCount; ++i)
         {
-            auto node = nodes[i];
-            if (node)
-            {
-                m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = node->TRS.Matrix();
-
-                if (node->EnableGizmo())
-                {
-                    m_gizmo.Transform(i, node->TRS);
-                }
-            }
+            UpdateNode(nodes[i], fpalg::Transform());
         }
 
         m_rootSignature->UploadNodeConstantsBuffer();
@@ -227,6 +218,24 @@ private:
 
         // shader udpate
         m_rootSignature->Update(m_device);
+    }
+
+    void UpdateNode(const hierarchy::SceneNodePtr &node, const fpalg::Transform &parent)
+    {
+        auto current = node->Transform * parent;
+        m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = current.Matrix();
+
+        if (node->EnableGizmo())
+        {
+            m_gizmo.Transform(node->ID(), node->Transform);
+        }
+
+        int childCount;
+        auto children = node->GetChildren(&childCount);
+        for (int i = 0; i < childCount; ++i)
+        {
+            UpdateNode(children[i], current);
+        }
     }
 
     void DrawImGui()
@@ -306,56 +315,7 @@ private:
         auto nodes = m_scene->GetRootNodes(&nodeCount);
         for (int i = 0; i < nodeCount; ++i)
         {
-            auto node = nodes[i];
-            if (node)
-            {
-                m_rootSignature->SetNodeDescriptorTable(commandList, node->ID());
-
-                int meshCount;
-                auto meshes = node->GetMeshes(&meshCount);
-                for (int j = 0; j < meshCount; ++j)
-                {
-                    auto mesh = meshes[j];
-                    if (mesh)
-                    {
-                        auto drawable = m_sceneMapper->GetOrCreate(m_device, mesh, m_rootSignature.get());
-                        if (drawable && drawable->IsDrawable(m_commandlist.get()))
-                        {
-                            int offset = 0;
-                            for (auto &submesh : mesh->submeshes)
-                            {
-                                auto material = m_rootSignature->GetOrCreate(m_device, submesh.material);
-
-                                // texture setup
-                                if (submesh.material->colorImage)
-                                {
-                                    auto [texture, textureSlot] = m_rootSignature->GetOrCreate(m_device, submesh.material->colorImage,
-                                                                                               m_sceneMapper->GetUploader());
-                                    if (texture)
-                                    {
-                                        if (texture->IsDrawable(m_commandlist.get(), 0))
-                                        {
-                                            m_rootSignature->SetTextureDescriptorTable(commandList, textureSlot);
-                                        }
-                                        else
-                                        {
-                                            // wait upload
-                                            continue;
-                                        }
-                                    }
-                                }
-
-                                if (material->m_shader->Set(commandList))
-                                {
-                                    m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, offset, 0, 0);
-                                }
-
-                                offset += submesh.draw_count;
-                            }
-                        }
-                    }
-                }
-            }
+            DrawNode(commandList, nodes[i]);
         }
 
         // gizmo: draw
@@ -390,6 +350,75 @@ private:
         m_queue->Execute(commandList);
         m_rt->Present();
         m_queue->SyncFence(callbacks);
+    }
+
+    void DrawNode(const ComPtr<ID3D12GraphicsCommandList> &commandList, const hierarchy::SceneNodePtr &node)
+    {
+        m_rootSignature->SetNodeDescriptorTable(commandList, node->ID());
+
+        int meshCount;
+        auto meshes = node->GetMeshes(&meshCount);
+        for (int i = 0; i < meshCount; ++i)
+        {
+            DrawMesh(commandList, meshes[i]);
+        }
+
+        int childCount;
+        auto children = node->GetChildren(&childCount);
+        for (int i = 0; i < childCount; ++i)
+        {
+            DrawNode(commandList, children[i]);
+        }
+    }
+
+    void DrawMesh(const ComPtr<ID3D12GraphicsCommandList> &commandList, const hierarchy::SceneMeshPtr &mesh)
+    {
+        if (!mesh)
+        {
+            return;
+        }
+
+        auto drawable = m_sceneMapper->GetOrCreate(m_device, mesh, m_rootSignature.get());
+        if (!drawable)
+        {
+            return;
+        }
+        if (!drawable->IsDrawable(m_commandlist.get()))
+        {
+            return;
+        }
+
+        int offset = 0;
+        for (auto &submesh : mesh->submeshes)
+        {
+            auto material = m_rootSignature->GetOrCreate(m_device, submesh.material);
+
+            // texture setup
+            if (submesh.material->colorImage)
+            {
+                auto [texture, textureSlot] = m_rootSignature->GetOrCreate(m_device, submesh.material->colorImage,
+                                                                           m_sceneMapper->GetUploader());
+                if (texture)
+                {
+                    if (texture->IsDrawable(m_commandlist.get(), 0))
+                    {
+                        m_rootSignature->SetTextureDescriptorTable(commandList, textureSlot);
+                    }
+                    else
+                    {
+                        // wait upload
+                        continue;
+                    }
+                }
+            }
+
+            if (material->m_shader->Set(commandList))
+            {
+                m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, offset, 0, 0);
+            }
+
+            offset += submesh.draw_count;
+        }
     }
 };
 

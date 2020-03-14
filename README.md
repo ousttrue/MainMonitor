@@ -13,6 +13,7 @@ TODO
 
 ## ExternalViewer(OpenVR tracker viewer)
 
+* [ ] windows position restore
 * shader/material
     * [ ] light/lambert
     * [x] Grid
@@ -27,8 +28,9 @@ TODO
 * gizmo
     * [x] VertexColor
     * [ ] Hover
+    * [ ] local from parent
 * glTF
-    * [ ] node
+    * [x] node
     * [ ] CPU skinning
     * [ ] GPU skinning
     * [ ] animation

@@ -2,6 +2,7 @@
 #include "ParseGltf.h"
 #include <vector>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <gltfformat/glb.h>
 #include <gltfformat/bin.h>
@@ -102,21 +103,58 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         materials.push_back(material);
     }
 
-    // for (auto &gltfNode : gltf.nodes)
-    // {
-    //     auto node = SceneNode::Create();
+    std::vector<SceneNodePtr> nodes;
+    int i = 0;
+    for (auto &gltfNode : gltf.nodes)
+    {
+        auto name = gltfNode.name;
+        if (name.empty())
+        {
+            std::stringstream ss;
+            ss << "node#" << i;
+            name = ss.str();
+        }
+        auto node = SceneNode::Create(name);
 
-    // }
+        if (gltfNode.matrix.size() == 16)
+        {
+            // node->TRS = fpalg::Decompose(fpalg::vector_cast<fpalg::float16>(gltfNode.matrix));
+            throw("not implemented");
+        }
+        else
+        {
+            if (gltfNode.translation.size() == 3)
+            {
+                node->Transform.translation = fpalg::vector_cast<fpalg::float3>(gltfNode.translation);
+            }
+            if (gltfNode.rotation.size() == 4)
+            {
+                node->Transform.rotation = fpalg::vector_cast<fpalg::float4>(gltfNode.rotation);
+            }
+            if (gltfNode.scale.size() == 3)
+            {
+                // node->TRS.scale = fpalg::vector_cast<fpalg::float3>(gltfNode.scale);
+                throw("not implemented");
+            }
+        }
+        // node->EnableGizmo(true);
+        nodes.push_back(node);
+        ++i;
+    }
 
-    auto node = SceneNode::Create("gltf");
-    node->EnableGizmo(true);
+    struct GltfMeshGroup
+    {
+        std::vector<SceneMeshPtr> primitives;
+    };
+    std::vector<std::shared_ptr<GltfMeshGroup>> groups;
     for (auto &gltfMesh : gltf.meshes)
     {
+        auto group = std::make_shared<GltfMeshGroup>();
+        groups.push_back(group);
         for (auto &gltfPrimitive : gltfMesh.primitives)
         {
             auto mesh = SceneMesh::Create();
-
-            node->AddMesh(mesh);
+            group->primitives.push_back(mesh);
 
             for (auto [k, v] : gltfPrimitive.attributes)
             {
@@ -179,7 +217,35 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
             }
         }
     }
-    return node;
+
+    // build node hierarchy
+    for (int i = 0; i < nodes.size(); ++i)
+    {
+        auto &gltfNode = gltf.nodes[i];
+        auto node = nodes[i];
+        if (gltfNode.mesh.has_value())
+        {
+            for (auto primitive : groups[gltfNode.mesh.value()]->primitives)
+            {
+                node->AddMesh(primitive);
+            }
+        }
+        for (auto child : gltfNode.children)
+        {
+            auto childNode = nodes[child];
+            node->AddChild(childNode);
+        }
+    }
+
+    auto root = SceneNode::Create("gltf");
+    for (auto node : nodes)
+    {
+        if (!node->Parent())
+        {
+            root->AddChild(node);
+        }
+    }
+    return root;
 }
 
 } // namespace hierarchy

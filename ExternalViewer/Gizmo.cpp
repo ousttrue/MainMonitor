@@ -49,8 +49,9 @@ gizmesh::GizmoSystem::Buffer Gizmo::End()
     return buffer;
 }
 
-void Gizmo::Transform(int id, fpalg::TRS &trs)
+void Gizmo::Transform(int id, fpalg::Transform &transform)
 {
+    fpalg::TRS trs(transform.translation, transform.rotation, {1, 1, 1});
     switch (m_mode)
     {
     case GizmoModes::Translate:
@@ -59,11 +60,12 @@ void Gizmo::Transform(int id, fpalg::TRS &trs)
     case GizmoModes::Rotation:
         gizmesh::handle::rotation(*m_gizmo, id, trs, true);
         break;
-    case GizmoModes::Scale:
-        gizmesh::handle::scale(*m_gizmo, id, trs, true);
-        break;
+    // case GizmoModes::Scale:
+    //     gizmesh::handle::scale(*m_gizmo, id, trs, true);
+    //     break;
     default:
         throw;
         ;
     }
+    transform = trs.transform;
 }

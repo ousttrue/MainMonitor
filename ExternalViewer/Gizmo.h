@@ -35,5 +35,5 @@ public:
 
     void Begin(const screenstate::ScreenState &state, const camera::CameraState &camera);
     gizmesh::GizmoSystem::Buffer End();
-    void Transform(int id, fpalg::TRS &trs);
+    void Transform(int id, fpalg::Transform &trs);
 };
