@@ -1,6 +1,7 @@
 #include "VR.h"
 #include "Scene.h"
 #include <iostream>
+#include <sstream>
 
 struct LoadTask
 {
@@ -182,7 +183,9 @@ void VR::OnFrame(hierarchy::Scene *scene)
                 .material = material,
             });
 
-            auto node = scene->CreateNode();
+            std::stringstream ss;
+            ss << "tracker#" << task->m_index;
+            auto node = scene->CreateNode(ss.str());
             node->AddMesh(mesh);
             m_trackerNodeMap.insert(std::make_pair(task->m_index, node));
 

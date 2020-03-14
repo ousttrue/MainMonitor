@@ -65,9 +65,8 @@ int main(int argc, char **argv)
         }
 
         auto scene = renderer.GetScene();
-
-        auto grid = CreateGrid();
-        scene->AddMeshNode(grid);
+        auto node = scene->CreateNode("grid");
+        node->AddMesh(CreateGrid());
 
         if (argc > 2)
         {

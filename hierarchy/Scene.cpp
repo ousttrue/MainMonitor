@@ -106,7 +106,13 @@ void Scene::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         materials.push_back(material);
     }
 
-    auto node = SceneNode::Create();
+    // for (auto &gltfNode : gltf.nodes)
+    // {
+    //     auto node = SceneNode::Create();
+
+    // }
+
+    auto node = SceneNode::Create("gltf");
     node->EnableGizmo(true);
     for (auto &gltfMesh : gltf.meshes)
     {

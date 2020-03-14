@@ -1,5 +1,3 @@
-// https://gamedev.stackexchange.com/questions/141916/antialiasing-shader-grid-lines
-
 struct VS_INPUT
 {
     float2 position : POSITION;
@@ -53,8 +51,12 @@ PS_INPUT VSMain(VS_INPUT vs)
 
 static const float _LineThickness = 0.1;
 
+// https://gamedev.stackexchange.com/questions/141916/antialiasing-shader-grid-lines
 float4 grid(float2 uv)
 {
+    float2 wrapped = frac(uv + float2(0.5, 0.5)) - 0.5f;
+    float2 range = abs(wrapped);
+
     float2 speeds;
     /* // Euclidean norm gives slightly more even thickness on diagonals
                 float4 deltas = float4(ddx(i.uv), ddy(i.uv));
@@ -66,13 +68,11 @@ float4 grid(float2 uv)
     // Cheaper Manhattan norm in fwidth slightly exaggerates thickness of diagonals
     speeds = fwidth(uv);
 
-    float2 wrapped = frac(uv) - 0.5f;
-    float2 range = abs(wrapped);
     float2 pixelRange = range / speeds;
     float lineWeight = saturate(min(pixelRange.x, pixelRange.y) - _LineThickness);
 
     return lerp(float4(1, 1, 1, 1), float4(0, 0, 0, 0), lineWeight);
-}
+    }
 
 float4 PSMain(PS_INPUT ps) : SV_Target
 {

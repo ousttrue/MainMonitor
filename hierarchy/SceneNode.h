@@ -16,6 +16,7 @@ class SceneNode
 {
     // unique
     int m_id = -1;
+    std::string m_name;
     std::vector<std::shared_ptr<SceneMesh>> m_meshes;
     bool m_enableGizmo = false;
 
@@ -27,7 +28,7 @@ class SceneNode
 public:
     fpalg::TRS TRS{};
 
-    static std::shared_ptr<SceneNode> Create();
+    static std::shared_ptr<SceneNode> Create(const std::string &name);
 
     int ID() const { return m_id; }
 

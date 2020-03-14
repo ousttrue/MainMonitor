@@ -25,19 +25,13 @@ public:
         return m_nodes[index];
     }
     int Count() const { return (int)m_nodes.size(); }
-
-    SceneNodePtr CreateNode()
+    SceneNodePtr CreateNode(const std::string &name)
     {
-        auto node = SceneNode::Create();
+        auto node = SceneNode::Create(name);
         m_nodes.push_back(node);
         return node;
     }
-    void AddMeshNode(const std::shared_ptr<hierarchy::SceneMesh> &mesh)
-    {
-        auto node = SceneNode::Create();
-        node->AddMesh(mesh);
-        m_nodes.push_back(node);
-    }
+
     void LoadFromPath(const std::string &path);
     void LoadFromPath(const std::wstring &path);
     void LoadGlbBytes(const uint8_t *p, int size);

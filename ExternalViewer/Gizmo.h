@@ -26,7 +26,7 @@ public:
     {
         if (!m_gizmoNode)
         {
-            m_gizmoNode = hierarchy::SceneNode::Create();
+            m_gizmoNode = hierarchy::SceneNode::Create("gizmo");
         }
         return m_gizmoNode->ID();
     }

@@ -17,9 +17,9 @@ TODO
 * [x] imgui
 * [x] gizmo
     * [x] VertexColor
-    * [ ] light transform
 * [ ] light/lambert
 * [x] material
+    * [ ] alpha blending
 * [x] texture
 * [x] shader runtime load
     * [x] shader reload when hlsl updated
@@ -29,9 +29,11 @@ TODO
     * [ ] Constants Semantics
 * [ ] glTF node
 * [ ] glTF pbr
+* [ ] glTF animation
 * scene
     * [ ] node name
     * [ ] select node
+    * [ ] light node
 
 ## hlsl memo
 
