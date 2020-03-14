@@ -20,9 +20,10 @@ TODO
     * [ ] alpha blending
     * [ ] reflection Constants Semantics
 * imgui
-    * [ ] frame rate
-    * [ ] clear color
+    * [x] frame rate
+    * [x] clear color
     * [ ] scene tree
+    * [ ] docking
 * gizmo
     * [x] VertexColor
     * [ ] Hover
