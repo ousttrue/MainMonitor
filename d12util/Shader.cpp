@@ -4,15 +4,102 @@
 namespace d12u
 {
 
+bool Shader::InputLayoutFromReflection(const ComPtr<ID3DBlob> &vs)
+{
+    // Define the vertex input layout.
+    // D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
+    //     {
+    //         {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+    //         {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+    //         {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+    //     };
+    // auto inputElementDescs = InputLayoutFromReflection(vertexShader);
+    ComPtr<ID3D12ShaderReflection> pReflection;
+    if (FAILED(D3DReflect(vs->GetBufferPointer(), vs->GetBufferSize(), IID_PPV_ARGS(&pReflection))))
+    {
+        return false;
+    }
+
+    D3D12_SHADER_DESC desc;
+    pReflection->GetDesc(&desc);
+    m_semantics.reserve(desc.InputParameters);
+    for (unsigned i = 0; i < desc.InputParameters; ++i)
+    {
+        D3D12_SIGNATURE_PARAMETER_DESC lParamDesc;
+        pReflection->GetInputParameterDesc(i, &lParamDesc);
+
+        m_semantics.push_back(lParamDesc.SemanticName);
+        D3D12_INPUT_ELEMENT_DESC lElementDesc{
+            .SemanticName = m_semantics.back().c_str(),
+            .SemanticIndex = lParamDesc.SemanticIndex,
+            .InputSlot = 0,
+            .AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT,
+            .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+            .InstanceDataStepRate = 0,
+        };
+
+        if (lParamDesc.Mask == 1)
+        {
+            if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32)
+                lElementDesc.Format = DXGI_FORMAT_R32_UINT;
+            else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32)
+                lElementDesc.Format = DXGI_FORMAT_R32_SINT;
+            else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32)
+                lElementDesc.Format = DXGI_FORMAT_R32_FLOAT;
+        }
+        else if (lParamDesc.Mask <= 3)
+        {
+            if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32)
+                lElementDesc.Format = DXGI_FORMAT_R32G32_UINT;
+            else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32)
+                lElementDesc.Format = DXGI_FORMAT_R32G32_SINT;
+            else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32)
+                lElementDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+        }
+        else if (lParamDesc.Mask <= 7)
+        {
+            if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32)
+                lElementDesc.Format = DXGI_FORMAT_R32G32B32_UINT;
+            else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32)
+                lElementDesc.Format = DXGI_FORMAT_R32G32B32_SINT;
+            else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32)
+                lElementDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
+        }
+        else if (lParamDesc.Mask <= 15)
+        {
+            if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32)
+                lElementDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
+            else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32)
+                lElementDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
+            else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32)
+                lElementDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        }
+
+        m_layout.push_back(lElementDesc);
+    }
+
+    return true;
+}
+
 bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
                         const ComPtr<ID3D12RootSignature> &rootSignature,
                         const std::string &source,
                         int generation)
 {
-    if (m_pipelineState && generation > m_generation)
+    if (m_pipelineState)
     {
-        // clear
-        m_pipelineState = nullptr;
+        if (generation > m_generation)
+        {
+            // clear
+            m_pipelineState = nullptr;
+            m_semantics.clear();
+            m_layout.clear();
+        }
+        else
+        {
+            // already
+            return true;
+        }
     }
 
     if (source.empty())
@@ -49,76 +136,9 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
             }
         }
 
-        // Define the vertex input layout.
-        // D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
-        //     {
-        //         {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        //         {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        //         {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        //     };
-        // auto inputElementDescs = InputLayoutFromReflection(vertexShader);
-        std::vector<std::string> semantics;
-        std::vector<D3D12_INPUT_ELEMENT_DESC> layout;
-        ComPtr<ID3D12ShaderReflection> pReflection;
-        if (SUCCEEDED(D3DReflect(vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), IID_PPV_ARGS(&pReflection))))
+        if (!InputLayoutFromReflection(vertexShader))
         {
-            D3D12_SHADER_DESC desc;
-            pReflection->GetDesc(&desc);
-            semantics.reserve(desc.InputParameters);
-            for (unsigned i = 0; i < desc.InputParameters; ++i)
-            {
-                D3D12_SIGNATURE_PARAMETER_DESC lParamDesc;
-                pReflection->GetInputParameterDesc(i, &lParamDesc);
-
-                semantics.push_back(lParamDesc.SemanticName);
-                D3D12_INPUT_ELEMENT_DESC lElementDesc{
-                    .SemanticName = semantics.back().c_str(),
-                    .SemanticIndex = lParamDesc.SemanticIndex,
-                    .InputSlot = 0,
-                    .AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT,
-                    .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                    .InstanceDataStepRate = 0,
-                };
-
-                if (lParamDesc.Mask == 1)
-                {
-                    if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32)
-                        lElementDesc.Format = DXGI_FORMAT_R32_UINT;
-                    else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32)
-                        lElementDesc.Format = DXGI_FORMAT_R32_SINT;
-                    else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32)
-                        lElementDesc.Format = DXGI_FORMAT_R32_FLOAT;
-                }
-                else if (lParamDesc.Mask <= 3)
-                {
-                    if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32)
-                        lElementDesc.Format = DXGI_FORMAT_R32G32_UINT;
-                    else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32)
-                        lElementDesc.Format = DXGI_FORMAT_R32G32_SINT;
-                    else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32)
-                        lElementDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
-                }
-                else if (lParamDesc.Mask <= 7)
-                {
-                    if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32)
-                        lElementDesc.Format = DXGI_FORMAT_R32G32B32_UINT;
-                    else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32)
-                        lElementDesc.Format = DXGI_FORMAT_R32G32B32_SINT;
-                    else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32)
-                        lElementDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
-                }
-                else if (lParamDesc.Mask <= 15)
-                {
-                    if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32)
-                        lElementDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
-                    else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32)
-                        lElementDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
-                    else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32)
-                        lElementDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-                }
-
-                layout.push_back(lElementDesc);
-            }
+            return false;
         }
 
         // Describe and create the graphics pipeline state object (PSO).
@@ -175,7 +195,7 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
                 .FrontFace = {D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS},
                 .BackFace = {D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS},
             },
-            .InputLayout = {layout.data(), (UINT)layout.size()},
+            .InputLayout = {m_layout.data(), (UINT)m_layout.size()},
             .PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
             .NumRenderTargets = 1,
             .RTVFormats = {DXGI_FORMAT_R8G8B8A8_UNORM},
