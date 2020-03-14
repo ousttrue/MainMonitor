@@ -24,21 +24,13 @@ public:
     {
         return m_nodes[index];
     }
-    SceneNodePtr GetOrCreateNode(int index)
-    {
-        auto node = m_nodes[index];
-        if(!node)
-        {
-            node = SceneNode::Create();
-            m_nodes[index] = node;
-        }
-        return node;
-    }
     int Count() const { return (int)m_nodes.size(); }
 
-    void AddNullNode()
+    SceneNodePtr CreateNode()
     {
-        m_nodes.push_back(nullptr);
+        auto node = SceneNode::Create();
+        m_nodes.push_back(node);
+        return node;
     }
     void AddMeshNode(const std::shared_ptr<hierarchy::SceneMesh> &mesh)
     {
@@ -50,4 +42,5 @@ public:
     void LoadFromPath(const std::wstring &path);
     void LoadGlbBytes(const uint8_t *p, int size);
 };
+
 } // namespace hierarchy

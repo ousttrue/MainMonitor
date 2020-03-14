@@ -61,10 +61,6 @@ int main(int argc, char **argv)
         }
 
         auto scene = renderer.GetScene();
-        for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
-        {
-            scene->AddNullNode();
-        }
 
         auto grid = CreateGrid();
         scene->AddMeshNode(grid);

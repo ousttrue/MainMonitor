@@ -182,8 +182,9 @@ void VR::OnFrame(hierarchy::Scene *scene)
                 .material = material,
             });
 
-            auto node = scene->GetOrCreateNode(task->m_index);
+            auto node = scene->CreateNode();
             node->AddMesh(mesh);
+            m_trackerNodeMap.insert(std::make_pair(task->m_index, node));
 
             it = m_tasks.erase(it);
         }
@@ -222,13 +223,14 @@ void VR::OnFrame(hierarchy::Scene *scene)
     // update pose
     m_system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, 0,
                                               m_poses, vr::k_unMaxTrackedDeviceCount);
-    for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
+
+    for (auto kv : m_trackerNodeMap)
     {
-        if (m_poses[i].bPoseIsValid)
+        if (m_poses[kv.first].bPoseIsValid)
         {
-            auto pose = ConvertSteamVRMatrixToMatrix4(m_poses[i].mDeviceToAbsoluteTracking);
-            auto node = scene->GetNode(i);
-            if (node)
+            auto pose = ConvertSteamVRMatrixToMatrix4(m_poses[kv.first].mDeviceToAbsoluteTracking);
+            auto node = kv.second;
+            // if (node)
             {
                 node->TRS.position = fpalg::MatrixToTranslation(pose);
                 node->TRS.rotation = fpalg::MatrixToQuaternion(pose);
