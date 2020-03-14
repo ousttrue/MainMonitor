@@ -27,8 +27,13 @@ class RootSignature : NonCopyable
         DirectX::XMFLOAT4X4 b0View;
         DirectX::XMFLOAT4X4 b0Projection;
         DirectX::XMFLOAT3 b0LightDir;
+        float p0;
         DirectX::XMFLOAT3 b0LightColor;
-        DirectX::XMFLOAT3 b0Eye;
+        float p1;
+        DirectX::XMFLOAT3 b0CameraPosition;
+        float p2;
+        DirectX::XMFLOAT3 b0ScreenSizeFovY;
+        // DirectX::XMFLOAT4X4 b0ViewInv;
     };
     d12u::ConstantBuffer<SceneConstants> m_sceneConstantsBuffer;
 

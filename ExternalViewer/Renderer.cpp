@@ -287,7 +287,8 @@ private:
             buffer->b0View = fpalg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.view);
             buffer->b0LightDir = m_light->LightDirection;
             buffer->b0LightColor = m_light->LightColor;
-            buffer->b0Eye = fpalg::size_cast<DirectX::XMFLOAT3>(m_camera->state.position);
+            buffer->b0CameraPosition = fpalg::size_cast<DirectX::XMFLOAT3>(m_camera->state.position);
+            buffer->b0ScreenSizeFovY = {(float)state.Width, (float)state.Height, m_camera->state.fovYRadians};
             m_rootSignature->UploadSceneConstantsBuffer();
         }
 
@@ -372,18 +373,21 @@ private:
                                 auto material = m_rootSignature->GetOrCreate(m_device, submesh.material);
 
                                 // texture setup
-                                auto [texture, textureSlot] = m_rootSignature->GetOrCreate(m_device, submesh.material->colorImage,
-                                                                                           m_sceneMapper->GetUploader());
-                                if (texture)
+                                if (submesh.material->colorImage)
                                 {
-                                    if (texture->IsDrawable(m_commandlist.get(), 0))
+                                    auto [texture, textureSlot] = m_rootSignature->GetOrCreate(m_device, submesh.material->colorImage,
+                                                                                               m_sceneMapper->GetUploader());
+                                    if (texture)
                                     {
-                                        m_rootSignature->SetTextureDescriptorTable(commandList, textureSlot);
-                                    }
-                                    else
-                                    {
-                                        // wait upload
-                                        continue;
+                                        if (texture->IsDrawable(m_commandlist.get(), 0))
+                                        {
+                                            m_rootSignature->SetTextureDescriptorTable(commandList, textureSlot);
+                                        }
+                                        else
+                                        {
+                                            // wait upload
+                                            continue;
+                                        }
                                     }
                                 }
 

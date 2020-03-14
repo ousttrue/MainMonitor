@@ -13,7 +13,7 @@ TODO
 
 ## ExternalViewer(OpenVR tracker viewer)
 
-* [ ] Grid
+* [x] Grid
 * [x] imgui
 * [x] gizmo
     * [x] VertexColor
@@ -29,7 +29,9 @@ TODO
     * [ ] Constants Semantics
 * [ ] glTF node
 * [ ] glTF pbr
-* [ ] select scene node
+* scene
+    * [ ] node name
+    * [ ] select node
 
 ## hlsl memo
 

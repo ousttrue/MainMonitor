@@ -6,26 +6,30 @@
 
 static std::shared_ptr<hierarchy::SceneMesh> CreateGrid()
 {
-    // /** A single vertex in a render model */
-    // struct RenderModel_Vertex_t
-    // {
-    // 	HmdVector3_t vPosition;		// position in meters in device space
-    // 	HmdVector3_t vNormal;
-    // 	float rfTextureCoord[2];
-    // };
-    vr::RenderModel_Vertex_t vertices[] = {
-        {{-1, 0, -1}, {0, 1, 0}, {0, 1}},
-        {{-1, 0, 1}, {0, 1, 0}, {1, 1}},
-        {{1, 0, 1}, {0, 1, 0}, {1, 0}},
-        {{1, 0, -1}, {0, 1, 0}, {0, 0}},
+    struct GridVertex
+    {
+        std::array<float, 2> position;
+        std::array<float, 2> uv;
+    };
+    GridVertex vertices[] = {
+        {{-1, 1}, {0, 0}},
+        {{-1, -1}, {0, 1}},
+        {{1, -1}, {1, 1}},
+        {{1, 1}, {1, 0}},
     };
     uint16_t indices[] = {
         0, 1, 2, //
         2, 3, 0, //
     };
     auto mesh = hierarchy::SceneMesh::Create();
-    mesh->SetVertices(hierarchy::Semantics::Interleaved, 32, vertices, sizeof(vertices));
+    mesh->SetVertices(hierarchy::Semantics::Interleaved, sizeof(vertices[0]), vertices, sizeof(vertices));
     mesh->SetIndices(2, indices, sizeof(indices));
+    {
+        auto material = hierarchy::SceneMaterial::Create();
+        material->shader = hierarchy::ShaderManager::Instance().get("grid");
+        mesh->submeshes.push_back({.draw_count = _countof(indices),
+                                   .material = material});
+    }
     return mesh;
 }
 
