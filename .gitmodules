@@ -14,3 +14,6 @@
 [submodule "external/stb"]
 	path = external/stb
 	url = https://github.com/nothings/stb.git
+[submodule "external/plog"]
+	path = external/plog
+	url = https://github.com/SergiusTheBest/plog.git
