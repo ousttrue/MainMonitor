@@ -189,7 +189,7 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
             .DepthStencilState = {
                 .DepthEnable = TRUE,
                 .DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL,
-                .DepthFunc = D3D12_COMPARISON_FUNC_LESS,
+                .DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL,
                 .StencilEnable = FALSE,
                 .StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK,
                 .StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK,
