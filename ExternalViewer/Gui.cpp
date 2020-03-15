@@ -2,6 +2,63 @@
 #include <imgui.h>
 #include "ImGuiImplScreenState.h"
 #include "ImGuiDX12.h"
+#include <plog/Log.h>
+
+template<class T>
+using ComPtr = Microsoft::WRL::ComPtr<T>;
+
+#include <shobjidl.h>
+std::wstring OpenFileDialog(const std::wstring &folder)
+{
+    ComPtr<IFileOpenDialog> pFileOpen;
+    if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL,
+                                IID_PPV_ARGS(&pFileOpen))))
+    {
+        return L"";
+    }
+
+    COMDLG_FILTERSPEC fileTypes[] = {
+        {L"gltf binary format", L"*.glb"},
+        {L"all", L"*.*"},
+    };
+    if (FAILED(pFileOpen->SetFileTypes(_countof(fileTypes), fileTypes)))
+    {
+        return L"";
+    }
+    if (FAILED(pFileOpen->SetDefaultExtension(L".glb")))
+    {
+        return L"";
+    }
+    if (FAILED(pFileOpen->Show(NULL)))
+    {
+        return L"";
+    }
+
+    ComPtr<IShellItem> pItem;
+    if (FAILED(pFileOpen->GetResult(&pItem)))
+    {
+        return L"";
+    }
+
+    PWSTR pszFilePath;
+    if (FAILED(pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath)))
+    {
+        return L"";
+    }
+    std::wstring result(pszFilePath);
+    CoTaskMemFree(pszFilePath);
+
+    // DWORD len = GetCurrentDirectoryW(0, NULL);
+    // std::vector<wchar_t> dir(len);
+    // GetCurrentDirectoryW((DWORD)dir.size(), dir.data());
+    // if(dir.back()==0)
+    // {
+    //     dir.pop_back();
+    // }
+    // std::wcout << std::wstring(dir.begin(), dir.end()) << std::endl;
+
+    return result;
+}
 
 struct ExampleAppLog
 {
@@ -253,4 +310,61 @@ void Gui::Log(const char *msg)
 void Gui::ShowLogger()
 {
     m_logger->Draw("Logger");
+}
+
+void Gui::Update(hierarchy::Scene *scene, float clearColor[4])
+{
+    //
+    // imgui
+    //
+    {
+        ImGui::Begin("main");
+        if (ImGui::Button("open"))
+        {
+            auto path = OpenFileDialog(L"");
+            auto node = hierarchy::SceneGltf::LoadFromPath(path);
+            if (node)
+            {
+                LOGI << "load: " << path;
+                scene->AddRootNode(node);
+            }
+            else
+            {
+                LOGW << "fail to load: " << path;
+            }
+        }
+        ImGui::End();
+    }
+    {
+        ShowLogger();
+    }
+    {
+        ImGui::ShowDemoWindow();
+    }
+
+    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
+    static bool show_demo_window = true;
+    static bool show_another_window = true;
+
+    {
+        static float f = 0.0f;
+        static int counter = 0;
+
+        ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
+
+        ImGui::Text("This is some useful text."); // Display some text (you can use a format strings too)
+        // ImGui::Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
+        // ImGui::Checkbox("Another Window", &show_another_window);
+
+        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);    // Edit 1 float using a slider from 0.0f to 1.0f
+        ImGui::ColorEdit3("clear color", clearColor); // Edit 3 floats representing a color
+
+        if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
+            counter++;
+        ImGui::SameLine();
+        ImGui::Text("counter = %d", counter);
+
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        ImGui::End();
+    }
 }

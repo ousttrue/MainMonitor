@@ -118,8 +118,9 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
 
         if (gltfNode.matrix.size() == 16)
         {
-            // node->TRS = fpalg::Decompose(fpalg::vector_cast<fpalg::float16>(gltfNode.matrix));
-            throw("not implemented");
+            auto trs = fpalg::Decompose(fpalg::vector_cast<fpalg::float16>(gltfNode.matrix));
+            node->Transform = trs.transform;
+            // throw("not implemented");
         }
         else
         {
@@ -134,7 +135,7 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
             if (gltfNode.scale.size() == 3)
             {
                 // node->TRS.scale = fpalg::vector_cast<fpalg::float3>(gltfNode.scale);
-                throw("not implemented");
+                // throw("not implemented");
             }
         }
         // node->EnableGizmo(true);

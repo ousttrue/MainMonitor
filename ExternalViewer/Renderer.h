@@ -4,12 +4,12 @@
 
 namespace screenstate
 {
-    struct ScreenState;
+struct ScreenState;
 }
 
 namespace hierarchy
 {
-    class Scene;
+class Scene;
 }
 
 class Renderer

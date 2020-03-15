@@ -1,7 +1,10 @@
 #pragma once
+#include <hierarchy.h>
+#include <ScreenState.h>
+
 #include <d3d12.h>
 #include <wrl/client.h>
-#include <ScreenState.h>
+
 #include <list>
 #include <memory>
 #include <mutex>
@@ -18,6 +21,7 @@ public:
     Gui(const ComPtr<ID3D12Device> &device, int bufferCount, HWND hwnd);
     ~Gui();
     void BeginFrame(const screenstate::ScreenState &state);
+    void Update(hierarchy::Scene *scene, float clearColor[4]);
     void EndFrame(const ComPtr<ID3D12GraphicsCommandList> &commandList);
 
     void Log(const char *msg);
