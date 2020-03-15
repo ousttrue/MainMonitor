@@ -17,6 +17,7 @@ class Gizmo
     hierarchy::SceneNodePtr m_gizmoNode; // for node id
     hierarchy::SceneMeshPtr m_gizmoMesh;
     GizmoModes m_mode = GizmoModes::Translate;
+    bool m_isLocal = false;
 
 public:
     Gizmo();

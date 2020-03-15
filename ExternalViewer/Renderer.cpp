@@ -150,8 +150,6 @@ private:
             }
         }
 
-        m_gizmo.Begin(state, m_camera->state);
-
         int nodeCount;
         auto nodes = m_scene->GetRootNodes(&nodeCount);
         for (int i = 0; i < nodeCount; ++i)
@@ -164,6 +162,15 @@ private:
 
         // gizmo: upload
         {
+            m_gizmo.Begin(state, m_camera->state);
+            auto selected = m_imgui->Selected();
+            if (selected)
+            {
+                // if (selected->EnableGizmo())
+                {
+                    m_gizmo.Transform(selected->ID(), selected->Transform);
+                }
+            }
             auto buffer = m_gizmo.End();
 
             auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh(), m_rootSignature.get());
@@ -179,11 +186,6 @@ private:
     {
         auto current = node->Transform * parent;
         m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = current.Matrix();
-
-        if (node->EnableGizmo())
-        {
-            m_gizmo.Transform(node->ID(), node->Transform);
-        }
 
         int childCount;
         auto children = node->GetChildren(&childCount);

@@ -13,7 +13,7 @@ TODO
 
 ## ExternalViewer(OpenVR tracker viewer)
 
-* [ ] windows position restore
+* [x] windows position restore
 * shader/material
     * [ ] light/lambert
     * [x] Grid
@@ -23,20 +23,20 @@ TODO
 * imgui
     * [x] frame rate
     * [x] clear color
-    * [ ] scene tree
+    * [x] scene tree
     * [ ] docking
-    * [ ] consume wheel, click event.
+    * [x] consume wheel, click event.
+    * [x] select node
 * gizmo
     * [x] VertexColor
     * [ ] Hover
-    * [ ] local from parent
+    * [ ] scene hierarchy(has parent)
 * glTF
     * [x] node
     * [ ] CPU skinning
     * [ ] GPU skinning
     * [ ] animation
 * scene
-    * [ ] select node
     * [ ] light node
     * [ ] manage node id(d3d12 slot)
     * [ ] manage material id(d3d12 slot)

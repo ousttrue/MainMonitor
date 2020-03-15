@@ -36,6 +36,10 @@ void Gizmo::Begin(const screenstate::ScreenState &state, const camera::CameraSta
     {
         m_mode = GizmoModes::Scale;
     }
+    if (state.KeyCode['\t'])
+    {
+        m_isLocal = !m_isLocal;
+    }
 
     m_gizmo->begin(camera.position, camera.rotation,
                    camera.ray_origin, camera.ray_direction,
@@ -55,10 +59,10 @@ void Gizmo::Transform(int id, fpalg::Transform &transform)
     switch (m_mode)
     {
     case GizmoModes::Translate:
-        gizmesh::handle::translation(*m_gizmo, id, trs, true);
+        gizmesh::handle::translation(*m_gizmo, id, trs, m_isLocal);
         break;
     case GizmoModes::Rotation:
-        gizmesh::handle::rotation(*m_gizmo, id, trs, true);
+        gizmesh::handle::rotation(*m_gizmo, id, trs, m_isLocal);
         break;
     // case GizmoModes::Scale:
     //     gizmesh::handle::scale(*m_gizmo, id, trs, true);

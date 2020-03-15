@@ -312,19 +312,37 @@ void Gui::ShowLogger()
     m_logger->Draw("Logger");
 }
 
-static void DrawNode(const hierarchy::SceneNodePtr &node)
+void Gui::DrawNode(const hierarchy::SceneNodePtr &node, hierarchy::SceneNode *selected)
 {
     int childCount;
     auto children = node->GetChildren(&childCount);
     ImGui::PushID(node->ID());
-    if (ImGui::TreeNode(node->Name().c_str()))
+    auto flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+    flags |= ImGuiTreeNodeFlags_DefaultOpen;
+    if (childCount == 0)
     {
+        flags |= ImGuiTreeNodeFlags_Leaf;
+    }
+    if (node.get() == selected)
+    {
+        flags |= ImGuiTreeNodeFlags_Selected;
+    }
+    auto isOpen = ImGui::TreeNodeEx(node->Name().c_str(), flags);
+    if (ImGui::IsItemClicked())
+    {
+        m_selected = node;
+    }
+
+    if (isOpen)
+    {
+        // children
         for (int i = 0; i < childCount; ++i)
         {
-            DrawNode(children[i]);
+            DrawNode(children[i], selected);
         }
         ImGui::TreePop();
     }
+
     ImGui::PopID();
 }
 
@@ -394,7 +412,7 @@ bool Gui::Update(hierarchy::Scene *scene, float clearColor[4])
         auto roots = scene->GetRootNodes(&rootCount);
         for (int i = 0; i < rootCount; ++i)
         {
-            DrawNode(roots[i]);
+            DrawNode(roots[i], m_selected.lock().get());
         }
 
         ImGui::End();

@@ -17,6 +17,9 @@ class Gui
     std::unique_ptr<class ImGuiDX12> m_dx12;
     std::unique_ptr<struct ExampleAppLog> m_logger;
 
+    // single selection
+    std::weak_ptr<hierarchy::SceneNode> m_selected;
+
 public:
     Gui(const ComPtr<ID3D12Device> &device, int bufferCount, HWND hwnd);
     ~Gui();
@@ -24,6 +27,14 @@ public:
     bool Update(hierarchy::Scene *scene, float clearColor[4]);
     void EndFrame(const ComPtr<ID3D12GraphicsCommandList> &commandList);
 
+    hierarchy::SceneNodePtr Selected() const
+    {
+        return m_selected.lock();
+    }
+
     void Log(const char *msg);
     void ShowLogger();
+
+private:
+    void DrawNode(const hierarchy::SceneNodePtr &node, hierarchy::SceneNode *selected);
 };
