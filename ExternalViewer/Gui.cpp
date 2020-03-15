@@ -4,7 +4,7 @@
 #include "ImGuiDX12.h"
 #include <plog/Log.h>
 
-template<class T>
+template <class T>
 using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 #include <shobjidl.h>
@@ -312,8 +312,26 @@ void Gui::ShowLogger()
     m_logger->Draw("Logger");
 }
 
-void Gui::Update(hierarchy::Scene *scene, float clearColor[4])
+static void DrawNode(const hierarchy::SceneNodePtr &node)
 {
+    int childCount;
+    auto children = node->GetChildren(&childCount);
+    ImGui::PushID(node->ID());
+    if (ImGui::TreeNode(node->Name().c_str()))
+    {
+        for (int i = 0; i < childCount; ++i)
+        {
+            DrawNode(children[i]);
+        }
+        ImGui::TreePop();
+    }
+    ImGui::PopID();
+}
+
+bool Gui::Update(hierarchy::Scene *scene, float clearColor[4])
+{
+    bool consumed = false;
+
     //
     // imgui
     //
@@ -356,7 +374,7 @@ void Gui::Update(hierarchy::Scene *scene, float clearColor[4])
         // ImGui::Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
         // ImGui::Checkbox("Another Window", &show_another_window);
 
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);    // Edit 1 float using a slider from 0.0f to 1.0f
+        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);  // Edit 1 float using a slider from 0.0f to 1.0f
         ImGui::ColorEdit3("clear color", clearColor); // Edit 3 floats representing a color
 
         if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
@@ -367,4 +385,20 @@ void Gui::Update(hierarchy::Scene *scene, float clearColor[4])
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
         ImGui::End();
     }
+
+    {
+        // scene tree
+        ImGui::Begin("scene graph");
+
+        int rootCount;
+        auto roots = scene->GetRootNodes(&rootCount);
+        for (int i = 0; i < rootCount; ++i)
+        {
+            DrawNode(roots[i]);
+        }
+
+        ImGui::End();
+    }
+
+    return ImGui::IsAnyWindowHovered();
 }

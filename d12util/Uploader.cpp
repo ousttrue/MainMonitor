@@ -47,7 +47,7 @@ void Uploader::Update(const ComPtr<ID3D12Device> &device)
         }
         if (!m_upload)
         {
-            m_upload = ResourceItem::CreateUpload(device, command->ByteLength);
+            m_upload = ResourceItem::CreateUpload(device, command->ByteLength, L"##uploader##");
         }
 
         m_commandList->Reset(nullptr);

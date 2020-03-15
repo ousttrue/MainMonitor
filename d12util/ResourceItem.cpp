@@ -6,10 +6,13 @@ namespace d12u
 {
 ResourceItem::ResourceItem(
     const ComPtr<ID3D12Resource> &resource,
-    D3D12_RESOURCE_STATES state)
+    D3D12_RESOURCE_STATES state,
+    LPCWSTR name)
     : m_resource(resource)
 {
     m_state.State = state;
+    m_state.Upload = UploadStates::None;
+    resource->SetName(name);
 }
 
 void ResourceItem::MapCopyUnmap(const void *p, UINT byteLength, UINT stride)
@@ -29,6 +32,7 @@ void ResourceItem::MapCopyUnmap(const void *p, UINT byteLength, UINT stride)
 
 void ResourceItem::EnqueueTransition(CommandList *commandList, D3D12_RESOURCE_STATES state)
 {
+    m_state.Upload = UploadStates::Enqueued;
     D3D12_RESOURCE_BARRIER barrier{
         .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
         .Transition = {
@@ -45,6 +49,7 @@ void ResourceItem::EnqueueTransition(CommandList *commandList, D3D12_RESOURCE_ST
         if (shared)
         {
             shared->m_state.State = state;
+            shared->m_state.Upload = UploadStates::Uploaded;
         }
     };
 
@@ -112,7 +117,7 @@ void ResourceItem::EnqueueUpload(CommandList *commandList,
     m_count = byteLength / stride;
 }
 
-std::shared_ptr<ResourceItem> ResourceItem::CreateUpload(const ComPtr<ID3D12Device> &device, UINT byteLength)
+std::shared_ptr<ResourceItem> ResourceItem::CreateUpload(const ComPtr<ID3D12Device> &device, UINT byteLength, LPCWSTR name)
 {
     D3D12_HEAP_PROPERTIES prop{
         .Type = D3D12_HEAP_TYPE_UPLOAD,
@@ -139,10 +144,10 @@ std::shared_ptr<ResourceItem> ResourceItem::CreateUpload(const ComPtr<ID3D12Devi
         IID_PPV_ARGS(&resource)));
 
     return std::shared_ptr<ResourceItem>(
-        new ResourceItem(resource, D3D12_RESOURCE_STATE_GENERIC_READ));
+        new ResourceItem(resource, D3D12_RESOURCE_STATE_GENERIC_READ, name));
 }
 
-std::shared_ptr<ResourceItem> ResourceItem::CreateDefault(const ComPtr<ID3D12Device> &device, UINT byteLength)
+std::shared_ptr<ResourceItem> ResourceItem::CreateDefault(const ComPtr<ID3D12Device> &device, UINT byteLength, LPCWSTR name)
 {
     D3D12_HEAP_PROPERTIES prop{
         .Type = D3D12_HEAP_TYPE_DEFAULT,
@@ -169,10 +174,10 @@ std::shared_ptr<ResourceItem> ResourceItem::CreateDefault(const ComPtr<ID3D12Dev
         IID_PPV_ARGS(&resource)));
 
     return std::shared_ptr<ResourceItem>(
-        new ResourceItem(resource, D3D12_RESOURCE_STATE_COPY_DEST));
+        new ResourceItem(resource, D3D12_RESOURCE_STATE_COPY_DEST, name));
 }
 
-std::shared_ptr<ResourceItem> ResourceItem::CreateDefaultImage(const ComPtr<ID3D12Device> &device, UINT width, UINT height)
+std::shared_ptr<ResourceItem> ResourceItem::CreateDefaultImage(const ComPtr<ID3D12Device> &device, UINT width, UINT height, LPCWSTR name)
 {
     D3D12_HEAP_PROPERTIES prop{
         .Type = D3D12_HEAP_TYPE_DEFAULT,
@@ -199,7 +204,7 @@ std::shared_ptr<ResourceItem> ResourceItem::CreateDefaultImage(const ComPtr<ID3D
         IID_PPV_ARGS(&resource)));
 
     return std::shared_ptr<ResourceItem>(
-        new ResourceItem(resource, D3D12_RESOURCE_STATE_COPY_DEST));
+        new ResourceItem(resource, D3D12_RESOURCE_STATE_COPY_DEST, name));
 }
 
 } // namespace d12u

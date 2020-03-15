@@ -34,6 +34,7 @@ public:
     static std::shared_ptr<SceneNode> Create(const std::string &name);
 
     int ID() const { return m_id; }
+    std::string Name() const { return m_name; }
 
     bool EnableGizmo() const { return m_enableGizmo; }
     void EnableGizmo(bool enable) { m_enableGizmo = enable; }

@@ -43,6 +43,7 @@ public:
     static std::shared_ptr<SceneMesh> CreateDynamic(int vertexReserve, int indexReserve);
 
     std::vector<SceneSubmesh> submeshes;
+    std::wstring name;
 
     void SetVertices(Semantics semantic, uint32_t stride, const void *p, uint32_t size);
     void SetVertices(const VertexBuffer &vertices)

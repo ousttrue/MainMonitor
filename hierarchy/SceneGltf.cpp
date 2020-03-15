@@ -6,6 +6,7 @@
 #include <string>
 #include <gltfformat/glb.h>
 #include <gltfformat/bin.h>
+#include <Windows.h>
 
 template <class T>
 static std::vector<uint8_t> read_allbytes(T path)
@@ -28,6 +29,19 @@ static std::vector<uint8_t> read_allbytes(T path)
     }
 
     return buffer;
+}
+
+std::wstring ToUnicode(std::string const &src, UINT CP)
+{
+    auto const dest_size = ::MultiByteToWideChar(CP, 0U, src.data(), -1, nullptr, 0U);
+    std::vector<wchar_t> dest(dest_size, L'\0');
+    if (::MultiByteToWideChar(CP, 0U, src.data(), -1, dest.data(), (UINT)dest.size()) == 0)
+    {
+        throw std::system_error{static_cast<int>(::GetLastError()), std::system_category()};
+    }
+    dest.resize(std::char_traits<wchar_t>::length(dest.data()));
+    dest.shrink_to_fit();
+    return std::wstring(dest.begin(), dest.end());
 }
 
 namespace hierarchy
@@ -77,7 +91,7 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
 
         // TO_PNG
         auto image = SceneImage::Load(bytes.p, bytes.size);
-
+        image->name = ToUnicode(gltfImage.name, CP_UTF8);
         images.push_back(image);
     }
 
@@ -155,6 +169,7 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         for (auto &gltfPrimitive : gltfMesh.primitives)
         {
             auto mesh = SceneMesh::Create();
+            mesh->name = ToUnicode(gltfMesh.name, CP_UTF8);
             group->primitives.push_back(mesh);
 
             for (auto [k, v] : gltfPrimitive.attributes)

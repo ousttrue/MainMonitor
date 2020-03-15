@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <string>
 #include <stdint.h>
 
 namespace hierarchy
@@ -25,6 +26,7 @@ public:
     ImageType type = ImageType::Unknown;
     int width = 0;
     int height = 0;
+    std::wstring name;
 
     uint32_t size() const
     {

@@ -130,16 +130,24 @@ private:
                          hwnd, state.Width, state.Height);
         }
 
-        m_camera->Update(state);
+        m_imgui->BeginFrame(state);
+        if (m_imgui->Update(m_scene.get(), m_clearColor))
         {
-            auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
-            buffer->b0Projection = fpalg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.projection);
-            buffer->b0View = fpalg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.view);
-            buffer->b0LightDir = m_light->LightDirection;
-            buffer->b0LightColor = m_light->LightColor;
-            buffer->b0CameraPosition = fpalg::size_cast<DirectX::XMFLOAT3>(m_camera->state.position);
-            buffer->b0ScreenSizeFovY = {(float)state.Width, (float)state.Height, m_camera->state.fovYRadians};
-            m_rootSignature->UploadSceneConstantsBuffer();
+            // consume input event by imgui
+        }
+        else
+        {
+            m_camera->Update(state);
+            {
+                auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
+                buffer->b0Projection = fpalg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.projection);
+                buffer->b0View = fpalg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.view);
+                buffer->b0LightDir = m_light->LightDirection;
+                buffer->b0LightColor = m_light->LightColor;
+                buffer->b0CameraPosition = fpalg::size_cast<DirectX::XMFLOAT3>(m_camera->state.position);
+                buffer->b0ScreenSizeFovY = {(float)state.Width, (float)state.Height, m_camera->state.fovYRadians};
+                m_rootSignature->UploadSceneConstantsBuffer();
+            }
         }
 
         m_gizmo.Begin(state, m_camera->state);
@@ -228,8 +236,6 @@ private:
             }
         }
 
-        m_imgui->BeginFrame(state);
-        m_imgui->Update(m_scene.get(), m_clearColor);
         m_imgui->EndFrame(commandList);
 
         // barrier

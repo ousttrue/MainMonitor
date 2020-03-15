@@ -53,7 +53,10 @@ class ResourceItem : public std::enable_shared_from_this<ResourceItem>
     UINT m_stride = 0;
     UINT m_count = 0;
 
-    ResourceItem(const ComPtr<ID3D12Resource> &resource, D3D12_RESOURCE_STATES state);
+    ResourceItem(const ComPtr<ID3D12Resource> &resource,
+                 D3D12_RESOURCE_STATES state,
+                 LPCWSTR name);
+
     // avoid copy
     ResourceItem(const ResourceItem &src) = delete;
     ResourceItem &operator=(const ResourceItem &src) = delete;
@@ -104,10 +107,10 @@ public:
     void EnqueueUpload(class CommandList *commandList, const std::shared_ptr<class ResourceItem> &upload,
                        const void *p, UINT byteLength, UINT stride);
     // dynamic
-    static std::shared_ptr<ResourceItem> CreateUpload(const ComPtr<ID3D12Device> &device, UINT byteLength);
+    static std::shared_ptr<ResourceItem> CreateUpload(const ComPtr<ID3D12Device> &device, UINT byteLength, LPCWSTR name);
     // static
-    static std::shared_ptr<ResourceItem> CreateDefault(const ComPtr<ID3D12Device> &device, UINT byteLength);
+    static std::shared_ptr<ResourceItem> CreateDefault(const ComPtr<ID3D12Device> &device, UINT byteLength, LPCWSTR name);
     // static image
-    static std::shared_ptr<ResourceItem> CreateDefaultImage(const ComPtr<ID3D12Device> &device, UINT width, UINT height);
+    static std::shared_ptr<ResourceItem> CreateDefaultImage(const ComPtr<ID3D12Device> &device, UINT width, UINT height, LPCWSTR name);
 };
 } // namespace d12u

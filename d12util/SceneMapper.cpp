@@ -68,13 +68,13 @@ static std::shared_ptr<ResourceItem> CreateResourceItem(
 
         if (interleaved->isDynamic)
         {
-            auto resource = ResourceItem::CreateUpload(device, (UINT)interleaved->buffer.size());
+            auto resource = ResourceItem::CreateUpload(device, (UINT)interleaved->buffer.size(), sceneMesh->name.c_str());
             // not enqueue
             return resource;
         }
         else
         {
-            auto resource = ResourceItem::CreateDefault(device, (UINT)interleaved->buffer.size());
+            auto resource = ResourceItem::CreateDefault(device, (UINT)interleaved->buffer.size(), sceneMesh->name.c_str());
             uploader->EnqueueUpload(resource, interleaved->buffer.data(), (UINT)interleaved->buffer.size(), interleaved->stride);
             return resource;
         }
@@ -132,7 +132,7 @@ static std::shared_ptr<ResourceItem> CreateResourceItem(
         offset += GetStride(inputLayout[i].Format);
     }
 
-    auto resource = ResourceItem::CreateDefault(device, (UINT)command->Payload.size());
+    auto resource = ResourceItem::CreateDefault(device, (UINT)command->Payload.size(), sceneMesh->name.c_str());
     command->UsePayload(resource, dstStride);
     // uploader->EnqueueUpload(command);
     uploader->EnqueueUpload(command);
@@ -175,13 +175,13 @@ std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &devic
     {
         if (indices->isDynamic)
         {
-            auto resource = ResourceItem::CreateUpload(device, (UINT)indices->buffer.size());
+            auto resource = ResourceItem::CreateUpload(device, (UINT)indices->buffer.size(), sceneMesh->name.c_str());
             gpuMesh->IndexBuffer(resource);
             // not enqueue
         }
         else
         {
-            auto resource = ResourceItem::CreateDefault(device, (UINT)indices->buffer.size());
+            auto resource = ResourceItem::CreateDefault(device, (UINT)indices->buffer.size(), sceneMesh->name.c_str());
             gpuMesh->IndexBuffer(resource);
             m_uploader->EnqueueUpload(resource, indices->buffer.data(), (UINT)indices->buffer.size(), indices->stride);
         }

@@ -218,7 +218,7 @@ std::pair<std::shared_ptr<class Texture>, UINT> RootSignature::GetOrCreate(const
     // create texture
     auto gpuTexture = std::make_shared<Texture>();
     {
-        auto resource = ResourceItem::CreateDefaultImage(device, image->width, image->height);
+        auto resource = ResourceItem::CreateDefaultImage(device, image->width, image->height, image->name.c_str());
         gpuTexture->ImageBuffer(resource);
         uploader->EnqueueUpload(resource, image->buffer.data(), (UINT)image->buffer.size(), image->width * 4);
     }
