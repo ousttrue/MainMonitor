@@ -37,7 +37,7 @@ cbuffer NodeConstantBuffer : register(b1)
 PS_INPUT VSMain(VS_INPUT vs)
 {
     PS_INPUT ps;
-    
+
     ps.position = float4(vs.position, 0.999, 1);
     // ps.position = float4(vs.position, 0, 1);
     float halfFov = b0ScreenSizeFovY.z / 2;
@@ -49,10 +49,8 @@ PS_INPUT VSMain(VS_INPUT vs)
     return ps;
 }
 
-static const float _LineThickness = 0.1;
-
 // https://gamedev.stackexchange.com/questions/141916/antialiasing-shader-grid-lines
-float4 grid(float2 uv)
+float grid(float2 uv, float thickness)
 {
     float2 wrapped = frac(uv + float2(0.5, 0.5)) - 0.5f;
     float2 range = abs(wrapped);
@@ -69,10 +67,9 @@ float4 grid(float2 uv)
     speeds = fwidth(uv);
 
     float2 pixelRange = range / speeds;
-    float lineWeight = saturate(min(pixelRange.x, pixelRange.y) - _LineThickness);
-
-    return lerp(float4(1, 1, 1, 1), float4(0, 0, 0, 0), lineWeight);
-    }
+    float lineWeight = saturate(min(pixelRange.x, pixelRange.y) - thickness);
+    return 1 - lineWeight;
+}
 
 float4 PSMain(PS_INPUT ps) : SV_Target
 {
@@ -84,5 +81,18 @@ float4 PSMain(PS_INPUT ps) : SV_Target
     float t = dot(-b0CameraPosition, n) / d;
     float3 world = b0CameraPosition + t * ps.ray;
 
-    return grid(world.xz);
+    float3 forward = float3(b0View[2][0], b0View[2][1], b0View[2][2]);
+    float fn = 0.2 + smoothstep(0, 0.8, abs(dot(forward, n)));
+    float near = 30 * fn;
+    float far = near * 5;
+
+    float distance = length(b0CameraPosition - world);
+    float fade = smoothstep(0.8, 0, (distance - near) / (far - near));
+    float w = grid(world.xz, 2 / distance);
+
+    float value = fade * w;
+    float4 color = float4(0.8, 0.8, 0.8, 1.0);
+    return color * float4(value, value, value, 1);
+
+    // return lerp(float4(c, c, c, 1), float4(0, 0, 0, 0), lineWeight);
 }
