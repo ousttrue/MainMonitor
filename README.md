@@ -38,6 +38,8 @@ TODO
 * scene
     * [ ] select node
     * [ ] light node
+    * [ ] manage node id(d3d12 slot)
+    * [ ] manage material id(d3d12 slot)
 
 ## hlsl memo
 

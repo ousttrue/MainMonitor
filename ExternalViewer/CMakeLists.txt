@@ -15,6 +15,7 @@ set_property(TARGET ${TARGET_NAME}
 target_include_directories(${TARGET_NAME} PRIVATE
     ${EXTERNAL_DIR}/openvr/headers
     ${EXTERNAL_DIR}/plog/include
+    ${EXTERNAL_DIR}/nlohmann-json/include
     )
 target_link_libraries(${TARGET_NAME} PRIVATE
     fpalg

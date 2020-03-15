@@ -1,5 +1,6 @@
 #include "Renderer.h"
 #include "VR.h"
+#include "save_windowplacement.h"
 #include <Win32Window.h>
 #include <hierarchy.h>
 #include <d3d12.h>
@@ -109,7 +110,6 @@ int main(int argc, char **argv)
     hierarchy::ShaderManager::Instance().watch(path);
 
     screenstate::Win32Window window(CLASS_NAME);
-
     auto hwnd = window.Create(WINDOW_NAME);
     if (!hwnd)
     {
@@ -117,7 +117,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    window.Show();
+    auto windowconf = std::filesystem::current_path().append("ExternalViewer.window.json").u16string();
+    windowplacement::Restore(hwnd, SW_SHOW, (const wchar_t *)windowconf.c_str());
+    window.OnDestroy = [hwnd, conf=windowconf]() {
+        windowplacement::Save(hwnd, (const wchar_t *)conf.c_str());
+    };
+    // window.Show();
 
     {
         VR vr;
@@ -160,5 +165,6 @@ int main(int argc, char **argv)
     }
 
     LOGI << "exit";
+
     return 0;
 }
