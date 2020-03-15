@@ -50,12 +50,12 @@ PS_INPUT VSMain(VS_INPUT vs)
 }
 
 // https://gamedev.stackexchange.com/questions/141916/antialiasing-shader-grid-lines
-float grid(float2 uv, float thickness)
+float grid(float2 uv, float2 speeds, float thickness)
 {
     float2 wrapped = frac(uv + float2(0.5, 0.5)) - 0.5f;
     float2 range = abs(wrapped);
 
-    float2 speeds;
+    // float2 speeds;
     /* // Euclidean norm gives slightly more even thickness on diagonals
                 float4 deltas = float4(ddx(i.uv), ddy(i.uv));
                 speeds = sqrt(float2(
@@ -64,11 +64,18 @@ float grid(float2 uv, float thickness)
                          ));
                 */
     // Cheaper Manhattan norm in fwidth slightly exaggerates thickness of diagonals
-    speeds = fwidth(uv);
+    // speeds = fwidth(uv);
 
     float2 pixelRange = range / speeds;
     float lineWeight = saturate(min(pixelRange.x, pixelRange.y) - thickness);
     return 1 - lineWeight;
+}
+
+float gridX(float x)
+{
+    float wrapped = frac(x + 0.5) - 0.5;
+    float range = abs(wrapped);
+    return range;
 }
 
 float4 PSMain(PS_INPUT ps) : SV_Target
@@ -88,11 +95,23 @@ float4 PSMain(PS_INPUT ps) : SV_Target
 
     float distance = length(b0CameraPosition - world);
     float fade = smoothstep(0.8, 0, (distance - near) / (far - near));
-    float w = grid(world.xz, 2 / distance);
 
-    float value = fade * w;
-    float4 color = float4(0.8, 0.8, 0.8, 1.0);
-    return color * float4(value, value, value, 1);
+    float thickness = 0.01 / distance;
+    float2 dd = fwidth(world.xz);
+    float gx = gridX(world.x);
+    float gy = gridX(world.z);
+    float lx = saturate(gx - thickness) / dd.x;
+    float ly = saturate(gy - thickness) / dd.y;
+    float c = 1 - min(lx, ly);
+    c *= fade;
+
+    return float4(c, c, c, 1);
+
+    // float w = grid(world.xz, fwidth(ps.uv), 2 / distance);
+
+    // float value = fade * w;
+    // float4 color = float4(0.8, 0.8, 0.8, 1.0);
+    // return color * float4(value, value, value, 1);
 
     // return lerp(float4(c, c, c, 1), float4(0, 0, 0, 0), lineWeight);
 }
