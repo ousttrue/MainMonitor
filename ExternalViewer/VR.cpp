@@ -154,6 +154,11 @@ bool VR::Connect()
 
 void VR::OnFrame(hierarchy::Scene *scene)
 {
+    if(!m_system)
+    {
+        return;
+    }
+    
     // load task
     for (auto it = m_tasks.begin(); it != m_tasks.end();)
     {
