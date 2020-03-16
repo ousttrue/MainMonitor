@@ -30,7 +30,7 @@ TODO
 * gizmo
     * [x] VertexColor
     * [ ] Hover
-    * [ ] scene hierarchy(has parent)
+    * [x] scene hierarchy(has parent)
 * glTF
     * [x] node
     * [ ] CPU skinning

@@ -29,7 +29,31 @@ class SceneNode : public std::enable_shared_from_this<SceneNode>
     }
 
 public:
-    fpalg::Transform Transform{};
+    fpalg::Transform Local{};
+    fpalg::Transform World() const
+    {
+        auto parent = Parent();
+        if (parent)
+        {
+            return Local * parent->World();
+        }
+        else
+        {
+            return Local;
+        }
+    }
+    void World(const fpalg::Transform &world)
+    {
+        auto parent = Parent();
+        if (parent)
+        {
+            Local = world * parent->World().Inverse();
+        }
+        else
+        {
+            Local = world;
+        }
+    }
 
     static std::shared_ptr<SceneNode> Create(const std::string &name);
 
@@ -55,7 +79,7 @@ public:
         child->m_parent = self;
         m_children.push_back(child);
     }
-    std::shared_ptr<SceneNode> Parent()
+    std::shared_ptr<SceneNode> Parent() const
     {
         return m_parent.lock();
     }

@@ -133,18 +133,18 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         if (gltfNode.matrix.size() == 16)
         {
             auto trs = fpalg::Decompose(fpalg::vector_cast<fpalg::float16>(gltfNode.matrix));
-            node->Transform = trs.transform;
+            node->Local = trs.transform;
             // throw("not implemented");
         }
         else
         {
             if (gltfNode.translation.size() == 3)
             {
-                node->Transform.translation = fpalg::vector_cast<fpalg::float3>(gltfNode.translation);
+                node->Local.translation = fpalg::vector_cast<fpalg::float3>(gltfNode.translation);
             }
             if (gltfNode.rotation.size() == 4)
             {
-                node->Transform.rotation = fpalg::vector_cast<fpalg::float4>(gltfNode.rotation);
+                node->Local.rotation = fpalg::vector_cast<fpalg::float4>(gltfNode.rotation);
             }
             if (gltfNode.scale.size() == 3)
             {

@@ -168,7 +168,9 @@ private:
             {
                 // if (selected->EnableGizmo())
                 {
-                    m_gizmo.Transform(selected->ID(), selected->Transform);
+                    auto world = selected->World();
+                    m_gizmo.Transform(selected->ID(), world);
+                    selected->World(world);
                 }
             }
             auto buffer = m_gizmo.End();
@@ -184,7 +186,7 @@ private:
 
     void UpdateNode(const hierarchy::SceneNodePtr &node, const fpalg::Transform &parent)
     {
-        auto current = node->Transform * parent;
+        auto current = node->Local * parent;
         m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = current.Matrix();
 
         int childCount;

@@ -237,8 +237,8 @@ void VR::OnFrame(hierarchy::Scene *scene)
         {
             auto pose = ConvertSteamVRMatrixToMatrix4(m_poses[kv.first].mDeviceToAbsoluteTracking);
             auto node = kv.second;
-            node->Transform.translation = fpalg::MatrixToTranslation(pose);
-            node->Transform.rotation = fpalg::MatrixToQuaternion(pose);
+            node->Local.translation = fpalg::MatrixToTranslation(pose);
+            node->Local.rotation = fpalg::MatrixToQuaternion(pose);
         }
     }
 }
