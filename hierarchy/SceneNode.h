@@ -3,7 +3,7 @@
 // #include <DirectXMath.h>
 #include <vector>
 #include <memory>
-#include <fpalg.h>
+#include <falg.h>
 
 namespace hierarchy
 {
@@ -29,25 +29,37 @@ class SceneNode : public std::enable_shared_from_this<SceneNode>
     }
 
 public:
-    fpalg::Transform Local{};
-    fpalg::Transform World() const
+    falg::Transform Local{};
+    falg::Transform World() const
     {
         auto parent = Parent();
         if (parent)
         {
-            return Local * parent->World();
+            auto world = Local * parent->World();
+            auto local = world * parent->World().Inverse();
+            if (!falg::Nearly(local, Local))
+            {
+                // throw;
+                auto a = 0;
+            }
+            return world;
         }
         else
         {
             return Local;
         }
     }
-    void World(const fpalg::Transform &world)
+    void World(const falg::Transform &world)
     {
         auto parent = Parent();
         if (parent)
         {
-            Local = world * parent->World().Inverse();
+            auto local = world * parent->World().Inverse();
+            if (!falg::Nearly(local, Local))
+            {
+                auto a = 0;
+            }
+            Local = local;
         }
         else
         {

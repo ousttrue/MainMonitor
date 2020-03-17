@@ -53,23 +53,28 @@ gizmesh::GizmoSystem::Buffer Gizmo::End()
     return buffer;
 }
 
-void Gizmo::Transform(int id, fpalg::Transform &transform)
+void Gizmo::Transform(int id, falg::Transform &local, const falg::Transform &parent)
 {
-    fpalg::TRS trs(transform.translation, transform.rotation, {1, 1, 1});
+    // falg::TRS trs(transform.translation, transform.rotation, {1, 1, 1});
     switch (m_mode)
     {
     case GizmoModes::Translate:
-        gizmesh::handle::translation(*m_gizmo, id, trs, m_isLocal);
+        gizmesh::handle::translation(*m_gizmo, id, m_isLocal,
+                                     &parent, local.translation, local.rotation);
         break;
+
     case GizmoModes::Rotation:
-        gizmesh::handle::rotation(*m_gizmo, id, trs, m_isLocal);
+        gizmesh::handle::rotation(*m_gizmo, id, m_isLocal,
+                                  &parent, local.translation, local.rotation);
         break;
+
     // case GizmoModes::Scale:
     //     gizmesh::handle::scale(*m_gizmo, id, trs, true);
     //     break;
+    
     default:
         throw;
         ;
     }
-    transform = trs.transform;
+    // transform = trs.transform;
 }

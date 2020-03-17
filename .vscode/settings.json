@@ -98,7 +98,7 @@
         "TEXCOORD",
         "XMFLOAT",
         "countof",
-        "fpalg",
+        "falg",
         "gizmesh",
         "gltf",
         "gltfformat",

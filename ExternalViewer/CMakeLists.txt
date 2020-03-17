@@ -18,7 +18,7 @@ target_include_directories(${TARGET_NAME} PRIVATE
     ${EXTERNAL_DIR}/nlohmann-json/include
     )
 target_link_libraries(${TARGET_NAME} PRIVATE
-    fpalg
+    falg
     window_example
     gizmesh
     #

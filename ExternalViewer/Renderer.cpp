@@ -140,11 +140,11 @@ private:
             m_camera->Update(state);
             {
                 auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
-                buffer->b0Projection = fpalg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.projection);
-                buffer->b0View = fpalg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.view);
+                buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.projection);
+                buffer->b0View = falg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.view);
                 buffer->b0LightDir = m_light->LightDirection;
                 buffer->b0LightColor = m_light->LightColor;
-                buffer->b0CameraPosition = fpalg::size_cast<DirectX::XMFLOAT3>(m_camera->state.position);
+                buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(m_camera->state.position);
                 buffer->b0ScreenSizeFovY = {(float)state.Width, (float)state.Height, m_camera->state.fovYRadians};
                 m_rootSignature->UploadSceneConstantsBuffer();
             }
@@ -154,7 +154,7 @@ private:
         auto nodes = m_scene->GetRootNodes(&nodeCount);
         for (int i = 0; i < nodeCount; ++i)
         {
-            UpdateNode(nodes[i], fpalg::Transform());
+            UpdateNode(nodes[i], falg::Transform());
         }
 
         m_rootSignature->UploadNodeConstantsBuffer();
@@ -168,9 +168,10 @@ private:
             {
                 // if (selected->EnableGizmo())
                 {
-                    auto world = selected->World();
-                    m_gizmo.Transform(selected->ID(), world);
-                    selected->World(world);
+                    auto parent = selected->Parent();
+                    m_gizmo.Transform(selected->ID(),
+                                      selected->Local,
+                                      parent ? parent->World() : falg::Transform{});
                 }
             }
             auto buffer = m_gizmo.End();
@@ -184,7 +185,7 @@ private:
         m_rootSignature->Update(m_device);
     }
 
-    void UpdateNode(const hierarchy::SceneNodePtr &node, const fpalg::Transform &parent)
+    void UpdateNode(const hierarchy::SceneNodePtr &node, const falg::Transform &parent)
     {
         auto current = node->Local * parent;
         m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = current.Matrix();
