@@ -3,6 +3,7 @@
 #include <SceneNode.h>
 #include <ScreenState.h>
 #include <CameraState.h>
+#include <bitset>
 
 enum class GizmoModes
 {
@@ -18,6 +19,7 @@ class Gizmo
     hierarchy::SceneMeshPtr m_gizmoMesh;
     GizmoModes m_mode = GizmoModes::Translate;
     bool m_isLocal = false;
+    std::bitset<128> m_lastKeyCode;
 
 public:
     Gizmo();
