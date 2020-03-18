@@ -8,28 +8,49 @@
 
 namespace hierarchy
 {
+
 enum class Semantics
 {
-    Interleaved,
+    Vertex,
     Index,
-    Position,
-    Normal,
-    TexCoord,
 };
 
 struct VertexBuffer
 {
     Semantics semantic;
-    std::vector<uint8_t> buffer;
     uint32_t stride;
-    bool isDynamic = false;
+    bool isDynamic;
+    std::vector<uint8_t> buffer;
+
+    // dynamic
+    static std::shared_ptr<VertexBuffer> CreateDynamic(Semantics semantic, uint32_t stride, uint32_t size)
+    {
+        auto vb = std::make_shared<VertexBuffer>();
+        vb->semantic = semantic;
+        vb->stride = stride;
+        vb->isDynamic = true;
+        vb->buffer.resize(size);
+        return vb;
+    }
+
+    // static. use payload
+    static std::shared_ptr<VertexBuffer> CreateStatic(Semantics semantic, uint32_t stride, const void *_p, uint32_t size)
+    {
+        auto vb = std::make_shared<VertexBuffer>();
+        vb->semantic = semantic;
+        vb->stride = stride;
+        vb->isDynamic = false;
+        auto p = (const uint8_t *)_p;
+        vb->buffer.assign(p, p + size);
+        return vb;
+    }
+
     uint32_t Count() const { return (uint32_t)buffer.size() / stride; }
-    void Append(const VertexBuffer &buffer);
+    void Append(const std::shared_ptr<VertexBuffer> &buffer);
 };
 
 struct SceneSubmesh
 {
-    // uint32_t draw_offset = 0;
     uint32_t draw_count = 0;
     SceneMaterialPtr material;
 };
@@ -47,29 +68,21 @@ using SceneMeshSkinPtr = std::shared_ptr<SceneMeshSkin>;
 
 class SceneMesh
 {
-    std::vector<VertexBuffer> m_vertices;
-    VertexBuffer m_indices;
-
 public:
     static std::shared_ptr<SceneMesh> Create();
-    static std::shared_ptr<SceneMesh> CreateDynamic(int vertexReserve, int indexReserve);
+    static std::shared_ptr<SceneMesh> CreateDynamic(
+        uint32_t vertexReserve, uint32_t vertexStride,
+        uint32_t indexReserve, uint32_t indexStride);
 
-    SceneMeshSkinPtr skin;
+    std::wstring name;
+
+    std::shared_ptr<VertexBuffer> vertices;
+    std::shared_ptr<VertexBuffer> indices;
 
     std::vector<SceneSubmesh> submeshes;
     void AddSubmesh(const std::shared_ptr<SceneMesh> &mesh);
 
-    std::wstring name;
-
-    void SetVertices(Semantics semantic, uint32_t stride, const void *p, uint32_t size);
-    void SetVertices(const VertexBuffer &vertices)
-    {
-        m_vertices.push_back(vertices);
-    }
-    const VertexBuffer *GetVertices(Semantics semantic);
-
-    void SetIndices(uint32_t stride, const void *indices, uint32_t size);
-    const VertexBuffer *GetIndices() const { return &m_indices; }
+    SceneMeshSkinPtr skin;
 };
 using SceneMeshPtr = std::shared_ptr<SceneMesh>;
 

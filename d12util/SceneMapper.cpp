@@ -44,101 +44,6 @@ static int GetStride(DXGI_FORMAT format)
     throw;
 }
 
-static std::shared_ptr<ResourceItem> CreateResourceItem(
-    const ComPtr<ID3D12Device> &device,
-    const std::unique_ptr<Uploader> &uploader,
-    const std::shared_ptr<hierarchy::SceneMesh> &sceneMesh,
-    const D3D12_INPUT_ELEMENT_DESC *inputLayout,
-    int inputLayoutCount)
-{
-    auto dstStride = 0;
-    for (int i = 0; i < inputLayoutCount; ++i)
-    {
-        dstStride += GetStride(inputLayout[i].Format);
-    }
-
-    // interleaved
-    auto interleaved = sceneMesh->GetVertices(hierarchy::Semantics::Interleaved);
-    if (interleaved)
-    {
-        if (interleaved->stride != dstStride)
-        {
-            throw;
-        }
-
-        if (interleaved->isDynamic)
-        {
-            auto resource = ResourceItem::CreateUpload(device, (UINT)interleaved->buffer.size(), sceneMesh->name.c_str());
-            // not enqueue
-            return resource;
-        }
-        else
-        {
-            auto resource = ResourceItem::CreateDefault(device, (UINT)interleaved->buffer.size(), sceneMesh->name.c_str());
-            uploader->EnqueueUpload(resource, interleaved->buffer.data(), (UINT)interleaved->buffer.size(), interleaved->stride);
-            return resource;
-        }
-    }
-
-    // planar
-    auto command = std::make_shared<UploadCommand>();
-
-    static const std::string POSITION = "POSITION";
-    static const std::string NORMAL = "NORMAL";
-    static const std::string TEXCOORD = "TEXCOORD";
-    static const std::string COLOR = "COLOR";
-    int offset = 0;
-    for (int i = 0; i < inputLayoutCount; ++i)
-    {
-        auto input = inputLayout[i];
-        const hierarchy::VertexBuffer *buffer = nullptr;
-        if (input.SemanticName == POSITION)
-        {
-            buffer = sceneMesh->GetVertices(hierarchy::Semantics::Position);
-        }
-        else if (input.SemanticName == NORMAL)
-        {
-            buffer = sceneMesh->GetVertices(hierarchy::Semantics::Normal);
-        }
-        else if (input.SemanticName == TEXCOORD)
-        {
-            buffer = sceneMesh->GetVertices(hierarchy::Semantics::TexCoord);
-        }
-        else
-        {
-            throw;
-        }
-
-        if (buffer)
-        {
-            auto count = buffer->Count();
-            if (i == 0)
-            {
-                // alloc buffer
-                auto size = dstStride * count;
-                command->Payload.resize(size);
-            }
-            auto src = buffer->buffer.data();
-            auto p = command->Payload.data() + offset;
-            for (UINT i = 0; i < count; ++i,
-                      src += buffer->stride,
-                      p += dstStride)
-            {
-                memcpy(p, src, buffer->stride);
-                // *(DirectX::XMFLOAT2 *)p = *(DirectX::XMFLOAT2 *)src;
-            }
-        }
-
-        offset += GetStride(inputLayout[i].Format);
-    }
-
-    auto resource = ResourceItem::CreateDefault(device, (UINT)command->Payload.size(), sceneMesh->name.c_str());
-    command->UsePayload(resource, dstStride);
-    // uploader->EnqueueUpload(command);
-    uploader->EnqueueUpload(command);
-    return resource;
-}
-
 std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &device,
                                                const std::shared_ptr<hierarchy::SceneMesh> &sceneMesh,
                                                RootSignature *rootSignature)
@@ -160,7 +65,34 @@ std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &devic
     {
         // first material's shader for input layout
         auto shader = rootSignature->GetOrCreate(device, sceneMesh->submeshes[0].material->shader);
-        auto resource = CreateResourceItem(device, m_uploader, sceneMesh, shader->inputLayout(), shader->inputLayoutCount());
+        // auto resource = CreateResourceItem(device, m_uploader, sceneMesh, shader->inputLayout(), shader->inputLayoutCount());
+        auto dstStride = 0;
+        int inputLayoutCount;
+        auto inputLayout = shader->inputLayout(&inputLayoutCount);
+        for (int i = 0; i < inputLayoutCount; ++i)
+        {
+            dstStride += GetStride(inputLayout[i].Format);
+        }
+
+        // interleaved
+        auto interleaved = sceneMesh->vertices;
+        if (interleaved->stride != dstStride)
+        {
+            throw;
+        }
+
+        std::shared_ptr<ResourceItem> resource;
+        if (interleaved->isDynamic)
+        {
+            resource = ResourceItem::CreateUpload(device, (UINT)interleaved->buffer.size(), sceneMesh->name.c_str());
+            // not enqueue
+        }
+        else
+        {
+            resource = ResourceItem::CreateDefault(device, (UINT)interleaved->buffer.size(), sceneMesh->name.c_str());
+            m_uploader->EnqueueUpload(resource, interleaved->buffer.data(), (UINT)interleaved->buffer.size(), interleaved->stride);
+        }
+
         if (!resource)
         {
             // fail
@@ -170,7 +102,7 @@ std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &devic
     }
 
     // indices
-    auto indices = sceneMesh->GetIndices();
+    auto indices = sceneMesh->indices;
     if (indices)
     {
         if (indices->isDynamic)

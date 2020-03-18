@@ -3,7 +3,9 @@
 #include <hierarchy.h>
 
 Gizmo::Gizmo()
-    : m_gizmoMesh(hierarchy::SceneMesh::CreateDynamic(65535, 65535))
+    : m_gizmoMesh(hierarchy::SceneMesh::CreateDynamic(
+          65535, 40, // GizmoVertex
+          65535, 2))
 {
 }
 
@@ -69,10 +71,10 @@ void Gizmo::Transform(int id, falg::Transform &local, const falg::Transform &par
                                   &parent, local.translation, local.rotation);
         break;
 
-    // case GizmoModes::Scale:
-    //     gizmesh::handle::scale(*m_gizmo, id, trs, true);
-    //     break;
-    
+        // case GizmoModes::Scale:
+        //     gizmesh::handle::scale(*m_gizmo, id, trs, true);
+        //     break;
+
     default:
         throw;
         ;

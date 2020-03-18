@@ -185,31 +185,49 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
             mesh->name = ToUnicode(gltfMesh.name, CP_UTF8);
             group->primitives.push_back(mesh);
 
+            struct GltfVertex
+            {
+                std::array<float, 3> position;
+                std::array<float, 3> normal;
+                std::array<float, 2> uv;
+            };
+            static_assert(sizeof(GltfVertex) == 32, "GltfVertex size");
+            std::vector<GltfVertex> vertices;
             for (auto [k, v] : gltfPrimitive.attributes)
             {
+                auto accessor = gltf.accessors[v];
+                auto [p, size] = bin.get_bytes(accessor);
+                auto count = accessor.count.value();
+                vertices.resize(count);
                 if (k == "POSITION")
                 {
-                    auto accessor = gltf.accessors[v];
-                    auto [p, size] = bin.get_bytes(accessor);
-                    mesh->SetVertices(Semantics::Position, 12, p, size);
+                    for (auto i = 0; i < count; ++i, p += 12)
+                    {
+                        vertices[i].position = *(falg::float3 *)p;
+                    }
                 }
                 else if (k == "NORMAL")
                 {
-                    auto accessor = gltf.accessors[v];
-                    auto [p, size] = bin.get_bytes(accessor);
-                    mesh->SetVertices(Semantics::Normal, 12, p, size);
+                    for (auto i = 0; i < count; ++i, p += 12)
+                    {
+                        vertices[i].normal = *(falg::float3 *)p;
+                    }
                 }
                 else if (k == "TEXCOORD_0")
                 {
-                    auto accessor = gltf.accessors[v];
-                    auto [p, size] = bin.get_bytes(accessor);
-                    mesh->SetVertices(Semantics::TexCoord, 8, p, size);
+                    for (auto i = 0; i < count; ++i, p += 8)
+                    {
+                        vertices[i].uv = *(falg::float2 *)p;
+                    }
                 }
                 else
                 {
                     auto a = 0;
                 }
             }
+            mesh->vertices = VertexBuffer::CreateStatic(
+                Semantics::Vertex,
+                sizeof(GltfVertex), vertices.data(), (uint32_t)(vertices.size() * sizeof(GltfVertex)));
 
             if (gltfPrimitive.material.has_value())
             {
@@ -231,7 +249,8 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                 default:
                     throw;
                 }
-                mesh->SetIndices(stride, p, size);
+                mesh->indices = VertexBuffer::CreateStatic(
+                    Semantics::Index, stride, p, size);
 
                 auto material = materials[gltfPrimitive.material.value()];
                 mesh->submeshes.push_back({
@@ -306,3 +325,61 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
 }
 
 } // namespace hierarchy
+
+// // planar
+// auto command = std::make_shared<UploadCommand>();
+
+// static const std::string POSITION = "POSITION";
+// static const std::string NORMAL = "NORMAL";
+// static const std::string TEXCOORD = "TEXCOORD";
+// static const std::string COLOR = "COLOR";
+// int offset = 0;
+// for (int i = 0; i < inputLayoutCount; ++i)
+// {
+//     auto input = inputLayout[i];
+//     const hierarchy::VertexBuffer *buffer = nullptr;
+//     if (input.SemanticName == POSITION)
+//     {
+//         buffer = sceneMesh->GetVertices(hierarchy::Semantics::Position);
+//     }
+//     else if (input.SemanticName == NORMAL)
+//     {
+//         buffer = sceneMesh->GetVertices(hierarchy::Semantics::Normal);
+//     }
+//     else if (input.SemanticName == TEXCOORD)
+//     {
+//         buffer = sceneMesh->GetVertices(hierarchy::Semantics::TexCoord);
+//     }
+//     else
+//     {
+//         throw;
+//     }
+
+//     if (buffer)
+//     {
+//         auto count = buffer->Count();
+//         if (i == 0)
+//         {
+//             // alloc buffer
+//             auto size = dstStride * count;
+//             command->Payload.resize(size);
+//         }
+//         auto src = buffer->buffer.data();
+//         auto p = command->Payload.data() + offset;
+//         for (UINT i = 0; i < count; ++i,
+//                   src += buffer->stride,
+//                   p += dstStride)
+//         {
+//             memcpy(p, src, buffer->stride);
+//             // *(DirectX::XMFLOAT2 *)p = *(DirectX::XMFLOAT2 *)src;
+//         }
+//     }
+
+//     offset += GetStride(inputLayout[i].Format);
+// }
+
+// auto resource = ResourceItem::CreateDefault(device, (UINT)command->Payload.size(), sceneMesh->name.c_str());
+// command->UsePayload(resource, dstStride);
+// // uploader->EnqueueUpload(command);
+// uploader->EnqueueUpload(command);
+// return resource;

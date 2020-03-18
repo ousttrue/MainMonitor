@@ -25,8 +25,12 @@ static std::shared_ptr<hierarchy::SceneMesh> CreateGrid()
         2, 3, 0, //
     };
     auto mesh = hierarchy::SceneMesh::Create();
-    mesh->SetVertices(hierarchy::Semantics::Interleaved, sizeof(vertices[0]), vertices, sizeof(vertices));
-    mesh->SetIndices(2, indices, sizeof(indices));
+    mesh->vertices = hierarchy::VertexBuffer::CreateStatic(
+        hierarchy::Semantics::Vertex,
+        sizeof(vertices[0]), vertices, sizeof(vertices));
+    mesh->indices = hierarchy::VertexBuffer::CreateStatic(
+        hierarchy::Semantics::Index,
+        2, indices, sizeof(indices));
     {
         auto material = hierarchy::SceneMaterial::Create();
         material->shader = hierarchy::ShaderManager::Instance().get("grid");
@@ -119,7 +123,7 @@ int main(int argc, char **argv)
 
     auto windowconf = std::filesystem::current_path().append("ExternalViewer.window.json").u16string();
     windowplacement::Restore(hwnd, SW_SHOW, (const wchar_t *)windowconf.c_str());
-    window.OnDestroy = [hwnd, conf=windowconf]() {
+    window.OnDestroy = [hwnd, conf = windowconf]() {
         windowplacement::Save(hwnd, (const wchar_t *)conf.c_str());
     };
     // window.Show();

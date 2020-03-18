@@ -18,9 +18,11 @@ class Shader : NonCopyable
     bool InputLayoutFromReflection(const ComPtr<ID3DBlob> &vs);
 
 public:
-    const D3D12_INPUT_ELEMENT_DESC *inputLayout() const { return m_layout.data(); }
-    int inputLayoutCount() const { return (int)m_layout.size(); }
-
+    const D3D12_INPUT_ELEMENT_DESC *inputLayout(int *count) const
+    {
+        *count = (int)m_layout.size();
+        return m_layout.data();
+    }
     bool Initialize(const ComPtr<ID3D12Device> &device,
                     const ComPtr<ID3D12RootSignature> &rootSignature,
                     const std::string &source, int generation);
