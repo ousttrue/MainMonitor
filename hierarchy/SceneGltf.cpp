@@ -267,13 +267,25 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                     mesh->AddSubmesh(primitive);
                 }
             }
-            node->Mesh(mesh);
 
             if (gltfNode.skin.has_value())
             {
                 auto &gltfSkin = gltf.skins[gltfNode.skin.value()];
-                auto a = 0;
+                auto skin = std::make_shared<SceneMeshSkin>();
+                for (auto j : gltfSkin.joints)
+                {
+                    skin->joints.push_back(nodes[j]);
+                }
+                if (gltfSkin.inverseBindMatrices.has_value())
+                {
+                    auto accessor = gltf.accessors[gltfSkin.inverseBindMatrices.value()];
+                    auto [p, size] = bin.get_bytes(accessor);
+                    skin->inverseBindMatrices.assign((std::array<float, 16> *)p, (std::array<float, 16> *)(p + size));
+                }
+                mesh->skin = skin;
             }
+
+            node->Mesh(mesh);
         }
         for (auto child : gltfNode.children)
         {

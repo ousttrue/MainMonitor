@@ -34,6 +34,15 @@ struct SceneSubmesh
     SceneMaterialPtr material;
 };
 
+class SceneNode;
+class SceneMeshSkin
+{
+public:
+    std::vector<std::shared_ptr<SceneNode>> joints;
+    std::vector<std::array<float, 16>> inverseBindMatrices;
+};
+using SceneMeshSkinPtr = std::shared_ptr<SceneMeshSkin>;
+
 class SceneMesh
 {
     std::vector<VertexBuffer> m_vertices;
@@ -42,6 +51,8 @@ class SceneMesh
 public:
     static std::shared_ptr<SceneMesh> Create();
     static std::shared_ptr<SceneMesh> CreateDynamic(int vertexReserve, int indexReserve);
+
+    SceneMeshSkinPtr skin;
 
     std::vector<SceneSubmesh> submeshes;
     void AddSubmesh(const std::shared_ptr<SceneMesh> &mesh);
