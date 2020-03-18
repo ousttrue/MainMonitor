@@ -188,7 +188,7 @@ private:
     void UpdateNode(const hierarchy::SceneNodePtr &node, const falg::Transform &parent)
     {
         auto current = node->Local * parent;
-        m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = current.Matrix();
+        m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = current.RowMatrix();
 
         int childCount;
         auto children = node->GetChildren(&childCount);

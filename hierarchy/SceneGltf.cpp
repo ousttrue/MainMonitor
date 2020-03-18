@@ -132,9 +132,9 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
 
         if (gltfNode.matrix.size() == 16)
         {
-            auto trs = falg::Decompose(falg::vector_cast<falg::float16>(gltfNode.matrix));
+            auto trs = falg::RowMatrixDecompose(falg::vector_cast<falg::float16>(gltfNode.matrix));
             node->Local.translation = trs.translation;
-            node->Local.rotation = falg::QuaternionConjugate(trs.rotation); // ?
+            node->Local.rotation = trs.rotation; // ?
 
             // throw("not implemented");
             auto length = falg::Length(node->Local.rotation);
