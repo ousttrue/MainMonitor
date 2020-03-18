@@ -1,5 +1,6 @@
 #include "SceneGltf.h"
 #include "ParseGltf.h"
+#include "ShaderManager.h"
 #include <vector>
 #include <fstream>
 #include <sstream>
@@ -100,6 +101,7 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
     for (auto &gltfMaterial : gltf.materials)
     {
         auto material = SceneMaterial::Create();
+        material->shader = ShaderManager::Instance().get("gltf_standard");
         if (gltfMaterial.pbrMetallicRoughness.has_value())
         {
             auto &pbr = gltfMaterial.pbrMetallicRoughness.value();
@@ -190,8 +192,10 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                 std::array<float, 3> position;
                 std::array<float, 3> normal;
                 std::array<float, 2> uv;
+                std::array<uint16_t, 4> joints;
+                std::array<float, 4> weights;
             };
-            static_assert(sizeof(GltfVertex) == 32, "GltfVertex size");
+            static_assert(sizeof(GltfVertex) == 56, "GltfVertex size");
             std::vector<GltfVertex> vertices;
             for (auto [k, v] : gltfPrimitive.attributes)
             {
@@ -219,6 +223,47 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                     {
                         vertices[i].uv = *(falg::float2 *)p;
                     }
+                }
+                else if (k == "JOINTS_0")
+                {
+                    switch (accessor.componentType.value())
+                    {
+                    case gltfformat::AccessorComponentType::BYTE:
+                    {
+                        for (auto i = 0; i < count; ++i, p += 4)
+                        {
+                            auto &joints = *(std::array<uint8_t, 4> *)p;
+                            vertices[i].joints[0] = joints[0];
+                            vertices[i].joints[1] = joints[1];
+                            vertices[i].joints[2] = joints[2];
+                            vertices[i].joints[3] = joints[3];
+                        }
+                        break;
+                    }
+
+                    case gltfformat::AccessorComponentType::UNSIGNED_SHORT:
+                    {
+                        for (auto i = 0; i < count; ++i, p += 8)
+                        {
+                            vertices[i].joints = *(std::array<uint16_t, 4> *)p;
+                        }
+                    }
+                    break;
+
+                    default:
+                        throw;
+                    }
+                }
+                else if (k == "WEIGHTS_0")
+                {
+                    for (auto i = 0; i < count; ++i, p += 16)
+                    {
+                        vertices[i].weights = *(std::array<float, 4> *)p;
+                    }
+                }
+                else if (k == "TANGENT")
+                {
+                    // do nothing
                 }
                 else
                 {
@@ -264,7 +309,7 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                 throw "not indices";
             }
         }
-    }
+    } // namespace hierarchy
 
     // build node hierarchy
     for (int i = 0; i < nodes.size(); ++i)
@@ -322,64 +367,6 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
     }
     root->UpdateWorld();
     return root;
-}
-
 } // namespace hierarchy
 
-// // planar
-// auto command = std::make_shared<UploadCommand>();
-
-// static const std::string POSITION = "POSITION";
-// static const std::string NORMAL = "NORMAL";
-// static const std::string TEXCOORD = "TEXCOORD";
-// static const std::string COLOR = "COLOR";
-// int offset = 0;
-// for (int i = 0; i < inputLayoutCount; ++i)
-// {
-//     auto input = inputLayout[i];
-//     const hierarchy::VertexBuffer *buffer = nullptr;
-//     if (input.SemanticName == POSITION)
-//     {
-//         buffer = sceneMesh->GetVertices(hierarchy::Semantics::Position);
-//     }
-//     else if (input.SemanticName == NORMAL)
-//     {
-//         buffer = sceneMesh->GetVertices(hierarchy::Semantics::Normal);
-//     }
-//     else if (input.SemanticName == TEXCOORD)
-//     {
-//         buffer = sceneMesh->GetVertices(hierarchy::Semantics::TexCoord);
-//     }
-//     else
-//     {
-//         throw;
-//     }
-
-//     if (buffer)
-//     {
-//         auto count = buffer->Count();
-//         if (i == 0)
-//         {
-//             // alloc buffer
-//             auto size = dstStride * count;
-//             command->Payload.resize(size);
-//         }
-//         auto src = buffer->buffer.data();
-//         auto p = command->Payload.data() + offset;
-//         for (UINT i = 0; i < count; ++i,
-//                   src += buffer->stride,
-//                   p += dstStride)
-//         {
-//             memcpy(p, src, buffer->stride);
-//             // *(DirectX::XMFLOAT2 *)p = *(DirectX::XMFLOAT2 *)src;
-//         }
-//     }
-
-//     offset += GetStride(inputLayout[i].Format);
-// }
-
-// auto resource = ResourceItem::CreateDefault(device, (UINT)command->Payload.size(), sceneMesh->name.c_str());
-// command->UsePayload(resource, dstStride);
-// // uploader->EnqueueUpload(command);
-// uploader->EnqueueUpload(command);
-// return resource;
+} // namespace hierarchy

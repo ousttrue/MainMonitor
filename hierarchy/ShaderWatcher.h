@@ -9,11 +9,12 @@ namespace hierarchy
 
 class ShaderWatcher
 {
+    std::string m_name;
     std::string m_source;
     int m_generation = 1;
 
 public:
-    ShaderWatcher();
+    ShaderWatcher(const std::string &name);
 
     void source(const std::string &source)
     {

@@ -74,23 +74,23 @@ std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &devic
             dstStride += GetStride(inputLayout[i].Format);
         }
 
-        // interleaved
-        auto interleaved = sceneMesh->vertices;
-        if (interleaved->stride != dstStride)
+        // vertices
+        auto vertices = sceneMesh->vertices;
+        if (vertices->stride != dstStride)
         {
-            throw;
+            throw "buffer stride difference with shader stride";
         }
 
         std::shared_ptr<ResourceItem> resource;
-        if (interleaved->isDynamic)
+        if (vertices->isDynamic || sceneMesh->skin)
         {
-            resource = ResourceItem::CreateUpload(device, (UINT)interleaved->buffer.size(), sceneMesh->name.c_str());
+            resource = ResourceItem::CreateUpload(device, (UINT)vertices->buffer.size(), sceneMesh->name.c_str());
             // not enqueue
         }
         else
         {
-            resource = ResourceItem::CreateDefault(device, (UINT)interleaved->buffer.size(), sceneMesh->name.c_str());
-            m_uploader->EnqueueUpload(resource, interleaved->buffer.data(), (UINT)interleaved->buffer.size(), interleaved->stride);
+            resource = ResourceItem::CreateDefault(device, (UINT)vertices->buffer.size(), sceneMesh->name.c_str());
+            m_uploader->EnqueueUpload(resource, vertices->buffer.data(), (UINT)vertices->buffer.size(), vertices->stride);
         }
 
         if (!resource)

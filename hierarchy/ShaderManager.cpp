@@ -212,7 +212,7 @@ ShaderWatcherPtr ShaderManager::get(const std::string &shaderName)
         return found->second;
     }
 
-    auto shader = std::make_shared<ShaderWatcher>();
+    auto shader = std::make_shared<ShaderWatcher>(shaderName);
     auto source = ReadAllText(m_watcher->getPath(fileName));
     shader->source(source);
 

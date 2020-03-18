@@ -19,13 +19,24 @@ void VertexBuffer::Append(const std::shared_ptr<VertexBuffer> &vb)
     std::copy(vb->buffer.begin(), vb->buffer.end(), std::back_inserter(buffer));
 }
 
-void SceneMeshSkin::Update()
+void SceneMeshSkin::Update(const void *vertices, uint8_t stride, uint8_t vertexCount)
 {
+    // update skining Matrices
     skinningMatrices.resize(inverseBindMatrices.size());
     for (size_t i = 0; i < inverseBindMatrices.size(); ++i)
     {
         auto joint = joints[i];
         skinningMatrices[i] = falg::RowMatrixMul(inverseBindMatrices[i], joint->World().RowMatrix());
+    }
+
+    // create new vertexbuffer
+    auto src = (const uint8_t *)vertices;
+    cpuSkiningBuffer.resize(stride * vertexCount);
+    auto dst = cpuSkiningBuffer.data();
+    for (uint8_t i = 0; i < vertexCount; ++i, src += stride, dst += stride)
+    {
+        // auto value = falg::RowMatrixApplyPosition(skinningMatrices[i], *(std::array<float, 3> *)src);
+        // *(std::array<float, 3> *)dst = value;
     }
 }
 
@@ -107,21 +118,5 @@ void SceneMesh::AddSubmesh(const std::shared_ptr<SceneMesh> &mesh)
     }
     submeshes.push_back(mesh->submeshes.front());
 }
-
-// void SceneMesh::SetVertices(uint32_t stride, const void *p, uint32_t size)
-// {
-//     auto bytes = (uint8_t *)p;
-//     m_vertices.semantic = Semantics::Vertex;
-//     m_vertices.stride = stride;
-//     m_vertices.buffer.assign(bytes, bytes + size);
-// }
-
-// void SceneMesh::SetIndices(uint32_t stride, const void *indices, uint32_t size)
-// {
-//     auto bytes = (uint8_t *)indices;
-//     m_indices.semantic = Semantics::Index;
-//     m_indices.stride = stride;
-//     m_indices.buffer.assign(bytes, bytes + size);
-// }
 
 } // namespace hierarchy

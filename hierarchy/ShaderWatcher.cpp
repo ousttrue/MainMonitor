@@ -5,7 +5,8 @@
 
 namespace hierarchy
 {
-ShaderWatcher::ShaderWatcher()
+ShaderWatcher::ShaderWatcher(const std::string &name)
+: m_name(name)
 {
 }
 

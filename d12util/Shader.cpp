@@ -75,6 +75,10 @@ bool Shader::InputLayoutFromReflection(const ComPtr<ID3DBlob> &vs)
             else if (lParamDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32)
                 lElementDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
         }
+        else
+        {
+            throw "unknown";
+        }
 
         m_layout.push_back(lElementDesc);
     }

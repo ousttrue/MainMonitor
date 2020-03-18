@@ -197,7 +197,7 @@ private:
             if (skin)
             {
                 // skining matrix
-                skin->Update();
+                skin->Update(mesh->vertices->buffer.data(), mesh->vertices->stride, mesh->vertices->Count());
             }
         }
 
@@ -287,6 +287,15 @@ private:
         if (!drawable->IsDrawable(m_commandlist.get()))
         {
             return;
+        }
+
+        auto skin = mesh->skin;
+        if (skin)
+        {
+            // CPU skinning
+            drawable->VertexBuffer()->MapCopyUnmap(
+                skin->cpuSkiningBuffer.data(), (uint32_t)skin->cpuSkiningBuffer.size(),
+                mesh->vertices->stride);
         }
 
         int offset = 0;
