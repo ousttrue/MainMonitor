@@ -11,6 +11,14 @@
 #include <gltfformat/bin.h>
 #include <Windows.h>
 
+struct GltfVertex
+{
+    std::array<float, 3> position;
+    std::array<float, 3> normal;
+    std::array<float, 2> uv;
+};
+static_assert(sizeof(GltfVertex) == 32, "GltfVertex size");
+
 template <class T>
 static std::vector<uint8_t> read_allbytes(T path)
 {
@@ -174,11 +182,17 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         ++i;
     }
 
+    struct GltfPrimitive
+    {
+        SceneMeshPtr mesh;
+        std::vector<VertexSkining> skining;
+    };
     struct GltfMeshGroup
     {
-        std::vector<SceneMeshPtr> primitives;
+        std::vector<GltfPrimitive> primitives;
     };
     std::vector<std::shared_ptr<GltfMeshGroup>> groups;
+    groups.reserve(gltf.meshes.size());
     for (auto &gltfMesh : gltf.meshes)
     {
         auto group = std::make_shared<GltfMeshGroup>();
@@ -187,17 +201,10 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         {
             auto mesh = SceneMesh::Create();
             mesh->name = ToUnicode(gltfMesh.name, CP_UTF8);
-            group->primitives.push_back(mesh);
+            group->primitives.push_back({});
+            auto &primitive = group->primitives.back();
+            primitive.mesh = mesh;
 
-            struct GltfVertex
-            {
-                std::array<float, 3> position;
-                std::array<float, 3> normal;
-                std::array<float, 2> uv;
-                std::array<uint16_t, 4> joints;
-                std::array<float, 4> weights;
-            };
-            static_assert(sizeof(GltfVertex) == 56, "GltfVertex size");
             std::vector<GltfVertex> vertices;
             for (auto [k, v] : gltfPrimitive.attributes)
             {
@@ -228,6 +235,7 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                 }
                 else if (k == "JOINTS_0")
                 {
+                    primitive.skining.resize(count);
                     switch (accessor.componentType.value())
                     {
                     case gltfformat::AccessorComponentType::BYTE:
@@ -235,10 +243,10 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                         for (auto i = 0; i < count; ++i, p += 4)
                         {
                             auto &joints = *(std::array<uint8_t, 4> *)p;
-                            vertices[i].joints[0] = joints[0];
-                            vertices[i].joints[1] = joints[1];
-                            vertices[i].joints[2] = joints[2];
-                            vertices[i].joints[3] = joints[3];
+                            primitive.skining[i].joints[0] = joints[0];
+                            primitive.skining[i].joints[1] = joints[1];
+                            primitive.skining[i].joints[2] = joints[2];
+                            primitive.skining[i].joints[3] = joints[3];
                         }
                         break;
                     }
@@ -247,7 +255,7 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                     {
                         for (auto i = 0; i < count; ++i, p += 8)
                         {
-                            vertices[i].joints = *(std::array<uint16_t, 4> *)p;
+                            primitive.skining[i].joints = *(std::array<uint16_t, 4> *)p;
                         }
                     }
                     break;
@@ -260,7 +268,7 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                 {
                     for (auto i = 0; i < count; ++i, p += 16)
                     {
-                        vertices[i].weights = *(std::array<float, 4> *)p;
+                        primitive.skining[i].weights = *(std::array<float, 4> *)p;
                     }
                 }
                 else if (k == "TANGENT")
@@ -321,15 +329,15 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         if (gltfNode.mesh.has_value())
         {
             hierarchy::SceneMeshPtr mesh;
-            for (auto primitive : groups[gltfNode.mesh.value()]->primitives)
+            for (auto &primitive : groups[gltfNode.mesh.value()]->primitives)
             {
                 if (!mesh)
                 {
-                    mesh = primitive;
+                    mesh = primitive.mesh;
                 }
                 else
                 {
-                    mesh->AddSubmesh(primitive);
+                    mesh->AddSubmesh(primitive.mesh);
                 }
             }
 
@@ -347,6 +355,16 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                     auto [p, size] = bin.get_bytes(accessor);
                     skin->inverseBindMatrices.assign((std::array<float, 16> *)p, (std::array<float, 16> *)(p + size));
                 }
+
+                for (auto &primitive : groups[gltfNode.mesh.value()]->primitives)
+                {
+                    std::copy(primitive.skining.begin(), primitive.skining.end(), std::back_inserter(skin->vertexSkiningArray));
+                }
+                if(skin->vertexSkiningArray.size()!=mesh->vertices->Count())
+                {
+                    throw;
+                }
+
                 mesh->skin = skin;
             }
 

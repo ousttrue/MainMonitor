@@ -23,8 +23,6 @@ struct VSInput
     float3 position : SV_POSITION;
     float3 normal: NORMAL;
     float2 uv : TEXCOORD0;
-    float2 joints: JOINTS;
-    float4 weights: WEIGHTS;
 };
 struct PSInput
 {

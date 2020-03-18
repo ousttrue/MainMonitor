@@ -154,7 +154,9 @@ private:
         auto nodes = m_scene->GetRootNodes(&nodeCount);
         for (int i = 0; i < nodeCount; ++i)
         {
-            UpdateNode(nodes[i], falg::Transform());
+            auto root = nodes[i];
+            root->UpdateWorld();
+            UpdateNode(root);
         }
 
         m_rootSignature->UploadNodeConstantsBuffer();
@@ -185,10 +187,10 @@ private:
         m_rootSignature->Update(m_device);
     }
 
-    void UpdateNode(const hierarchy::SceneNodePtr &node, const falg::Transform &parent)
-    {
-        auto current = node->Local() * parent;
-        m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = current.RowMatrix();
+    void UpdateNode(const hierarchy::SceneNodePtr &node)
+    {        
+        // auto current = node->Local() * parent;
+        m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = node->World().RowMatrix();
 
         auto mesh = node->Mesh();
         if (mesh)
@@ -197,11 +199,12 @@ private:
             if (skin)
             {
                 // skining matrix
-                skin->Update(mesh->vertices->buffer.data(), mesh->vertices->stride, mesh->vertices->Count());
+                auto &vertices = mesh->vertices;
+                skin->Update(vertices->buffer.data(), vertices->stride, vertices->Count());
                 auto drawable = m_sceneMapper->GetOrCreate(m_device, mesh, nullptr);
                 if (drawable)
                 {
-                    drawable->VertexBuffer()->MapCopyUnmap(skin->cpuSkiningBuffer.data(), skin->cpuSkiningBuffer.size(), mesh->vertices->stride);
+                    drawable->VertexBuffer()->MapCopyUnmap(skin->cpuSkiningBuffer.data(), (uint32_t)skin->cpuSkiningBuffer.size(), mesh->vertices->stride);
                 }
             }
         }
@@ -210,7 +213,7 @@ private:
         auto children = node->GetChildren(&childCount);
         for (int i = 0; i < childCount; ++i)
         {
-            UpdateNode(children[i], current);
+            UpdateNode(children[i]);
         }
     }
 

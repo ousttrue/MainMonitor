@@ -7,6 +7,7 @@
 #include "Shader.h"
 #include <hierarchy.h>
 #include <DirectXMath.h>
+#include <plog/Log.h>
 
 namespace d12u
 {
@@ -84,11 +85,17 @@ std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &devic
         auto vertices = sceneMesh->vertices;
         if (vertices->stride != dstStride)
         {
-            throw "buffer stride difference with shader stride";
+            LOGE << "buffer stride difference with shader stride";
+            return nullptr;
         }
 
         std::shared_ptr<ResourceItem> resource;
-        if (vertices->isDynamic || sceneMesh->skin)
+        if (vertices->isDynamic)
+        {
+            resource = ResourceItem::CreateUpload(device, (UINT)vertices->buffer.size(), sceneMesh->name.c_str());
+            // not enqueue
+        }
+        else if (sceneMesh->skin)
         {
             resource = ResourceItem::CreateUpload(device, (UINT)vertices->buffer.size(), sceneMesh->name.c_str());
             // not enqueue
