@@ -27,13 +27,19 @@ TODO
     * [ ] docking
     * [x] consume wheel, click event.
     * [x] select node
+    * [ ] selected node transform(T, R, S)
+    * [ ] camera
+    * [ ] right
+    * [ ] gizmo
 * gizmo
     * [x] VertexColor
     * [ ] Hover
     * [x] scene hierarchy(has parent)
+    * [ ] undo
+    * [ ] bone
 * glTF
     * [x] node
-    * [ ] CPU skinning
+    * [x] CPU skinning
     * [ ] GPU skinning
     * [ ] animation
 * scene
@@ -41,6 +47,8 @@ TODO
     * [ ] manage node id(d3d12 slot)
     * [ ] manage material id(d3d12 slot)
     * [ ] camera gaze to selected node
+    * [ ] GRPC remote API
+    * [ ] bullet physics
 
 ## hlsl memo
 

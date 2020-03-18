@@ -9,10 +9,23 @@ void SceneMeshSkin::Update(const void *vertices, uint32_t stride, uint32_t verte
 {
     // update skining Matrices
     skiningMatrices.resize(inverseBindMatrices.size());
-    for (size_t i = 0; i < inverseBindMatrices.size(); ++i)
+    if (root)
     {
-        auto joint = joints[i];
-        skiningMatrices[i] = falg::RowMatrixMul(inverseBindMatrices[i], joint->World().RowMatrix());
+        auto rootInverse = root->World().Inverse();
+        for (size_t i = 0; i < inverseBindMatrices.size(); ++i)
+        {
+            auto joint = joints[i];
+            auto bind = inverseBindMatrices[i];
+            skiningMatrices[i] = falg::RowMatrixMul(bind, (joint->World() * rootInverse).RowMatrix());
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < inverseBindMatrices.size(); ++i)
+        {
+            auto joint = joints[i];
+            skiningMatrices[i] = falg::RowMatrixMul(inverseBindMatrices[i], joint->World().RowMatrix());
+        }
     }
 
     // create new vertexbuffer

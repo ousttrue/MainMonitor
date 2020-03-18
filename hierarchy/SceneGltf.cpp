@@ -360,9 +360,14 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
                 {
                     std::copy(primitive.skining.begin(), primitive.skining.end(), std::back_inserter(skin->vertexSkiningArray));
                 }
-                if(skin->vertexSkiningArray.size()!=mesh->vertices->Count())
+                if (skin->vertexSkiningArray.size() != mesh->vertices->Count())
                 {
                     throw;
+                }
+
+                if (gltfSkin.skeleton.has_value())
+                {                    
+                    skin->root = nodes[gltfSkin.skeleton.value()]->Parent();
                 }
 
                 mesh->skin = skin;

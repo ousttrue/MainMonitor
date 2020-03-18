@@ -17,6 +17,7 @@ class SceneMeshSkin
 {
 public:
     // skining information
+    std::shared_ptr<SceneNode> root;
     std::vector<std::shared_ptr<SceneNode>> joints;
     std::vector<std::array<float, 16>> inverseBindMatrices;
     std::vector<VertexSkining> vertexSkiningArray;
