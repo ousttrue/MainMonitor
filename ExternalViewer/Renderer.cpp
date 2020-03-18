@@ -258,7 +258,7 @@ private:
         m_rootSignature->SetNodeDescriptorTable(commandList, node->ID());
 
         auto mesh = node->Mesh();
-        if(mesh)
+        if (mesh)
         {
             DrawMesh(commandList, mesh);
         }
@@ -303,11 +303,6 @@ private:
                     if (texture->IsDrawable(m_commandlist.get(), 0))
                     {
                         m_rootSignature->SetTextureDescriptorTable(commandList, textureSlot);
-                    }
-                    else
-                    {
-                        // wait upload
-                        continue;
                     }
                 }
             }

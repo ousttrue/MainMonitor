@@ -85,9 +85,30 @@ void SceneMesh::AddSubmesh(const std::shared_ptr<SceneMesh> &mesh)
         }
     }
 
-    std::transform(mesh->m_indices.buffer.begin(), mesh->m_indices.buffer.end(),
-                   std::back_inserter(m_indices.buffer),
-                   [indexOffset](auto i) { return indexOffset + i; });
+    auto last = m_indices.Count();
+    m_indices.Append(mesh->m_indices);
+    if (m_indices.stride == 2)
+    {
+        auto src = (uint16_t *)mesh->m_indices.buffer.data();
+        auto dst = (uint16_t *)m_indices.buffer.data() + last;
+        for (size_t i = 0; i < mesh->m_indices.Count(); ++i, ++src, ++dst)
+        {
+            *dst = *src + indexOffset;
+        }
+    }
+    else if (m_indices.stride == 4)
+    {
+        auto src = (uint32_t *)mesh->m_indices.buffer.data();
+        auto dst = (uint32_t *)m_indices.buffer.data() + last;
+        for (size_t i = 0; i < mesh->m_indices.Count(); ++i, ++src, ++dst)
+        {
+            *dst = *src + indexOffset;
+        }
+    }
+    else
+    {
+        throw;
+    }
 
     if (mesh->submeshes.size() != 1)
     {
