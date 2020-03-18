@@ -24,6 +24,7 @@ struct VertexBuffer
     uint32_t stride;
     bool isDynamic = false;
     uint32_t Count() const { return (uint32_t)buffer.size() / stride; }
+    void Append(const VertexBuffer &buffer);
 };
 
 struct SceneSubmesh
@@ -43,6 +44,8 @@ public:
     static std::shared_ptr<SceneMesh> CreateDynamic(int vertexReserve, int indexReserve);
 
     std::vector<SceneSubmesh> submeshes;
+    void AddSubmesh(const std::shared_ptr<SceneMesh> &mesh);
+
     std::wstring name;
 
     void SetVertices(Semantics semantic, uint32_t stride, const void *p, uint32_t size);

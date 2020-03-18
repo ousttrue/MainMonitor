@@ -8,8 +8,8 @@
 #include <algorithm>
 
 // SCENE_SLOTS=1;
-const int NODE_SLOTS = 128;
-const int MATERIAL_SLOTS = 128;
+const int NODE_SLOTS = 1024;
+const int MATERIAL_SLOTS = 1024;
 const int TEXTURE_SLOTS = MATERIAL_SLOTS;
 
 namespace d12u

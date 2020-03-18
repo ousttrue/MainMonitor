@@ -139,7 +139,7 @@ int main(int argc, char **argv)
         auto scene = renderer.GetScene();
 
         auto node = hierarchy::SceneNode::Create("grid");
-        node->AddMesh(CreateGrid());
+        node->Mesh(CreateGrid());
         scene->AddRootNode(node);
 
         if (argc > 2)

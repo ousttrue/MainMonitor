@@ -257,11 +257,10 @@ private:
     {
         m_rootSignature->SetNodeDescriptorTable(commandList, node->ID());
 
-        int meshCount;
-        auto meshes = node->GetMeshes(&meshCount);
-        for (int i = 0; i < meshCount; ++i)
+        auto mesh = node->Mesh();
+        if(mesh)
         {
-            DrawMesh(commandList, meshes[i]);
+            DrawMesh(commandList, mesh);
         }
 
         int childCount;

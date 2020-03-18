@@ -191,7 +191,7 @@ void VR::OnFrame(hierarchy::Scene *scene)
             std::stringstream ss;
             ss << "OpenVR#" << task->m_index;
             auto node = hierarchy::SceneNode::Create(ss.str());
-            node->AddMesh(mesh);
+            node->Mesh(mesh);
             scene->AddRootNode(node);
             m_trackerNodeMap.insert(std::make_pair(task->m_index, node));
 

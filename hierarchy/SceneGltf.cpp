@@ -255,9 +255,24 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         auto node = nodes[i];
         if (gltfNode.mesh.has_value())
         {
+            hierarchy::SceneMeshPtr mesh;
             for (auto primitive : groups[gltfNode.mesh.value()]->primitives)
             {
-                node->AddMesh(primitive);
+                if (!mesh)
+                {
+                    mesh = primitive;
+                }
+                else
+                {
+                    mesh->AddSubmesh(primitive);
+                }
+            }
+            node->Mesh(mesh);
+
+            if (gltfNode.skin.has_value())
+            {
+                auto &gltfSkin = gltf.skins[gltfNode.skin.value()];
+                auto a = 0;
             }
         }
         for (auto child : gltfNode.children)

@@ -17,7 +17,7 @@ class SceneNode : public std::enable_shared_from_this<SceneNode>
     // unique
     int m_id = -1;
     std::string m_name;
-    std::vector<std::shared_ptr<SceneMesh>> m_meshes;
+    std::shared_ptr<SceneMesh> m_mesh;
     bool m_enableGizmo = false;
 
     std::vector<std::shared_ptr<SceneNode>> m_children;
@@ -29,6 +29,9 @@ class SceneNode : public std::enable_shared_from_this<SceneNode>
     }
 
 public:
+    const SceneMeshPtr &Mesh() const { return m_mesh; }
+    void Mesh(const SceneMeshPtr &mesh) { m_mesh = mesh; }
+
     falg::Transform Local{};
     falg::Transform World() const
     {
@@ -74,16 +77,6 @@ public:
 
     bool EnableGizmo() const { return m_enableGizmo; }
     void EnableGizmo(bool enable) { m_enableGizmo = enable; }
-
-    void AddMesh(const std::shared_ptr<SceneMesh> &mesh)
-    {
-        m_meshes.push_back(mesh);
-    }
-    const std::shared_ptr<SceneMesh> *GetMeshes(int *pCount) const
-    {
-        *pCount = (int)m_meshes.size();
-        return m_meshes.data();
-    }
 
     void AddChild(const std::shared_ptr<SceneNode> &child)
     {
