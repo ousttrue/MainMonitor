@@ -1,4 +1,5 @@
 #include "SceneMesh.h"
+#include "SceneNode.h"
 #include <algorithm>
 
 namespace hierarchy
@@ -16,6 +17,16 @@ void VertexBuffer::Append(const VertexBuffer &vb)
     }
     buffer.reserve(buffer.size() + vb.buffer.size());
     std::copy(vb.buffer.begin(), vb.buffer.end(), std::back_inserter(buffer));
+}
+
+void SceneMeshSkin::Update()
+{
+    skinningMatrices.resize(inverseBindMatrices.size());
+    for(size_t i=0; i<inverseBindMatrices.size(); ++i)
+    {
+        auto joint = joints[i];
+        skinningMatrices[i] = falg::RowMatrixMul(inverseBindMatrices[i], joint->World().RowMatrix());
+    }
 }
 
 SceneMeshPtr SceneMesh::Create()

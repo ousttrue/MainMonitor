@@ -190,6 +190,17 @@ private:
         auto current = node->Local * parent;
         m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = current.RowMatrix();
 
+        auto mesh = node->Mesh();
+        if (mesh)
+        {
+            auto skin = mesh->skin;
+            if (skin)
+            {
+                // skining matrix
+                skin->Update();
+            }
+        }
+
         int childCount;
         auto children = node->GetChildren(&childCount);
         for (int i = 0; i < childCount; ++i)
@@ -227,17 +238,7 @@ private:
             auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh(), m_rootSignature.get());
             if (drawable->IsDrawable(m_commandlist.get()))
             {
-                int offset = 0;
-                for (auto &submesh : m_gizmo.GetMesh()->submeshes)
-                {
-                    auto material = m_rootSignature->GetOrCreate(m_device, submesh.material);
-                    if (material->m_shader->Set(commandList))
-                    {
-                        m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, offset, 0, 0);
-                    }
-
-                    offset += submesh.draw_count;
-                }
+                DrawMesh(commandList, m_gizmo.GetMesh());
             }
         }
 

@@ -40,6 +40,8 @@ class SceneMeshSkin
 public:
     std::vector<std::shared_ptr<SceneNode>> joints;
     std::vector<std::array<float, 16>> inverseBindMatrices;
+    std::vector<std::array<float, 16>> skinningMatrices;
+    void Update();
 };
 using SceneMeshSkinPtr = std::shared_ptr<SceneMeshSkin>;
 
