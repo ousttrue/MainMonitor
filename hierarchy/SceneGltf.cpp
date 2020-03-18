@@ -1,6 +1,8 @@
 #include "SceneGltf.h"
 #include "ParseGltf.h"
 #include "ShaderManager.h"
+#include "VertexBuffer.h"
+#include "SceneMeshSkin.h"
 #include <vector>
 #include <fstream>
 #include <sstream>

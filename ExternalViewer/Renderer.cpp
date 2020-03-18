@@ -198,6 +198,11 @@ private:
             {
                 // skining matrix
                 skin->Update(mesh->vertices->buffer.data(), mesh->vertices->stride, mesh->vertices->Count());
+                auto drawable = m_sceneMapper->GetOrCreate(m_device, mesh, nullptr);
+                if (drawable)
+                {
+                    drawable->VertexBuffer()->MapCopyUnmap(skin->cpuSkiningBuffer.data(), skin->cpuSkiningBuffer.size(), mesh->vertices->stride);
+                }
             }
         }
 
@@ -287,15 +292,6 @@ private:
         if (!drawable->IsDrawable(m_commandlist.get()))
         {
             return;
-        }
-
-        auto skin = mesh->skin;
-        if (skin)
-        {
-            // CPU skinning
-            drawable->VertexBuffer()->MapCopyUnmap(
-                skin->cpuSkiningBuffer.data(), (uint32_t)skin->cpuSkiningBuffer.size(),
-                mesh->vertices->stride);
         }
 
         int offset = 0;

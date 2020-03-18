@@ -1,5 +1,5 @@
 #include "VR.h"
-#include "Scene.h"
+#include <hierarchy.h>
 #include <sstream>
 #include <plog/Log.h>
 

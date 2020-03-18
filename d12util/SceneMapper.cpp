@@ -5,6 +5,7 @@
 #include "Uploader.h"
 #include "RootSignature.h"
 #include "Shader.h"
+#include <hierarchy.h>
 #include <DirectXMath.h>
 
 namespace d12u
@@ -52,6 +53,11 @@ std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &devic
     if (found != m_meshMap.end())
     {
         return found->second;
+    }
+
+    if (!rootSignature)
+    {
+        return nullptr;
     }
 
     if (sceneMesh->submeshes.empty())

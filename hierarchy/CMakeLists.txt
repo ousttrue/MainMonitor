@@ -9,6 +9,8 @@ add_library(${TARGET_NAME}
     Scene.cpp
     ParseGltf.cpp
     SceneGltf.cpp
+    SceneMeshSkin.cpp
+    VertexBuffer.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20
