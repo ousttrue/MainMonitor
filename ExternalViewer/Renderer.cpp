@@ -170,7 +170,7 @@ private:
                 {
                     auto parent = selected->Parent();
                     m_gizmo.Transform(selected->ID(),
-                                      selected->Local,
+                                      selected->Local(),
                                       parent ? parent->World() : falg::Transform{});
                 }
             }
@@ -187,7 +187,7 @@ private:
 
     void UpdateNode(const hierarchy::SceneNodePtr &node, const falg::Transform &parent)
     {
-        auto current = node->Local * parent;
+        auto current = node->Local() * parent;
         m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = current.RowMatrix();
 
         auto mesh = node->Mesh();

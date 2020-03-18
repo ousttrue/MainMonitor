@@ -154,11 +154,11 @@ bool VR::Connect()
 
 void VR::OnFrame(hierarchy::Scene *scene)
 {
-    if(!m_system)
+    if (!m_system)
     {
         return;
     }
-    
+
     // load task
     for (auto it = m_tasks.begin(); it != m_tasks.end();)
     {
@@ -237,8 +237,9 @@ void VR::OnFrame(hierarchy::Scene *scene)
         {
             auto pose = ConvertSteamVRMatrixToMatrix4(m_poses[kv.first].mDeviceToAbsoluteTracking);
             auto node = kv.second;
-            node->Local.translation = falg::MatrixToTranslation(pose);
-            node->Local.rotation = falg::RowMatrixToQuaternion(pose);
+            node->Local(falg::Transform{
+                falg::MatrixToTranslation(pose),
+                falg::RowMatrixToQuaternion(pose)});
         }
     }
 }

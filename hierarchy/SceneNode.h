@@ -23,6 +23,9 @@ class SceneNode : public std::enable_shared_from_this<SceneNode>
     std::vector<std::shared_ptr<SceneNode>> m_children;
     std::weak_ptr<SceneNode> m_parent;
 
+    falg::Transform m_local{};
+    falg::Transform m_world{};
+
     SceneNode(int id)
         : m_id(id)
     {
@@ -31,42 +34,72 @@ class SceneNode : public std::enable_shared_from_this<SceneNode>
 public:
     const SceneMeshPtr &Mesh() const { return m_mesh; }
     void Mesh(const SceneMeshPtr &mesh) { m_mesh = mesh; }
-
-    falg::Transform Local{};
-    falg::Transform World() const
+    falg::Transform &World() { return m_world; }
+    void World(const falg::Transform &world, bool updateChildren = true)
     {
         auto parent = Parent();
         if (parent)
         {
-            auto world = Local * parent->World();
-            auto local = world * parent->World().Inverse();
-            if (!falg::Nearly(local, Local))
-            {
-                // throw;
-                auto a = 0;
-            }
-            return world;
+            m_local = world * parent->World().Inverse();
         }
         else
         {
-            return Local;
+            m_local = world;
+        }
+
+        if (updateChildren)
+        {
+            for (auto &child : m_children)
+            {
+                child->UpdateWorld(World());
+            }
         }
     }
-    void World(const falg::Transform &world)
+
+    falg::Transform &Local() { return m_local; }
+    void Local(const falg::Transform &local, bool updateChildren = true)
+    {
+        m_local = local;
+        auto parent = Parent();
+
+        if (parent)
+        {
+            m_world = local * parent->World();
+        }
+        else
+        {
+            m_world = local;
+        }
+
+        if (updateChildren)
+        {
+            for (auto &child : m_children)
+            {
+                child->UpdateWorld(World());
+            }
+        }
+    }
+
+    void UpdateWorld()
     {
         auto parent = Parent();
         if (parent)
         {
-            auto local = world * parent->World().Inverse();
-            if (!falg::Nearly(local, Local))
-            {
-                auto a = 0;
-            }
-            Local = local;
+            UpdateWorld(parent->World());
         }
         else
         {
-            Local = world;
+            UpdateWorld(falg::Transform{});
+        }
+    }
+
+    void UpdateWorld(const falg::Transform &parent)
+    {
+        m_world = Local() * parent;
+
+        for (auto &child : m_children)
+        {
+            child->UpdateWorld(m_world);
         }
     }
 

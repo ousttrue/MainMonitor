@@ -133,11 +133,10 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         if (gltfNode.matrix.size() == 16)
         {
             auto trs = falg::RowMatrixDecompose(falg::vector_cast<falg::float16>(gltfNode.matrix));
-            node->Local.translation = trs.translation;
-            node->Local.rotation = trs.rotation; // ?
+            node->Local(trs.transform);
 
             // throw("not implemented");
-            auto length = falg::Length(node->Local.rotation);
+            auto length = falg::Length(node->Local().rotation);
             auto delta = abs(1 - length);
             if (delta > 1e-5f)
             {
@@ -148,12 +147,12 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         {
             if (gltfNode.translation.size() == 3)
             {
-                node->Local.translation = falg::vector_cast<falg::float3>(gltfNode.translation);
+                node->Local().translation = falg::vector_cast<falg::float3>(gltfNode.translation);
             }
             if (gltfNode.rotation.size() == 4)
             {
-                node->Local.rotation = falg::vector_cast<falg::float4>(gltfNode.rotation);
-                auto length = falg::Length(node->Local.rotation);
+                node->Local().rotation = falg::vector_cast<falg::float4>(gltfNode.rotation);
+                auto length = falg::Length(node->Local().rotation);
                 auto delta = abs(1 - length);
                 if (delta > 1e-5f)
                 {
@@ -302,6 +301,7 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
             root->AddChild(node);
         }
     }
+    root->UpdateWorld();
     return root;
 }
 
