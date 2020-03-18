@@ -35,8 +35,8 @@ public:
         auto parent = Parent();
         if (parent)
         {
-            auto world = Local * parent->World();
-            auto local = world * parent->World().Inverse();
+            auto world = parent->World() * Local;
+            auto local = parent->World().Inverse() * world;
             if (!falg::Nearly(local, Local))
             {
                 // throw;
@@ -54,7 +54,7 @@ public:
         auto parent = Parent();
         if (parent)
         {
-            auto local = world * parent->World().Inverse();
+            auto local = parent->World().Inverse() * world;
             if (!falg::Nearly(local, Local))
             {
                 auto a = 0;
