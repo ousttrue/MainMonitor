@@ -54,6 +54,11 @@ public:
     void Begin(UINT frameIndex,
                const ComPtr<ID3D12GraphicsCommandList> &commandList, const float *clearColor);
     void End(UINT frameIndex, const ComPtr<ID3D12GraphicsCommandList> &commandList);
+
+    RenderTargetResources *Resource(UINT frameIndex)
+    {
+        return &m_resources[frameIndex];
+    }
 };
 
 } // namespace d12u

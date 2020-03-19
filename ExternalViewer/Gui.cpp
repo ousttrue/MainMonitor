@@ -277,6 +277,12 @@ Gui::~Gui()
     ImGui::DestroyContext();
 }
 
+size_t Gui::GetOrCreateTexture(ID3D12Device *device,
+                               ID3D12Resource *resource)
+{
+    return m_dx12->GetOrCreateTexture(device, resource);
+}
+
 void Gui::BeginFrame(const screenstate::ScreenState &state)
 {
     // Start the Dear ImGui frame

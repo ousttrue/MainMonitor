@@ -164,9 +164,10 @@ private:
             // update view camera
 
             // auto renderTarget = view.Draw(deviceContext, viewState);
-            // auto handle = m_view->Resource(m_swapchain->CurrentFrameIndex())->renderTarget.Get();
+            auto resource = m_view->Resource(m_swapchain->CurrentFrameIndex());
 
-            // ImGui::ImageButton((ImTextureID)nullptr, size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), 0);
+            auto texture = m_imgui->GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get());
+            ImGui::ImageButton((ImTextureID)texture, size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), 0);
         }
         ImGui::End();
         ImGui::PopStyleVar();
