@@ -2,25 +2,26 @@
 
 namespace d12u
 {
-void RenderTargetChain::Initialize(const ComPtr<IDXGISwapChain3> &swapChain,
-                                   const ComPtr<ID3D12Device> &device,
-                                   UINT frameCount)
+
+void RenderTargetResources::CreateDepthResource(const ComPtr<ID3D12Device> &device)
 {
-    m_resources.resize(frameCount);
-
-    DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
-    ThrowIfFailed(swapChain->GetDesc1(&swapChainDesc));
-    m_viewport = {
-        .Width = (float)swapChainDesc.Width,
-        .Height = (float)swapChainDesc.Height,
-        .MinDepth = 0,
-        .MaxDepth = 1.0f,
+    auto depthDesc = renderTarget->GetDesc();
+    depthDesc.Format = DXGI_FORMAT_D32_FLOAT;
+    depthDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    D3D12_HEAP_PROPERTIES prop{
+        .Type = D3D12_HEAP_TYPE_DEFAULT,
     };
-    m_scissorRect = {
-        .right = (LONG)swapChainDesc.Width,
-        .bottom = (LONG)swapChainDesc.Height,
-    };
+    D3D12_CLEAR_VALUE clear{DXGI_FORMAT_D32_FLOAT, 1.0f, 0};
+    device->CreateCommittedResource(&prop,
+                                    D3D12_HEAP_FLAG_NONE,
+                                    &depthDesc,
+                                    D3D12_RESOURCE_STATE_DEPTH_WRITE,
+                                    &clear,
+                                    IID_PPV_ARGS(&depthStencil));
+}
 
+void RenderTargetChain::CreateHeap(const ComPtr<ID3D12Device> &device)
+{
     if (!m_rtvHeap)
     {
         D3D12_DESCRIPTOR_HEAP_DESC desc = {
@@ -30,7 +31,6 @@ void RenderTargetChain::Initialize(const ComPtr<IDXGISwapChain3> &swapChain,
         };
         ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_rtvHeap)));
     }
-    auto rtv = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
 
     if (!m_dsvHeap)
     {
@@ -41,32 +41,41 @@ void RenderTargetChain::Initialize(const ComPtr<IDXGISwapChain3> &swapChain,
         };
         ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_dsvHeap)));
     }
+}
+
+void RenderTargetChain::Initialize(const ComPtr<IDXGISwapChain3> &swapChain,
+                                   const ComPtr<ID3D12Device> &device,
+                                   UINT frameCount)
+{
+    m_resources.resize(frameCount);
+
+    DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
+    ThrowIfFailed(swapChain->GetDesc1(&swapChainDesc));
+    SetSize(swapChainDesc.Width, swapChainDesc.Height);
+
+    CreateHeap(device);
+    auto rtv = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
     auto dsv = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
 
     int i = 0;
     for (auto &resource : m_resources)
     {
+        // RTV resource from swapchain
         ThrowIfFailed(swapChain->GetBuffer(i++, IID_PPV_ARGS(&resource.renderTarget)));
         device->CreateRenderTargetView(resource.renderTarget.Get(), nullptr, rtv);
         rtv.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
-        // Create depth
-        auto depthDesc = resource.renderTarget->GetDesc();
-        depthDesc.Format = DXGI_FORMAT_D32_FLOAT;
-        depthDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-        D3D12_HEAP_PROPERTIES prop{
-            .Type = D3D12_HEAP_TYPE_DEFAULT,
-        };
-        D3D12_CLEAR_VALUE clear{DXGI_FORMAT_D32_FLOAT, 1.0f, 0};
-        device->CreateCommittedResource(&prop,
-                                        D3D12_HEAP_FLAG_NONE,
-                                        &depthDesc,
-                                        D3D12_RESOURCE_STATE_DEPTH_WRITE,
-                                        &clear,
-                                        IID_PPV_ARGS(&resource.depthStencil));
+        // DSV resource that has same size with RTV
+        resource.CreateDepthResource(device);
         device->CreateDepthStencilView(resource.depthStencil.Get(), nullptr, dsv);
         dsv.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
     }
+}
+
+void RenderTargetChain::Initialize(UINT width, UINT height,
+                                   const ComPtr<ID3D12Device> &device,
+                                   UINT frameCount)
+{
 }
 
 void RenderTargetChain::Begin(UINT frameIndex,

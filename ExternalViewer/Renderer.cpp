@@ -36,6 +36,7 @@ class Impl
     std::unique_ptr<CommandQueue> m_queue;
     std::unique_ptr<SwapChain> m_swapchain;
     std::unique_ptr<RenderTargetChain> m_backbuffer;
+    std::unique_ptr<RenderTargetChain> m_view;
     std::unique_ptr<RootSignature> m_rootSignature;
     std::unique_ptr<CommandList> m_commandlist;
     std::unique_ptr<SceneMapper> m_sceneMapper;
@@ -62,6 +63,7 @@ public:
         : m_queue(new CommandQueue),
           m_swapchain(new SwapChain),
           m_backbuffer(new RenderTargetChain),
+          m_view(new RenderTargetChain),
           m_commandlist(new CommandList),
           m_rootSignature(new RootSignature),
           m_sceneMapper(new SceneMapper),
@@ -96,6 +98,7 @@ public:
         m_queue->Initialize(m_device);
         m_swapchain->Initialize(factory, m_queue->Get(), hwnd, BACKBUFFER_COUNT);
         m_backbuffer->Initialize(m_swapchain->Get(), m_device, BACKBUFFER_COUNT);
+        m_view->Initialize(640, 480, m_device, BACKBUFFER_COUNT);
         m_sceneMapper->Initialize(m_device);
         m_commandlist->InitializeDirect(m_device);
         m_rootSignature->Initialize(m_device);
