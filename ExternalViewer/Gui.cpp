@@ -283,6 +283,11 @@ size_t Gui::GetOrCreateTexture(ID3D12Device *device,
     return m_dx12->GetOrCreateTexture(device, resource);
 }
 
+void Gui::Remove(ID3D12Resource *resource)
+{
+    m_dx12->Remove(resource);
+}
+
 void Gui::BeginFrame(const screenstate::ScreenState &state)
 {
     // Start the Dear ImGui frame

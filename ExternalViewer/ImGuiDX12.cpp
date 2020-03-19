@@ -33,7 +33,7 @@ class ImGuiDX12Impl
     std::vector<FrameResources> m_frames;
     UINT m_frameIndex = UINT_MAX;
 
-    std::unordered_map<ID3D12Resource*, size_t> m_textureDescriptorMap;
+    std::unordered_map<ID3D12Resource *, size_t> m_textureDescriptorMap;
     std::vector<ComPtr<ID3D12Resource>> m_descriptors;
 
     D3D12_GPU_DESCRIPTOR_HANDLE GetHandle(ImTextureID index)
@@ -47,6 +47,11 @@ public:
     ImGuiDX12Impl(int bufferCount)
         : m_frames(bufferCount)
     {
+    }
+
+    void Remove(ID3D12Resource *resource)
+    {
+        m_textureDescriptorMap.erase(resource);
     }
 
     size_t GetOrCreateTexture(ID3D12Device *device,
@@ -236,4 +241,9 @@ size_t ImGuiDX12::GetOrCreateTexture(struct ID3D12Device *device,
                                      struct ID3D12Resource *resource)
 {
     return m_impl->GetOrCreateTexture(device, resource);
+}
+
+void ImGuiDX12::Remove(ID3D12Resource *resource)
+{
+    m_impl->Remove(resource);
 }

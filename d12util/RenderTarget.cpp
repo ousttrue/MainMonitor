@@ -51,7 +51,7 @@ void RenderTargetChain::Initialize(const ComPtr<IDXGISwapChain3> &swapChain,
 
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
     ThrowIfFailed(swapChain->GetDesc1(&swapChainDesc));
-    SetSize(swapChainDesc.Width, swapChainDesc.Height);
+    Resize(swapChainDesc.Width, swapChainDesc.Height);
 
     CreateHeap(device);
     auto rtv = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
@@ -77,8 +77,6 @@ void RenderTargetChain::Initialize(UINT width, UINT height,
                                    UINT frameCount)
 {
     m_resources.resize(frameCount);
-
-    SetSize(width, height);
 
     CreateHeap(device);
     auto rtv = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();

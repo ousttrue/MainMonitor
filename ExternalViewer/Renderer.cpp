@@ -98,7 +98,7 @@ public:
         m_queue->Initialize(m_device);
         m_swapchain->Initialize(factory, m_queue->Get(), hwnd, BACKBUFFER_COUNT);
         m_backbuffer->Initialize(m_swapchain->Get(), m_device, BACKBUFFER_COUNT);
-        m_view->Initialize(640, 480, m_device, BACKBUFFER_COUNT);
+        // m_view->InitializeIfSizeChanged(640, 480, m_device, BACKBUFFER_COUNT);
         m_sceneMapper->Initialize(m_device);
         m_commandlist->InitializeDirect(m_device);
         m_rootSignature->Initialize(m_device);
@@ -150,35 +150,14 @@ private:
             auto pos = ImGui::GetWindowPos();
             auto frameHeight = ImGui::GetFrameHeight();
 
-            // auto &mouse = windowState.Mouse;
-            // WindowState viewState{
-            //     .Width = (int)size.x,
-            //     .Height = (int)size.y,
-            //     .ElapsedSeconds = windowState.ElapsedSeconds,
-            //     .DeltaSeconds = windowState.DeltaSeconds,
-            //     .Mouse = {
-            //         .X = mouse.X - (int)pos.x,
-            //         .Y = mouse.Y - (int)pos.y - (int)frameHeight,
-            //         .Wheel = mouse.Wheel,
-            //         .Buttons = mouse.Buttons}};
+            auto viewState = state;
+            viewState.Width = (int)size.x;
+            viewState.Height = (int)size.y;
+            viewState.MouseX = state.MouseX - (int)pos.x;
+            viewState.MouseY = state.MouseY - (int)pos.y - (int)frameHeight;
+
             // update view camera
-
-            // auto renderTarget = view.Draw(deviceContext, viewState);
-            auto resource = m_view->Resource(m_swapchain->CurrentFrameIndex());
-
-            auto texture = m_imgui->GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get());
-            ImGui::ImageButton((ImTextureID)texture, size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), 0);
-        }
-        ImGui::End();
-        ImGui::PopStyleVar();
-
-        if (m_imgui->Update(m_scene.get(), m_clearColor))
-        {
-            // consume input event by imgui
-        }
-        else
-        {
-            m_camera->Update(state);
+            m_camera->Update(viewState);
             {
                 auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
                 buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.projection);
@@ -189,7 +168,31 @@ private:
                 buffer->b0ScreenSizeFovY = {(float)state.Width, (float)state.Height, m_camera->state.fovYRadians};
                 m_rootSignature->UploadSceneConstantsBuffer();
             }
+
+            if (m_view->Resize(viewState.Width, viewState.Height))
+            {
+                // clear all
+                for (UINT i = 0; i < BACKBUFFER_COUNT; ++i)
+                {
+                    auto resource = m_view->Resource(i);
+                    if (resource)
+                    {
+                        m_imgui->Remove(resource->renderTarget.Get());
+                    }
+                }
+                m_view->Initialize(viewState.Width, viewState.Height, m_device, BACKBUFFER_COUNT);
+            }
+
+            {
+                auto resource = m_view->Resource(m_swapchain->CurrentFrameIndex());
+                auto texture = m_imgui->GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get());
+                ImGui::ImageButton((ImTextureID)texture, size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), 0);
+            }
         }
+        ImGui::End();
+        ImGui::PopStyleVar();
+
+        m_imgui->Update(m_scene.get(), m_clearColor);
 
         int nodeCount;
         auto nodes = m_scene->GetRootNodes(&nodeCount);
@@ -228,7 +231,8 @@ private:
         m_rootSignature->Update(m_device);
     }
 
-    void UpdateNode(const hierarchy::SceneNodePtr &node)
+    void
+    UpdateNode(const hierarchy::SceneNodePtr &node)
     {
         // auto current = node->Local() * parent;
         m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = node->World().RowMatrix();

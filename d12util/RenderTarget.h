@@ -17,19 +17,6 @@ class RenderTargetChain
 {
     D3D12_VIEWPORT m_viewport = {};
     D3D12_RECT m_scissorRect = {};
-    void SetSize(UINT width, UINT height)
-    {
-        m_viewport = {
-            .Width = (float)width,
-            .Height = (float)height,
-            .MinDepth = 0,
-            .MaxDepth = 1.0f,
-        };
-        m_scissorRect = {
-            .right = (LONG)width,
-            .bottom = (LONG)height,
-        };
-    }
 
     ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
     ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
@@ -41,6 +28,26 @@ public:
     void Release()
     {
         m_resources.clear();
+    }
+
+    bool Resize(UINT width, UINT height)
+    {
+        if (m_viewport.Width == width && m_viewport.Height == height)
+        {
+            return false;
+        }
+
+        m_viewport = {
+            .Width = (float)width,
+            .Height = (float)height,
+            .MinDepth = 0,
+            .MaxDepth = 1.0f,
+        };
+        m_scissorRect = {
+            .right = (LONG)width,
+            .bottom = (LONG)height,
+        };
+        return true;
     }
 
     void Initialize(const ComPtr<IDXGISwapChain3> &swapChain,
@@ -57,6 +64,10 @@ public:
 
     RenderTargetResources *Resource(UINT frameIndex)
     {
+        if (frameIndex >= m_resources.size())
+        {
+            return nullptr;
+        }
         return &m_resources[frameIndex];
     }
 };

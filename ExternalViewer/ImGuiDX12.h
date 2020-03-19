@@ -11,4 +11,5 @@ public:
     void RenderDrawData(struct ID3D12GraphicsCommandList *ctx, struct ImDrawData *draw_data);
     size_t GetOrCreateTexture(struct ID3D12Device *device,
                               struct ID3D12Resource *resource);
+    void Remove(ID3D12Resource *resource);
 };

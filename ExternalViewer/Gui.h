@@ -25,6 +25,7 @@ public:
     ~Gui();
     size_t GetOrCreateTexture(ID3D12Device *device,
                               ID3D12Resource *resource);
+    void Remove(ID3D12Resource *resource);
 
     void BeginFrame(const screenstate::ScreenState &state);
     bool Update(hierarchy::Scene *scene, float clearColor[4]);
