@@ -76,6 +76,47 @@ void RenderTargetChain::Initialize(UINT width, UINT height,
                                    const ComPtr<ID3D12Device> &device,
                                    UINT frameCount)
 {
+    m_resources.resize(frameCount);
+
+    SetSize(width, height);
+
+    CreateHeap(device);
+    auto rtv = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
+    auto dsv = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
+
+    int i = 0;
+    for (auto &resource : m_resources)
+    {
+        // RTV resource
+        // auto depthDesc = renderTarget->GetDesc();
+        D3D12_RESOURCE_DESC desc{
+            .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+            .Width = width,
+            .Height = height,
+            .DepthOrArraySize = 1,
+            .MipLevels = 1,
+            .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+            .SampleDesc = {1, 0},
+            .Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
+        };
+        D3D12_HEAP_PROPERTIES prop{
+            .Type = D3D12_HEAP_TYPE_DEFAULT,
+        };
+        // D3D12_CLEAR_VALUE clear{DXGI_FORMAT_D32_FLOAT, 1.0f, 0};
+        ThrowIfFailed(device->CreateCommittedResource(&prop,
+                                                      D3D12_HEAP_FLAG_NONE,
+                                                      &desc,
+                                                      D3D12_RESOURCE_STATE_RENDER_TARGET,
+                                                      nullptr,
+                                                      IID_PPV_ARGS(&resource.renderTarget)));
+        device->CreateRenderTargetView(resource.renderTarget.Get(), nullptr, rtv);
+        rtv.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+        // DSV resource that has same size with RTV
+        resource.CreateDepthResource(device);
+        device->CreateDepthStencilView(resource.depthStencil.Get(), nullptr, dsv);
+        dsv.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+    }
 }
 
 void RenderTargetChain::Begin(UINT frameIndex,

@@ -141,6 +141,36 @@ private:
         }
 
         m_imgui->BeginFrame(state);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+        if (ImGui::Begin("render target", nullptr,
+                         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+        {
+            auto size = ImGui::GetContentRegionAvail();
+            auto pos = ImGui::GetWindowPos();
+            auto frameHeight = ImGui::GetFrameHeight();
+
+            // auto &mouse = windowState.Mouse;
+            // WindowState viewState{
+            //     .Width = (int)size.x,
+            //     .Height = (int)size.y,
+            //     .ElapsedSeconds = windowState.ElapsedSeconds,
+            //     .DeltaSeconds = windowState.DeltaSeconds,
+            //     .Mouse = {
+            //         .X = mouse.X - (int)pos.x,
+            //         .Y = mouse.Y - (int)pos.y - (int)frameHeight,
+            //         .Wheel = mouse.Wheel,
+            //         .Buttons = mouse.Buttons}};
+            // update view camera
+
+            // auto renderTarget = view.Draw(deviceContext, viewState);
+            // auto handle = m_view->Resource(m_swapchain->CurrentFrameIndex())->renderTarget.Get();
+
+            // ImGui::ImageButton((ImTextureID)nullptr, size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), 0);
+        }
+        ImGui::End();
+        ImGui::PopStyleVar();
+
         if (m_imgui->Update(m_scene.get(), m_clearColor))
         {
             // consume input event by imgui
