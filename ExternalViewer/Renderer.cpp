@@ -269,7 +269,7 @@ private:
 
         // clear
         auto frameIndex = m_swapchain->CurrentFrameIndex();
-        m_backbuffer->Begin(frameIndex, commandList, m_clearColor);
+        m_view->Begin(frameIndex, commandList, m_clearColor);
 
         // global settings
         m_rootSignature->Begin(commandList);
@@ -292,9 +292,11 @@ private:
             }
         }
 
-        m_imgui->EndFrame(commandList);
+        m_view->End(frameIndex, commandList);
 
         // barrier
+        m_backbuffer->Begin(frameIndex, commandList, m_clearColor);
+        m_imgui->EndFrame(commandList);
         m_backbuffer->End(frameIndex, commandList);
 
         // execute
