@@ -13,6 +13,8 @@
 
 using namespace d12u;
 
+const UINT BACKBUFFER_COUNT = 2;
+
 namespace plog
 {
 
@@ -32,7 +34,8 @@ class Impl
     screenstate::ScreenState m_lastState = {};
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
     std::unique_ptr<CommandQueue> m_queue;
-    std::unique_ptr<SwapChain> m_rt;
+    std::unique_ptr<SwapChain> m_swapchain;
+    std::unique_ptr<RenderTargetChain> m_backbuffer;
     std::unique_ptr<RootSignature> m_rootSignature;
     std::unique_ptr<CommandList> m_commandlist;
     std::unique_ptr<SceneMapper> m_sceneMapper;
@@ -57,7 +60,8 @@ class Impl
 public:
     Impl(int maxModelCount)
         : m_queue(new CommandQueue),
-          m_rt(new SwapChain(2)),
+          m_swapchain(new SwapChain),
+          m_backbuffer(new RenderTargetChain),
           m_commandlist(new CommandList),
           m_rootSignature(new RootSignature),
           m_sceneMapper(new SceneMapper),
@@ -90,12 +94,13 @@ public:
             IID_PPV_ARGS(&m_device)));
 
         m_queue->Initialize(m_device);
-        m_rt->Initialize(factory, m_queue->Get(), hwnd);
+        m_swapchain->Initialize(factory, m_queue->Get(), hwnd, BACKBUFFER_COUNT);
+        m_backbuffer->Initialize(m_swapchain->Get(), m_device, BACKBUFFER_COUNT);
         m_sceneMapper->Initialize(m_device);
         m_commandlist->InitializeDirect(m_device);
         m_rootSignature->Initialize(m_device);
 
-        m_imgui.reset(new Gui(m_device, m_rt->BufferCount(), hwnd));
+        m_imgui.reset(new Gui(m_device, BACKBUFFER_COUNT, hwnd));
     }
 
     void OnFrame(HWND hwnd, const screenstate::ScreenState &state)
@@ -126,8 +131,10 @@ private:
         {
             // recreate swapchain
             m_queue->SyncFence();
-            m_rt->Resize(m_queue->Get(),
-                         hwnd, state.Width, state.Height);
+            m_backbuffer->Release(); // require before resize
+            m_swapchain->Resize(m_queue->Get(),
+                                hwnd, BACKBUFFER_COUNT, state.Width, state.Height);
+            m_backbuffer->Initialize(m_swapchain->Get(), m_device, BACKBUFFER_COUNT);
         }
 
         m_imgui->BeginFrame(state);
@@ -188,7 +195,7 @@ private:
     }
 
     void UpdateNode(const hierarchy::SceneNodePtr &node)
-    {        
+    {
         // auto current = node->Local() * parent;
         m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = node->World().RowMatrix();
 
@@ -227,7 +234,8 @@ private:
         auto commandList = m_commandlist->Get();
 
         // clear
-        auto &rt = m_rt->Begin(commandList, m_clearColor);
+        auto frameIndex = m_swapchain->CurrentFrameIndex();
+        m_backbuffer->Begin(frameIndex, commandList, m_clearColor);
 
         // global settings
         m_rootSignature->Begin(commandList);
@@ -253,12 +261,12 @@ private:
         m_imgui->EndFrame(commandList);
 
         // barrier
-        m_rt->End(commandList, rt);
+        m_backbuffer->End(frameIndex, commandList);
 
         // execute
         auto callbacks = m_commandlist->CloseAndGetCallbacks();
         m_queue->Execute(commandList);
-        m_rt->Present();
+        m_swapchain->Present();
         m_queue->SyncFence(callbacks);
     }
 

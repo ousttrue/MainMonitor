@@ -92,6 +92,7 @@
     "C_Cpp.errorSquiggles": "Disabled",
     "cSpell.words": [
         "DXGI",
+        "IDXGI",
         "LOGD",
         "LOGI",
         "LOGW",

@@ -5,30 +5,28 @@
 
 namespace d12u
 {
+
 class SwapChain : NonCopyable
 {
     ComPtr<IDXGISwapChain3> m_swapChain;
-    D3D12_VIEWPORT m_viewport = {};
-    D3D12_RECT m_scissorRect = {};
-    ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-    ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
-
-    std::vector<std::unique_ptr<struct RenderTarget>> m_backbuffers;
 
 private:
     void Create(
         const ComPtr<IDXGIFactory4> &factory,
-        const ComPtr<ID3D12CommandQueue> &commandQueue, HWND hwnd, int width = 0, int height = 0);
+        const ComPtr<ID3D12CommandQueue> &commandQueue, HWND hwnd, UINT bufferCount, int width = 0, int height = 0);
 
 public:
-    SwapChain(int backbufferCount);
-    int BufferCount() const { return (int)m_backbuffers.size(); }
+    const ComPtr<IDXGISwapChain3> &Get() const { return m_swapChain; }
     void Initialize(const ComPtr<IDXGIFactory4> &factory,
-                    const ComPtr<ID3D12CommandQueue> &commandQueue, HWND hwnd);
-    void Resize(const ComPtr<ID3D12CommandQueue> &commandQueue, HWND hwnd, int width, int height);
-    std::unique_ptr<struct RenderTarget> &Begin(
-        const ComPtr<ID3D12GraphicsCommandList> &commandList, const float *clearColor);
-    void End(const ComPtr<ID3D12GraphicsCommandList> &commandList, const std::unique_ptr<RenderTarget> &rt);
+                    const ComPtr<ID3D12CommandQueue> &commandQueue, HWND hwnd, UINT bufferCount)
+    {
+        Create(factory, commandQueue, hwnd, bufferCount);
+    }
+    UINT CurrentFrameIndex() const
+    {
+        return m_swapChain->GetCurrentBackBufferIndex();
+    }
+    void Resize(const ComPtr<ID3D12CommandQueue> &commandQueue, HWND hwnd, UINT frameCount, int width, int height);
     void Present();
 };
 
