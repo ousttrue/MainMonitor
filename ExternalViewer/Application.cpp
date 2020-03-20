@@ -103,6 +103,7 @@ class ApplicationImpl
     plog::ColorConsoleAppender<plog::MyFormatter> m_consoleAppender;
     plog::MyAppender<plog::MyFormatter> m_imGuiAppender;
     VR m_vr;
+    hierarchy::Scene m_scene;
     Renderer m_renderer;
 
 public:
@@ -119,13 +120,12 @@ public:
         }
         hierarchy::ShaderManager::Instance().watch(path);
 
-        auto scene = m_renderer.GetScene();
         if (argc > 2)
         {
             auto node = hierarchy::SceneGltf::LoadFromPath(argv[2]);
             if (node)
             {
-                scene->AddRootNode(node);
+                m_scene.AddRootNode(node);
                 LOGI << "load: " << argv[2];
             }
             else
@@ -136,7 +136,7 @@ public:
 
         auto node = hierarchy::SceneNode::Create("grid");
         node->Mesh(CreateGrid());
-        scene->AddRootNode(node);
+        m_scene.AddRootNode(node);
 
         if (m_vr.Connect())
         {
@@ -152,11 +152,11 @@ public:
     {
         {
             YAP::ScopedSection(VR);
-            m_vr.OnFrame(m_renderer.GetScene());
+            m_vr.OnFrame(&m_scene);
         }
         {
             YAP::ScopedSection(Render);
-            m_renderer.OnFrame(hwnd, state);
+            m_renderer.OnFrame(hwnd, state, &m_scene);
         }
     }
 };

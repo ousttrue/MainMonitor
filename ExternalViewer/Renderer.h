@@ -1,6 +1,6 @@
 #pragma once
-#include <memory>
-#include <d12util.h>
+// #include <memory>
+// #include <d12util.h>
 
 namespace screenstate
 {
@@ -19,7 +19,6 @@ class Renderer
 public:
     Renderer(int maxModelCount);
     ~Renderer();
-    void OnFrame(void *hwnd, const screenstate::ScreenState &state);
-    hierarchy::Scene *GetScene();
+    void OnFrame(void *hwnd, const screenstate::ScreenState &state, hierarchy::Scene *scene);
     void Log(const char *msg);
 };

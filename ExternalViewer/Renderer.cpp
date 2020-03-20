@@ -30,8 +30,6 @@ class Impl
 
     std::unique_ptr<Gui> m_imgui;
 
-    std::unique_ptr<hierarchy::Scene> m_scene;
-
     // scene
     std::unique_ptr<OrbitCamera> m_camera;
     std::unique_ptr<hierarchy::SceneLight> m_light;
@@ -56,8 +54,7 @@ public:
           m_rootSignature(new RootSignature),
           m_sceneMapper(new SceneMapper),
           m_camera(new OrbitCamera),
-          m_light(new hierarchy::SceneLight),
-          m_scene(new hierarchy::Scene)
+          m_light(new hierarchy::SceneLight)
     {
         m_camera->zNear = 0.01f;
     }
@@ -69,8 +66,6 @@ public:
             m_imgui->Log(msg);
         }
     }
-
-    const std::unique_ptr<hierarchy::Scene> &Scene() const { return m_scene; }
 
     void Initialize(HWND hwnd)
     {
@@ -94,8 +89,8 @@ public:
         m_imgui.reset(new Gui(m_device, BACKBUFFER_COUNT, hwnd));
     }
 
-    void OnFrame(HWND hwnd, const screenstate::ScreenState &state)
-    {        
+    void OnFrame(HWND hwnd, const screenstate::ScreenState &state, hierarchy::Scene *scene)
+    {
         if (!m_device)
         {
             // first time
@@ -108,17 +103,18 @@ public:
                 0, 0, 0, 1};
         }
 
-        YAP::PushSection(Update);
-        Update(hwnd, state);
-        YAP::PopSection();
-
-        YAP::PushSection(Draw);
-        Draw(state);
-        YAP::PopSection();
+        {
+            YAP::ScopedSection(Update);
+            Update(hwnd, state, scene);
+        }
+        {
+            YAP::ScopedSection(Draw);
+            Draw(state, scene);
+        }
     }
 
 private:
-    void Update(HWND hwnd, const screenstate::ScreenState &state)
+    void Update(HWND hwnd, const screenstate::ScreenState &state, hierarchy::Scene *scene)
     {
         m_sceneMapper->Update(m_device);
 
@@ -187,10 +183,10 @@ private:
             }
         }
 
-        m_imgui->Update(m_scene.get(), m_clearColor);
+        m_imgui->Update(scene, m_clearColor);
 
         int nodeCount;
-        auto nodes = m_scene->GetRootNodes(&nodeCount);
+        auto nodes = scene->GetRootNodes(&nodeCount);
         for (int i = 0; i < nodeCount; ++i)
         {
             auto root = nodes[i];
@@ -260,7 +256,7 @@ private:
     //
     // command
     //
-    void Draw(const screenstate::ScreenState &state)
+    void Draw(const screenstate::ScreenState &state, const hierarchy::Scene *scene)
     {
         // new frame
         m_commandlist->Reset(nullptr);
@@ -275,7 +271,7 @@ private:
 
             // model
             int nodeCount;
-            auto nodes = m_scene->GetRootNodes(&nodeCount);
+            auto nodes = scene->GetRootNodes(&nodeCount);
             for (int i = 0; i < nodeCount; ++i)
             {
                 DrawNode(commandList, nodes[i]);
@@ -380,14 +376,9 @@ Renderer::~Renderer()
     delete m_impl;
 }
 
-void Renderer::OnFrame(void *hwnd, const screenstate::ScreenState &state)
+void Renderer::OnFrame(void *hwnd, const screenstate::ScreenState &state, hierarchy::Scene *scene)
 {
-    m_impl->OnFrame((HWND)hwnd, state);
-}
-
-hierarchy::Scene *Renderer::GetScene()
-{
-    return m_impl->Scene().get();
+    m_impl->OnFrame((HWND)hwnd, state, scene);
 }
 
 void Renderer::Log(const char *msg)
