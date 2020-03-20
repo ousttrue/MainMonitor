@@ -42,6 +42,7 @@ TODO
     * [x] node
     * [x] CPU skinning
     * [ ] GPU skinning
+    * [ ] counter matrix when without skin.skeleton
     * [ ] animation
 * scene
     * [ ] light node

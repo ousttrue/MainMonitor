@@ -168,7 +168,7 @@ private:
                     buffer->b0LightDir = m_light->LightDirection;
                     buffer->b0LightColor = m_light->LightColor;
                     buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(m_camera->state.position);
-                    buffer->b0ScreenSizeFovY = {(float)state.Width, (float)state.Height, m_camera->state.fovYRadians};
+                    buffer->b0ScreenSizeFovY = {(float)viewState.Width, (float)viewState.Height, m_camera->state.fovYRadians};
                     m_rootSignature->UploadSceneConstantsBuffer();
                 }
                 if (m_view->Resize(viewState.Width, viewState.Height))
