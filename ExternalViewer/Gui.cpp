@@ -20,6 +20,7 @@ std::wstring OpenFileDialog(const std::wstring &folder)
     }
 
     COMDLG_FILTERSPEC fileTypes[] = {
+        {L"vrm format", L"*.vrm"},
         {L"gltf binary format", L"*.glb"},
         {L"all", L"*.*"},
     };
@@ -27,7 +28,7 @@ std::wstring OpenFileDialog(const std::wstring &folder)
     {
         return L"";
     }
-    if (FAILED(pFileOpen->SetDefaultExtension(L".glb")))
+    if (FAILED(pFileOpen->SetDefaultExtension(L".vrm")))
     {
         return L"";
     }
