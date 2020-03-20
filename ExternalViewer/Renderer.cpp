@@ -34,6 +34,7 @@ class Impl
     // scene
     std::unique_ptr<OrbitCamera> m_camera;
     std::unique_ptr<hierarchy::SceneLight> m_light;
+    hierarchy::SceneNodePtr m_selected;
 
     // gizmo
     Gizmo m_gizmo;
@@ -136,7 +137,24 @@ private:
             screenstate::ScreenState viewState;
             if (m_imgui->View(state, texture, &viewState))
             {
+                // scene
+                auto selected = m_imgui->Selected();
+                if (selected != m_selected)
+                {
+                    if (selected)
+                    {
+                        m_camera->gaze = -selected->World().translation;
+                    }
+                    else
+                    {
+                        // m_camera->gaze = {0, 0, 0};
+                    }
+
+                    m_selected = selected;
+                }
                 m_camera->Update(viewState);
+
+                // resource
                 {
                     auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
                     buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.projection);
@@ -147,19 +165,19 @@ private:
                     buffer->b0ScreenSizeFovY = {(float)state.Width, (float)state.Height, m_camera->state.fovYRadians};
                     m_rootSignature->UploadSceneConstantsBuffer();
                 }
-            }
-            if (m_view->Resize(viewState.Width, viewState.Height))
-            {
-                // clear all
-                for (UINT i = 0; i < BACKBUFFER_COUNT; ++i)
+                if (m_view->Resize(viewState.Width, viewState.Height))
                 {
-                    auto resource = m_view->Resource(i);
-                    if (resource)
+                    // clear all
+                    for (UINT i = 0; i < BACKBUFFER_COUNT; ++i)
                     {
-                        m_imgui->Remove(resource->renderTarget.Get());
+                        auto resource = m_view->Resource(i);
+                        if (resource)
+                        {
+                            m_imgui->Remove(resource->renderTarget.Get());
+                        }
                     }
+                    m_view->Initialize(viewState.Width, viewState.Height, m_device, BACKBUFFER_COUNT);
                 }
-                m_view->Initialize(viewState.Width, viewState.Height, m_device, BACKBUFFER_COUNT);
             }
         }
 
