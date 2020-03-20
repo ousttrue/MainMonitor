@@ -168,21 +168,25 @@ int main(int argc, char **argv)
         }
 
         YAP::PushPhase(MainLoop);
-        screenstate::ScreenState state;
-        while (window.Update(&state))
         {
-            YAP::NewFrame(); //swap frame
-
-            YAP::PushSection(VR);
-            vr.OnFrame(scene);
-            YAP::PopSection();
-
-            YAP::PushSection(Render);
-            renderer.OnFrame(hwnd, state);
-            YAP::PopSection();
+            YAP::ScopedSection(MainLoop);
+            screenstate::ScreenState state;
+            while (window.Update(&state))
+            {
+                YAP::NewFrame();
+                {
+                    YAP::ScopedSection(VR);
+                    vr.OnFrame(scene);
+                }
+                {
+                    YAP::ScopedSection(Render);
+                    renderer.OnFrame(hwnd, state);
+                }
+            }
         }
         YAP::PopPhase();
     }
+    YAP::Finish();
 
     LOGI << "exit";
 

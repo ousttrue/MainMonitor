@@ -20,6 +20,9 @@ class Gui
     // single selection
     std::weak_ptr<hierarchy::SceneNode> m_selected;
 
+    struct MetricsGuiMetric *m_metric = nullptr;
+    struct MetricsGuiPlot *m_plot = nullptr;
+
 public:
     Gui(const ComPtr<ID3D12Device> &device, int bufferCount, HWND hwnd);
     ~Gui();

@@ -19,3 +19,6 @@
 [submodule "external/nlohmann-json"]
 	path = external/nlohmann-json
 	url = https://github.com/nlohmann/json.git
+[submodule "external/MetricsGui"]
+	path = external/MetricsGui
+	url = https://github.com/GameTechDev/MetricsGui.git
