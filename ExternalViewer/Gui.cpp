@@ -6,6 +6,11 @@
 #include "ImGuiDX12.h"
 #include <plog/Log.h>
 
+#define YAP_ENABLE
+// #define YAP_IMPL
+#define YAP_IMGUI
+#include "YAP.h"
+
 template <class T>
 using ComPtr = Microsoft::WRL::ComPtr<T>;
 
@@ -512,6 +517,8 @@ bool Gui::Update(hierarchy::Scene *scene, float clearColor[4])
 {
     bool consumed = false;
 
+    YAP::ImGuiLogger(nullptr);
+
     //
     // imgui
     //
@@ -520,7 +527,9 @@ bool Gui::Update(hierarchy::Scene *scene, float clearColor[4])
         if (ImGui::Button("open"))
         {
             auto path = OpenFileDialog(L"");
+
             auto node = hierarchy::SceneGltf::LoadFromPath(path);
+
             if (node)
             {
                 LOGI << "load: " << path;

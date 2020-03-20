@@ -7,6 +7,12 @@
 #include <plog/Log.h>
 #include <plog/Appenders/ColorConsoleAppender.h>
 
+#include <imgui.h>
+#define YAP_ENABLE
+// #define YAP_IMPL  //  in one cpp before .h inclusion
+// #define YAP_IMGUI // if you want Ocornut's ImGui
+#include <YAP.h>
+
 static std::shared_ptr<hierarchy::SceneMesh> CreateGrid()
 {
     struct GridVertex
@@ -105,6 +111,7 @@ int main(int argc, char **argv)
     imGuiAppender.onWrite(std::bind(&Renderer::log, &renderer, std::placeholders::_1));
 
     plog::init(plog::debug, &consoleAppender).addAppender(&imGuiAppender);
+    YAP::Init(2, 4, 2048, 16);
 
     auto path = std::filesystem::current_path();
     if (argc > 1)
@@ -160,12 +167,21 @@ int main(int argc, char **argv)
             }
         }
 
+        YAP::PushPhase(MainLoop);
         screenstate::ScreenState state;
         while (window.Update(&state))
         {
+            YAP::NewFrame(); //swap frame
+
+            YAP::PushSection(VR);
             vr.OnFrame(scene);
+            YAP::PopSection();
+
+            YAP::PushSection(Render);
             renderer.OnFrame(hwnd, state);
+            YAP::PopSection();
         }
+        YAP::PopPhase();
     }
 
     LOGI << "exit";

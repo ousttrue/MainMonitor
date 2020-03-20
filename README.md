@@ -31,6 +31,7 @@ TODO
     * [ ] camera info
     * [ ] light info
     * [ ] gizmo info
+    * [ ] profiler
 * gizmo
     * [x] VertexColor
     * [ ] Hover

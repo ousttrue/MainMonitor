@@ -7,6 +7,9 @@ namespace hierarchy
 
 void SceneMeshSkin::Update(const void *vertices, uint32_t stride, uint32_t vertexCount)
 {
+    cpuSkiningBuffer.resize(stride * vertexCount);
+    uint8_t *dst = cpuSkiningBuffer.data();
+
     // update skining Matrices
     skiningMatrices.resize(inverseBindMatrices.size());
     if (root)
@@ -28,10 +31,13 @@ void SceneMeshSkin::Update(const void *vertices, uint32_t stride, uint32_t verte
         }
     }
 
+#if 1
+    memcpy(dst, vertices, cpuSkiningBuffer.size());
+
+#else
+
     // create new vertexbuffer
     auto src = (const uint8_t *)vertices;
-    cpuSkiningBuffer.resize(stride * vertexCount);
-    uint8_t *dst = cpuSkiningBuffer.data();
     for (uint32_t i = 0; i < vertexCount; ++i, src += stride, dst += stride)
     {
         auto skining = vertexSkiningArray[i];
@@ -61,6 +67,7 @@ void SceneMeshSkin::Update(const void *vertices, uint32_t stride, uint32_t verte
         memcpy(dst, src, stride);
         *(std::array<float, 3> *)dst = value;
     }
+#endif
 }
 
 } // namespace hierarchy

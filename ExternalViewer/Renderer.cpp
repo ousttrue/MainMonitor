@@ -10,6 +10,7 @@
 #include <imgui.h>
 #include <dxgi.h>
 #include <memory>
+#include "YAP.h"
 
 using namespace d12u;
 
@@ -94,7 +95,7 @@ public:
     }
 
     void OnFrame(HWND hwnd, const screenstate::ScreenState &state)
-    {
+    {        
         if (!m_device)
         {
             // first time
@@ -107,8 +108,13 @@ public:
                 0, 0, 0, 1};
         }
 
+        YAP::PushSection(Update);
         Update(hwnd, state);
+        YAP::PopSection();
+
+        YAP::PushSection(Draw);
         Draw(state);
+        YAP::PopSection();
     }
 
 private:

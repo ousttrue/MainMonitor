@@ -11,6 +11,11 @@
 #include <gltfformat/bin.h>
 #include <Windows.h>
 
+#define YAP_ENABLE
+#define YAP_IMPL  //  in one cpp before .h inclusion
+// #define YAP_IMGUI // if you want Ocornut's ImGui
+#include <YAP.h>
+
 struct GltfVertex
 {
     std::array<float, 3> position;
@@ -88,11 +93,16 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         return nullptr;
     }
 
+    YAP::PushPhase(LoadGlbBytes);
+
+    YAP::PushSection(Parse);
     auto gltf = ::ParseGltf(glb.json.p, glb.json.size);
+    YAP::PopSection();
 
     gltfformat::bin bin(gltf, glb.bin.p, glb.bin.size);
 
     // build scene
+    YAP::PushSection(Build);
     std::vector<SceneImagePtr> images;
     images.reserve(gltf.images.size());
     for (auto &gltfImage : gltf.images)
@@ -391,6 +401,9 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
         }
     }
     root->UpdateWorld();
+    YAP::PopSection();
+
+    YAP::PopPhase();
     return root;
 } // namespace hierarchy
 
