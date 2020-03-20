@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <imgui.h>
 #include "ImGuiDX12FrameResources.h"
+#include <plog/Log.h>
 
 template <class T>
 using ComPtr = Microsoft::WRL::ComPtr<T>;
@@ -75,6 +76,8 @@ public:
         };
 
         auto index = m_textureDescriptorMap.size();
+        LOGD << "imgui: new texture#" << index;
+
         auto handle = m_pHeap->GetCPUDescriptorHandleForHeapStart();
         handle.ptr += index * m_increment;
         device->CreateShaderResourceView(resource,

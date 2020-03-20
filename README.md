@@ -24,13 +24,13 @@ TODO
     * [x] frame rate
     * [x] clear color
     * [x] scene tree
-    * [ ] docking
+    * [x] docking
     * [x] consume wheel, click event.
     * [x] select node
     * [ ] selected node transform(T, R, S)
-    * [ ] camera
-    * [ ] right
-    * [ ] gizmo
+    * [ ] camera info
+    * [ ] light info
+    * [ ] gizmo info
 * gizmo
     * [x] VertexColor
     * [ ] Hover

@@ -29,6 +29,53 @@ public:
 
 } // namespace plog
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include <imgui_internal.h>
+
+namespace ImGui
+{
+// frame_padding < 0: uses FramePadding from style (default)
+// frame_padding = 0: no framing
+// frame_padding > 0: set framing size
+// The color used are the button colors.
+static bool ViewButton(void *p, ImTextureID user_texture_id, const ImVec2 &size, const ImVec2 &uv0 = ImVec2(0, 0), const ImVec2 &uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4 &bg_col = ImVec4(0, 0, 0, 0), const ImVec4 &tint_col = ImVec4(1, 1, 1, 1))
+{
+    ImGuiWindow *window = GetCurrentWindow();
+    if (window->SkipItems)
+        return false;
+
+    ImGuiContext &g = *GImGui;
+    const ImGuiStyle &style = g.Style;
+
+    // Default to using texture ID as ID. User can still push string/integer prefixes.
+    // We could hash the size/uv to create a unique ID but that would prevent the user from animating UV.
+    PushID((void *)(intptr_t)p);
+    const ImGuiID id = window->GetID("#image");
+    PopID();
+
+    const ImVec2 padding = (frame_padding >= 0) ? ImVec2((float)frame_padding, (float)frame_padding) : style.FramePadding;
+    const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size + padding * 2);
+    const ImRect image_bb(window->DC.CursorPos + padding, window->DC.CursorPos + padding + size);
+    ItemSize(bb);
+    if (!ItemAdd(bb, id))
+        return false;
+
+    bool hovered, held;
+    auto flags = ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle;
+    bool pressed = ButtonBehavior(bb, id, &hovered, &held, flags);
+
+    // Render
+    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
+    RenderNavHighlight(bb, id);
+    RenderFrame(bb.Min, bb.Max, col, true, ImClamp((float)ImMin(padding.x, padding.y), 0.0f, style.FrameRounding));
+    if (bg_col.w > 0.0f)
+        window->DrawList->AddRectFilled(image_bb.Min, image_bb.Max, GetColorU32(bg_col));
+    window->DrawList->AddImage(user_texture_id, image_bb.Min, image_bb.Max, uv0, uv1, GetColorU32(tint_col));
+
+    return pressed;
+}
+} // namespace ImGui
+
 class Impl
 {
     screenstate::ScreenState m_lastState = {};
@@ -156,19 +203,6 @@ private:
             viewState.MouseX = state.MouseX - (int)pos.x;
             viewState.MouseY = state.MouseY - (int)pos.y - (int)frameHeight;
 
-            // update view camera
-            m_camera->Update(viewState);
-            {
-                auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
-                buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.projection);
-                buffer->b0View = falg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.view);
-                buffer->b0LightDir = m_light->LightDirection;
-                buffer->b0LightColor = m_light->LightColor;
-                buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(m_camera->state.position);
-                buffer->b0ScreenSizeFovY = {(float)state.Width, (float)state.Height, m_camera->state.fovYRadians};
-                m_rootSignature->UploadSceneConstantsBuffer();
-            }
-
             if (m_view->Resize(viewState.Width, viewState.Height))
             {
                 // clear all
@@ -186,7 +220,39 @@ private:
             {
                 auto resource = m_view->Resource(m_swapchain->CurrentFrameIndex());
                 auto texture = m_imgui->GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get());
-                ImGui::ImageButton((ImTextureID)texture, size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), 0);
+
+                // ImGuiIO &io = ImGui::GetIO();
+                // auto mask = io.mouse
+                // ImGuiButtonFlags_MouseButtonMask_ = ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle,
+                ImGui::ViewButton(m_view.get(), (ImTextureID)texture, size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), 0);
+                // update camera
+                if (!ImGui::IsWindowHovered())
+                {
+                    viewState.Unset(screenstate::MouseButtonFlags::WheelMinus);
+                    viewState.Unset(screenstate::MouseButtonFlags::WheelPlus);
+                }
+                if (ImGui::IsItemActive())
+                {
+                    // LOGD << "active";
+                }
+                else
+                {
+                    viewState.Unset(screenstate::MouseButtonFlags::LeftDown);
+                    viewState.Unset(screenstate::MouseButtonFlags::RightDown);
+                    viewState.Unset(screenstate::MouseButtonFlags::MiddleDown);
+                }
+
+                m_camera->Update(viewState);
+                {
+                    auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
+                    buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.projection);
+                    buffer->b0View = falg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.view);
+                    buffer->b0LightDir = m_light->LightDirection;
+                    buffer->b0LightColor = m_light->LightColor;
+                    buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(m_camera->state.position);
+                    buffer->b0ScreenSizeFovY = {(float)state.Width, (float)state.Height, m_camera->state.fovYRadians};
+                    m_rootSignature->UploadSceneConstantsBuffer();
+                }
             }
         }
         ImGui::End();
