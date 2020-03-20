@@ -32,17 +32,28 @@ std::shared_ptr<SceneMesh> SceneMesh::CreateDynamic(
 
 void SceneMesh::AddSubmesh(const std::shared_ptr<SceneMesh> &mesh)
 {
+    if (!vertices)
+    {
+        vertices = VertexBuffer::CreateStatic(Semantics::Vertex, mesh->vertices->stride, nullptr, 0);
+    }
+    if (!indices)
+    {
+        indices = VertexBuffer::CreateStatic(Semantics::Index, mesh->indices->stride, nullptr, 0);
+    }
+
     auto indexOffset = vertices->Count();
 
     auto src = mesh->vertices;
     {
         bool found = false;
-        auto dst = vertices;
+        // auto dst = vertices;
         {
-            if (src->semantic == dst->semantic)
+            if (src->semantic == vertices->semantic)
             {
                 found = true;
-                dst->Append(src);
+                auto sum = vertices->Count() + src->Count();
+                vertices->Append(src);
+                assert(vertices->Count() == sum);
             }
             else
             {

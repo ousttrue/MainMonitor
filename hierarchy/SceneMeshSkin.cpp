@@ -65,7 +65,7 @@ void SceneMeshSkin::Update(const void *vertices, uint32_t stride, uint32_t verte
         }
         // auto value = falg::RowMatrixApplyPosition(skiningMatrices[i], *(std::array<float, 3> *)src);
         memcpy(dst, src, stride);
-        // *(std::array<float, 3> *)dst = value;
+        *(std::array<float, 3> *)dst = value;
     }
 #endif
 }

@@ -99,6 +99,98 @@ class GltfLoader
     {
         SceneMeshPtr mesh;
         std::vector<VertexSkining> skining;
+
+        void LoadVertices(
+            const gltfformat::glTF &gltf,
+            const gltfformat::bin &bin,
+            const gltfformat::Mesh &gltfMesh,
+            const gltfformat::MeshPrimitive &gltfPrimitive)
+        {
+            mesh = SceneMesh::Create();
+            mesh->name = ToUnicode(gltfMesh.name, CP_UTF8);
+
+            std::vector<GltfVertex> vertices;
+            int vertexCount = 0;
+            for (auto [k, v] : gltfPrimitive.attributes)
+            {
+                auto accessor = gltf.accessors[v];
+                auto [p, size] = bin.get_bytes(accessor);
+                auto count = accessor.count.value();
+                vertices.resize(count);
+                if (k == "POSITION")
+                {
+                    vertexCount = count;
+                    for (auto i = 0; i < count; ++i, p += 12)
+                    {
+                        vertices[i].position = *(falg::float3 *)p;
+                    }
+                }
+                else if (k == "NORMAL")
+                {
+                    for (auto i = 0; i < count; ++i, p += 12)
+                    {
+                        vertices[i].normal = *(falg::float3 *)p;
+                    }
+                }
+                else if (k == "TEXCOORD_0")
+                {
+                    for (auto i = 0; i < count; ++i, p += 8)
+                    {
+                        vertices[i].uv = *(falg::float2 *)p;
+                    }
+                }
+                else if (k == "JOINTS_0")
+                {
+                    skining.resize(count);
+                    switch (accessor.componentType.value())
+                    {
+                    case gltfformat::AccessorComponentType::BYTE:
+                    {
+                        for (auto i = 0; i < count; ++i, p += 4)
+                        {
+                            auto &joints = *(std::array<uint8_t, 4> *)p;
+                            skining[i].joints[0] = joints[0];
+                            skining[i].joints[1] = joints[1];
+                            skining[i].joints[2] = joints[2];
+                            skining[i].joints[3] = joints[3];
+                        }
+                        break;
+                    }
+
+                    case gltfformat::AccessorComponentType::UNSIGNED_SHORT:
+                    {
+                        for (auto i = 0; i < count; ++i, p += 8)
+                        {
+                            skining[i].joints = *(std::array<uint16_t, 4> *)p;
+                        }
+                    }
+                    break;
+
+                    default:
+                        throw;
+                    }
+                }
+                else if (k == "WEIGHTS_0")
+                {
+                    for (auto i = 0; i < count; ++i, p += 16)
+                    {
+                        skining[i].weights = *(std::array<float, 4> *)p;
+                    }
+                }
+                else if (k == "TANGENT")
+                {
+                    // do nothing
+                }
+                else
+                {
+                    auto a = 0;
+                }
+            }
+            assert(vertices.size() == vertexCount);
+            mesh->vertices = VertexBuffer::CreateStatic(
+                Semantics::Vertex,
+                sizeof(GltfVertex), vertices.data(), (uint32_t)(vertices.size() * sizeof(GltfVertex)));
+        }
     };
     struct GltfMeshGroup
     {
@@ -208,138 +300,163 @@ public:
         }
     }
 
+    bool HasSharedAccessorAttributes(const gltfformat::Mesh &gltfMesh)
+    {
+        auto &first = gltfMesh.primitives.front().attributes;
+        for (size_t i = 1; i < gltfMesh.primitives.size(); ++i)
+        {
+            auto &current = gltfMesh.primitives[i].attributes;
+            if (first.size() != current.size())
+            {
+                return false;
+            }
+            for (auto [k, v] : current)
+            {
+                if (first.find(k) == first.end())
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     void LoadMeshes()
     {
         m_meshes.reserve(m_gltf.meshes.size());
         for (auto &gltfMesh : m_gltf.meshes)
         {
-            auto group = std::make_shared<GltfMeshGroup>();
-            m_meshes.push_back(group);
-            for (auto &gltfPrimitive : gltfMesh.primitives)
+            auto shared = HasSharedAccessorAttributes(gltfMesh);
+            if (shared)
             {
-                auto mesh = SceneMesh::Create();
-                mesh->name = ToUnicode(gltfMesh.name, CP_UTF8);
-                group->primitives.push_back({});
-                auto &primitive = group->primitives.back();
-                primitive.mesh = mesh;
-
-                std::vector<GltfVertex> vertices;
-                for (auto [k, v] : gltfPrimitive.attributes)
-                {
-                    auto accessor = m_gltf.accessors[v];
-                    auto [p, size] = m_bin.get_bytes(accessor);
-                    auto count = accessor.count.value();
-                    vertices.resize(count);
-                    if (k == "POSITION")
-                    {
-                        for (auto i = 0; i < count; ++i, p += 12)
-                        {
-                            vertices[i].position = *(falg::float3 *)p;
-                        }
-                    }
-                    else if (k == "NORMAL")
-                    {
-                        for (auto i = 0; i < count; ++i, p += 12)
-                        {
-                            vertices[i].normal = *(falg::float3 *)p;
-                        }
-                    }
-                    else if (k == "TEXCOORD_0")
-                    {
-                        for (auto i = 0; i < count; ++i, p += 8)
-                        {
-                            vertices[i].uv = *(falg::float2 *)p;
-                        }
-                    }
-                    else if (k == "JOINTS_0")
-                    {
-                        primitive.skining.resize(count);
-                        switch (accessor.componentType.value())
-                        {
-                        case gltfformat::AccessorComponentType::BYTE:
-                        {
-                            for (auto i = 0; i < count; ++i, p += 4)
-                            {
-                                auto &joints = *(std::array<uint8_t, 4> *)p;
-                                primitive.skining[i].joints[0] = joints[0];
-                                primitive.skining[i].joints[1] = joints[1];
-                                primitive.skining[i].joints[2] = joints[2];
-                                primitive.skining[i].joints[3] = joints[3];
-                            }
-                            break;
-                        }
-
-                        case gltfformat::AccessorComponentType::UNSIGNED_SHORT:
-                        {
-                            for (auto i = 0; i < count; ++i, p += 8)
-                            {
-                                primitive.skining[i].joints = *(std::array<uint16_t, 4> *)p;
-                            }
-                        }
-                        break;
-
-                        default:
-                            throw;
-                        }
-                    }
-                    else if (k == "WEIGHTS_0")
-                    {
-                        for (auto i = 0; i < count; ++i, p += 16)
-                        {
-                            primitive.skining[i].weights = *(std::array<float, 4> *)p;
-                        }
-                    }
-                    else if (k == "TANGENT")
-                    {
-                        // do nothing
-                    }
-                    else
-                    {
-                        auto a = 0;
-                    }
-                }
-                mesh->vertices = VertexBuffer::CreateStatic(
-                    Semantics::Vertex,
-                    sizeof(GltfVertex), vertices.data(), (uint32_t)(vertices.size() * sizeof(GltfVertex)));
-
-                if (gltfPrimitive.material.has_value())
-                {
-                    auto index = gltfPrimitive.indices.value();
-                    auto accessor = m_gltf.accessors[index];
-                    auto [p, size] = m_bin.get_bytes(accessor);
-                    int stride = 0;
-                    switch (accessor.componentType.value())
-                    {
-                    case gltfformat::AccessorComponentType::UNSIGNED_SHORT:
-                    case gltfformat::AccessorComponentType::SHORT:
-                        stride = 2;
-                        break;
-
-                    case gltfformat::AccessorComponentType::UNSIGNED_INT:
-                        stride = 4;
-                        break;
-
-                    default:
-                        throw;
-                    }
-                    mesh->indices = VertexBuffer::CreateStatic(
-                        Semantics::Index, stride, p, size);
-
-                    auto material = m_materials[gltfPrimitive.material.value()];
-                    mesh->submeshes.push_back({
-                        // .draw_offset = 0,
-                        .draw_count = (uint32_t)accessor.count.value(),
-                        .material = material,
-                    });
-                }
-                else
-                {
-                    throw "not indices";
-                }
+                m_meshes.push_back(LoadSharedPrimitives(gltfMesh));
             }
-
-            LOGD << group->primitives[0].mesh->vertices->Count() << "vertices";
+            else
+            {
+                m_meshes.push_back(LoadIsolatedPrimitives(gltfMesh));
+            }
         }
+    }
+
+    std::shared_ptr<VertexBuffer> LoadIndices(const gltfformat::glTF &gltf,
+                                              const gltfformat::bin &bin,
+                                              const gltfformat::MeshPrimitive &gltfPrimitive)
+    {
+        if (!gltfPrimitive.indices.has_value())
+        {
+            return nullptr;
+        }
+
+        auto index = gltfPrimitive.indices.value();
+        auto accessor = gltf.accessors[index];
+        auto [p, size] = bin.get_bytes(accessor);
+        int stride = 0;
+        switch (accessor.componentType.value())
+        {
+        case gltfformat::AccessorComponentType::UNSIGNED_SHORT:
+        case gltfformat::AccessorComponentType::SHORT:
+            stride = 2;
+            break;
+
+        case gltfformat::AccessorComponentType::UNSIGNED_INT:
+            stride = 4;
+            break;
+
+        default:
+            throw;
+        }
+
+        return VertexBuffer::CreateStatic(
+            Semantics::Index, stride, p, size);
+    }
+
+    std::shared_ptr<GltfMeshGroup> LoadSharedPrimitives(const gltfformat::Mesh &gltfMesh)
+    {
+        auto group = std::make_shared<GltfMeshGroup>();
+        group->primitives.push_back({});
+        auto &prim = group->primitives.back();
+
+        // shared vertices
+        prim.LoadVertices(m_gltf, m_bin, gltfMesh, gltfMesh.primitives.front());
+
+        for (auto &gltfPrimitive : gltfMesh.primitives)
+        {
+            if (!prim.mesh->indices)
+            {
+                prim.mesh->indices = LoadIndices(m_gltf, m_bin, gltfPrimitive);
+            }
+            else
+            {
+                // merge index buffer
+                prim.mesh->indices->Append(LoadIndices(m_gltf, m_bin, gltfPrimitive));
+            }
+            {
+                // each primitive to submesh
+                auto index = gltfPrimitive.indices.value();
+                auto accessor = m_gltf.accessors[index];
+
+                auto material = m_materials[gltfPrimitive.material.value()];
+                prim.mesh->submeshes.push_back({
+                    .draw_count = (uint32_t)accessor.count.value(),
+                    .material = material,
+                });
+            }
+        }
+        return group;
+    }
+
+    std::shared_ptr<GltfMeshGroup> LoadIsolatedPrimitives(const gltfformat::Mesh &gltfMesh)
+    {
+        auto group = std::make_shared<GltfMeshGroup>();
+        for (auto &gltfPrimitive : gltfMesh.primitives)
+        {
+            group->primitives.push_back({});
+            auto &prim = group->primitives.back();
+            prim.LoadVertices(m_gltf, m_bin, gltfMesh, gltfPrimitive);
+            prim.mesh->indices = LoadIndices(m_gltf, m_bin, gltfPrimitive);
+            if (!prim.mesh->indices)
+            {
+                throw "not indices";
+            }
+            // if (gltfPrimitive.material.has_value())
+            {
+                auto material = m_materials[gltfPrimitive.material.value()];
+                prim.mesh->submeshes.push_back({
+                    .draw_count = prim.mesh->indices->Count(),
+                    .material = material,
+                });
+            }
+        }
+        return group;
+    }
+
+    SceneMeshSkinPtr
+    CreateSkin(const gltfformat::Skin &gltfSkin,
+               const std::shared_ptr<GltfMeshGroup> &meshGroup)
+    {
+        auto skin = std::make_shared<SceneMeshSkin>();
+        for (auto j : gltfSkin.joints)
+        {
+            skin->joints.push_back(m_nodes[j]);
+        }
+        if (gltfSkin.inverseBindMatrices.has_value())
+        {
+            auto accessor = m_gltf.accessors[gltfSkin.inverseBindMatrices.value()];
+            auto [p, size] = m_bin.get_bytes(accessor);
+            skin->inverseBindMatrices.assign((std::array<float, 16> *)p, (std::array<float, 16> *)(p + size));
+        }
+
+        for (auto &primitive : meshGroup->primitives)
+        {
+            std::copy(primitive.skining.begin(), primitive.skining.end(), std::back_inserter(skin->vertexSkiningArray));
+        }
+
+        if (gltfSkin.skeleton.has_value())
+        {
+            skin->root = m_nodes[gltfSkin.skeleton.value()]->Parent();
+        }
+
+        return skin;
     }
 
     void BuildHierarchy()
@@ -351,9 +468,13 @@ public:
             auto node = m_nodes[i];
             if (gltfNode.mesh.has_value())
             {
-                hierarchy::SceneMeshPtr mesh;
-                for (auto &primitive : m_meshes[gltfNode.mesh.value()]->primitives)
+                auto meshGroup = m_meshes[gltfNode.mesh.value()];
+
+                SceneMeshPtr mesh; // = SceneMesh::Create();
+                auto sum = 0;
+                for (auto &primitive : meshGroup->primitives)
                 {
+                    sum += primitive.mesh->vertices->Count();
                     if (!mesh)
                     {
                         mesh = primitive.mesh;
@@ -363,37 +484,19 @@ public:
                         mesh->AddSubmesh(primitive.mesh);
                     }
                 }
+                assert(mesh->vertices->Count() == sum);
 
                 if (gltfNode.skin.has_value())
                 {
                     auto &gltfSkin = m_gltf.skins[gltfNode.skin.value()];
-                    auto skin = std::make_shared<SceneMeshSkin>();
-                    for (auto j : gltfSkin.joints)
-                    {
-                        skin->joints.push_back(m_nodes[j]);
-                    }
-                    if (gltfSkin.inverseBindMatrices.has_value())
-                    {
-                        auto accessor = m_gltf.accessors[gltfSkin.inverseBindMatrices.value()];
-                        auto [p, size] = m_bin.get_bytes(accessor);
-                        skin->inverseBindMatrices.assign((std::array<float, 16> *)p, (std::array<float, 16> *)(p + size));
-                    }
+                    mesh->skin = CreateSkin(gltfSkin, meshGroup);
 
-                    for (auto &primitive : m_meshes[gltfNode.mesh.value()]->primitives)
-                    {
-                        std::copy(primitive.skining.begin(), primitive.skining.end(), std::back_inserter(skin->vertexSkiningArray));
-                    }
-                    if (skin->vertexSkiningArray.size() != mesh->vertices->Count())
+                    if (mesh->skin->vertexSkiningArray.size() != mesh->vertices->Count())
                     {
                         throw;
                     }
 
-                    if (gltfSkin.skeleton.has_value())
-                    {
-                        skin->root = m_nodes[gltfSkin.skeleton.value()]->Parent();
-                    }
-
-                    mesh->skin = skin;
+                    LOGD << mesh->vertices->Count() << "vertices";
                 }
 
                 node->Mesh(mesh);
