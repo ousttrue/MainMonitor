@@ -21,5 +21,5 @@ public:
     ~Renderer();
     void OnFrame(void *hwnd, const screenstate::ScreenState &state);
     hierarchy::Scene *GetScene();
-    void log(const char *msg);
+    void Log(const char *msg);
 };

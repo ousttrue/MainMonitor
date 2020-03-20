@@ -62,7 +62,7 @@ public:
         m_camera->zNear = 0.01f;
     }
 
-    void log(const char *msg)
+    void Log(const char *msg)
     {
         if (m_imgui)
         {
@@ -390,7 +390,7 @@ hierarchy::Scene *Renderer::GetScene()
     return m_impl->Scene().get();
 }
 
-void Renderer::log(const char *msg)
+void Renderer::Log(const char *msg)
 {
-    m_impl->log(msg);
+    m_impl->Log(msg);
 }

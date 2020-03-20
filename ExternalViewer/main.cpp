@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 
     static plog::MyAppender<plog::MyFormatter> imGuiAppender;
     Renderer renderer(65);
-    imGuiAppender.onWrite(std::bind(&Renderer::log, &renderer, std::placeholders::_1));
+    imGuiAppender.onWrite(std::bind(&Renderer::Log, &renderer, std::placeholders::_1));
 
     plog::init(plog::debug, &consoleAppender).addAppender(&imGuiAppender);
     YAP::Init(2, 4, 2048, 16);
