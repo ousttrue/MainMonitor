@@ -28,6 +28,7 @@ public:
     void Remove(ID3D12Resource *resource);
 
     void BeginFrame(const screenstate::ScreenState &state);
+    bool View(const screenstate::ScreenState &state, size_t textureID, screenstate::ScreenState *viewState);
     bool Update(hierarchy::Scene *scene, float clearColor[4]);
     void EndFrame(const ComPtr<ID3D12GraphicsCommandList> &commandList);
 
