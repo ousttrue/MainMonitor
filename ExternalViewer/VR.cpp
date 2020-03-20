@@ -169,6 +169,7 @@ void VR::OnFrame(hierarchy::Scene *scene)
             auto data = task->RenderModel();
             auto vertexStride = (int)sizeof(data->rVertexData[0]);
             auto indexStride = (int)sizeof(data->rIndexData[0]);
+            auto indexCount = data->unTriangleCount * 3;
 
             auto mesh = hierarchy::SceneMesh::Create();
             mesh->vertices = hierarchy::VertexBuffer::CreateStatic(
@@ -176,7 +177,7 @@ void VR::OnFrame(hierarchy::Scene *scene)
                 data->rVertexData, data->unVertexCount * vertexStride);
             mesh->indices = hierarchy::VertexBuffer::CreateStatic(
                 hierarchy::Semantics::Index, indexStride,
-                data->rIndexData, data->unTriangleCount * indexStride);
+                data->rIndexData, indexCount * indexStride);
 
             auto texture = task->Texture();
 
@@ -187,8 +188,7 @@ void VR::OnFrame(hierarchy::Scene *scene)
             material->colorImage = image;
 
             mesh->submeshes.push_back({
-                // .draw_offset = 0,
-                .draw_count = data->unTriangleCount,
+                .draw_count = indexCount,
                 .material = material,
             });
 
