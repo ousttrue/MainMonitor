@@ -9,6 +9,7 @@ add_executable(${TARGET_NAME}
     Gizmo.cpp
     Gui.cpp
     metrics_gui.cpp
+    Application.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20
