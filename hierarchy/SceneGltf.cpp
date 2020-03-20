@@ -10,9 +10,10 @@
 #include <gltfformat/glb.h>
 #include <gltfformat/bin.h>
 #include <Windows.h>
+#include <plog/Log.h>
 
 #define YAP_ENABLE
-#define YAP_IMPL  //  in one cpp before .h inclusion
+#define YAP_IMPL //  in one cpp before .h inclusion
 // #define YAP_IMGUI // if you want Ocornut's ImGui
 #include <YAP.h>
 
@@ -85,107 +86,14 @@ SceneNodePtr SceneGltf::LoadFromPath(const std::wstring &path)
     return LoadGlbBytes(bytes.data(), (int)bytes.size());
 }
 
-SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
+class GltfLoader
 {
-    gltfformat::glb glb;
-    if (!glb.load(bytes, byteLength))
-    {
-        return nullptr;
-    }
+    const gltfformat::glTF &m_gltf;
+    gltfformat::bin m_bin;
 
-    auto gltf = ::ParseGltf(glb.json.p, glb.json.size);
-
-    gltfformat::bin bin(gltf, glb.bin.p, glb.bin.size);
-
-    // build scene
-    std::vector<SceneImagePtr> images;
-    images.reserve(gltf.images.size());
-    for (auto &gltfImage : gltf.images)
-    {
-        auto &bufferView = gltf.bufferViews[gltfImage.bufferView.value()];
-        auto bytes = bin.get_bytes(bufferView);
-
-        // TO_PNG
-        auto image = SceneImage::Load(bytes.p, bytes.size);
-        image->name = ToUnicode(gltfImage.name, CP_UTF8);
-        images.push_back(image);
-    }
-
-    std::vector<SceneMaterialPtr> materials;
-    materials.reserve(gltf.materials.size());
-    for (auto &gltfMaterial : gltf.materials)
-    {
-        auto material = SceneMaterial::Create();
-        material->shader = ShaderManager::Instance().get("gltf_standard");
-        if (gltfMaterial.pbrMetallicRoughness.has_value())
-        {
-            auto &pbr = gltfMaterial.pbrMetallicRoughness.value();
-            if (pbr.baseColorTexture.has_value())
-            {
-                auto &gltfTexture = gltf.textures[pbr.baseColorTexture.value().index.value()];
-                auto image = images[gltfTexture.source.value()];
-                material->colorImage = image;
-            }
-
-            //material->SetColor(pbr.baseColorFactor.value());
-        }
-        material->name = gltfMaterial.name;
-
-        materials.push_back(material);
-    }
-
-    std::vector<SceneNodePtr> nodes;
-    int i = 0;
-    for (auto &gltfNode : gltf.nodes)
-    {
-        auto name = gltfNode.name;
-        if (name.empty())
-        {
-            std::stringstream ss;
-            ss << "node#" << i;
-            name = ss.str();
-        }
-        auto node = SceneNode::Create(name);
-
-        if (gltfNode.matrix.size() == 16)
-        {
-            auto trs = falg::RowMatrixDecompose(falg::vector_cast<falg::float16>(gltfNode.matrix));
-            node->Local(trs.transform);
-
-            // throw("not implemented");
-            auto length = falg::Length(node->Local().rotation);
-            auto delta = abs(1 - length);
-            if (delta > 1e-5f)
-            {
-                throw;
-            }
-        }
-        else
-        {
-            if (gltfNode.translation.size() == 3)
-            {
-                node->Local().translation = falg::vector_cast<falg::float3>(gltfNode.translation);
-            }
-            if (gltfNode.rotation.size() == 4)
-            {
-                node->Local().rotation = falg::vector_cast<falg::float4>(gltfNode.rotation);
-                auto length = falg::Length(node->Local().rotation);
-                auto delta = abs(1 - length);
-                if (delta > 1e-5f)
-                {
-                    throw;
-                }
-            }
-            if (gltfNode.scale.size() == 3)
-            {
-                // node->TRS.scale = falg::vector_cast<falg::float3>(gltfNode.scale);
-                // throw("not implemented");
-            }
-        }
-        // node->EnableGizmo(true);
-        nodes.push_back(node);
-        ++i;
-    }
+    std::vector<SceneImagePtr> m_images;
+    std::vector<SceneMaterialPtr> m_materials;
+    std::vector<SceneNodePtr> m_nodes;
 
     struct GltfPrimitive
     {
@@ -196,208 +104,347 @@ SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
     {
         std::vector<GltfPrimitive> primitives;
     };
-    std::vector<std::shared_ptr<GltfMeshGroup>> groups;
-    groups.reserve(gltf.meshes.size());
-    for (auto &gltfMesh : gltf.meshes)
+    std::vector<std::shared_ptr<GltfMeshGroup>> m_meshes;
+
+public:
+    GltfLoader(const gltfformat::glTF &gltf, const uint8_t *p, int size)
+        : m_gltf(gltf), m_bin(gltf, p, size)
     {
-        auto group = std::make_shared<GltfMeshGroup>();
-        groups.push_back(group);
-        for (auto &gltfPrimitive : gltfMesh.primitives)
+    }
+
+    void LoadImages()
+    {
+        m_images.reserve(m_gltf.images.size());
+        for (auto &gltfImage : m_gltf.images)
         {
-            auto mesh = SceneMesh::Create();
-            mesh->name = ToUnicode(gltfMesh.name, CP_UTF8);
-            group->primitives.push_back({});
-            auto &primitive = group->primitives.back();
-            primitive.mesh = mesh;
+            auto &bufferView = m_gltf.bufferViews[gltfImage.bufferView.value()];
+            auto bytes = m_bin.get_bytes(bufferView);
 
-            std::vector<GltfVertex> vertices;
-            for (auto [k, v] : gltfPrimitive.attributes)
+            // TO_PNG
+            auto image = SceneImage::Load(bytes.p, bytes.size);
+            image->name = ToUnicode(gltfImage.name, CP_UTF8);
+            m_images.push_back(image);
+        }
+    }
+
+    void LoadMaterials()
+    {
+        m_materials.reserve(m_gltf.materials.size());
+        for (auto &gltfMaterial : m_gltf.materials)
+        {
+            auto material = SceneMaterial::Create();
+            material->shader = ShaderManager::Instance().get("gltf_standard");
+            if (gltfMaterial.pbrMetallicRoughness.has_value())
             {
-                auto accessor = gltf.accessors[v];
-                auto [p, size] = bin.get_bytes(accessor);
-                auto count = accessor.count.value();
-                vertices.resize(count);
-                if (k == "POSITION")
+                auto &pbr = gltfMaterial.pbrMetallicRoughness.value();
+                if (pbr.baseColorTexture.has_value())
                 {
-                    for (auto i = 0; i < count; ++i, p += 12)
-                    {
-                        vertices[i].position = *(falg::float3 *)p;
-                    }
+                    auto &gltfTexture = m_gltf.textures[pbr.baseColorTexture.value().index.value()];
+                    auto image = m_images[gltfTexture.source.value()];
+                    material->colorImage = image;
                 }
-                else if (k == "NORMAL")
-                {
-                    for (auto i = 0; i < count; ++i, p += 12)
-                    {
-                        vertices[i].normal = *(falg::float3 *)p;
-                    }
-                }
-                else if (k == "TEXCOORD_0")
-                {
-                    for (auto i = 0; i < count; ++i, p += 8)
-                    {
-                        vertices[i].uv = *(falg::float2 *)p;
-                    }
-                }
-                else if (k == "JOINTS_0")
-                {
-                    primitive.skining.resize(count);
-                    switch (accessor.componentType.value())
-                    {
-                    case gltfformat::AccessorComponentType::BYTE:
-                    {
-                        for (auto i = 0; i < count; ++i, p += 4)
-                        {
-                            auto &joints = *(std::array<uint8_t, 4> *)p;
-                            primitive.skining[i].joints[0] = joints[0];
-                            primitive.skining[i].joints[1] = joints[1];
-                            primitive.skining[i].joints[2] = joints[2];
-                            primitive.skining[i].joints[3] = joints[3];
-                        }
-                        break;
-                    }
 
-                    case gltfformat::AccessorComponentType::UNSIGNED_SHORT:
+                //material->SetColor(pbr.baseColorFactor.value());
+            }
+            material->name = gltfMaterial.name;
+
+            m_materials.push_back(material);
+        }
+    }
+
+    void LoadNodes()
+    {
+        int i = 0;
+        m_nodes.reserve(m_gltf.nodes.size());
+        for (auto &gltfNode : m_gltf.nodes)
+        {
+            auto name = gltfNode.name;
+            if (name.empty())
+            {
+                std::stringstream ss;
+                ss << "node#" << i;
+                name = ss.str();
+            }
+            auto node = SceneNode::Create(name);
+
+            if (gltfNode.matrix.size() == 16)
+            {
+                auto trs = falg::RowMatrixDecompose(falg::vector_cast<falg::float16>(gltfNode.matrix));
+                node->Local(trs.transform);
+
+                // throw("not implemented");
+                auto length = falg::Length(node->Local().rotation);
+                auto delta = abs(1 - length);
+                if (delta > 1e-5f)
+                {
+                    throw;
+                }
+            }
+            else
+            {
+                if (gltfNode.translation.size() == 3)
+                {
+                    node->Local().translation = falg::vector_cast<falg::float3>(gltfNode.translation);
+                }
+                if (gltfNode.rotation.size() == 4)
+                {
+                    node->Local().rotation = falg::vector_cast<falg::float4>(gltfNode.rotation);
+                    auto length = falg::Length(node->Local().rotation);
+                    auto delta = abs(1 - length);
+                    if (delta > 1e-5f)
+                    {
+                        throw;
+                    }
+                }
+                if (gltfNode.scale.size() == 3)
+                {
+                    // node->TRS.scale = falg::vector_cast<falg::float3>(gltfNode.scale);
+                    // throw("not implemented");
+                }
+            }
+            // node->EnableGizmo(true);
+            m_nodes.push_back(node);
+            ++i;
+        }
+    }
+
+    void LoadMeshes()
+    {
+        m_meshes.reserve(m_gltf.meshes.size());
+        for (auto &gltfMesh : m_gltf.meshes)
+        {
+            auto group = std::make_shared<GltfMeshGroup>();
+            m_meshes.push_back(group);
+            for (auto &gltfPrimitive : gltfMesh.primitives)
+            {
+                auto mesh = SceneMesh::Create();
+                mesh->name = ToUnicode(gltfMesh.name, CP_UTF8);
+                group->primitives.push_back({});
+                auto &primitive = group->primitives.back();
+                primitive.mesh = mesh;
+
+                std::vector<GltfVertex> vertices;
+                for (auto [k, v] : gltfPrimitive.attributes)
+                {
+                    auto accessor = m_gltf.accessors[v];
+                    auto [p, size] = m_bin.get_bytes(accessor);
+                    auto count = accessor.count.value();
+                    vertices.resize(count);
+                    if (k == "POSITION")
+                    {
+                        for (auto i = 0; i < count; ++i, p += 12)
+                        {
+                            vertices[i].position = *(falg::float3 *)p;
+                        }
+                    }
+                    else if (k == "NORMAL")
+                    {
+                        for (auto i = 0; i < count; ++i, p += 12)
+                        {
+                            vertices[i].normal = *(falg::float3 *)p;
+                        }
+                    }
+                    else if (k == "TEXCOORD_0")
                     {
                         for (auto i = 0; i < count; ++i, p += 8)
                         {
-                            primitive.skining[i].joints = *(std::array<uint16_t, 4> *)p;
+                            vertices[i].uv = *(falg::float2 *)p;
                         }
                     }
-                    break;
+                    else if (k == "JOINTS_0")
+                    {
+                        primitive.skining.resize(count);
+                        switch (accessor.componentType.value())
+                        {
+                        case gltfformat::AccessorComponentType::BYTE:
+                        {
+                            for (auto i = 0; i < count; ++i, p += 4)
+                            {
+                                auto &joints = *(std::array<uint8_t, 4> *)p;
+                                primitive.skining[i].joints[0] = joints[0];
+                                primitive.skining[i].joints[1] = joints[1];
+                                primitive.skining[i].joints[2] = joints[2];
+                                primitive.skining[i].joints[3] = joints[3];
+                            }
+                            break;
+                        }
+
+                        case gltfformat::AccessorComponentType::UNSIGNED_SHORT:
+                        {
+                            for (auto i = 0; i < count; ++i, p += 8)
+                            {
+                                primitive.skining[i].joints = *(std::array<uint16_t, 4> *)p;
+                            }
+                        }
+                        break;
+
+                        default:
+                            throw;
+                        }
+                    }
+                    else if (k == "WEIGHTS_0")
+                    {
+                        for (auto i = 0; i < count; ++i, p += 16)
+                        {
+                            primitive.skining[i].weights = *(std::array<float, 4> *)p;
+                        }
+                    }
+                    else if (k == "TANGENT")
+                    {
+                        // do nothing
+                    }
+                    else
+                    {
+                        auto a = 0;
+                    }
+                }
+                mesh->vertices = VertexBuffer::CreateStatic(
+                    Semantics::Vertex,
+                    sizeof(GltfVertex), vertices.data(), (uint32_t)(vertices.size() * sizeof(GltfVertex)));
+
+                if (gltfPrimitive.material.has_value())
+                {
+                    auto index = gltfPrimitive.indices.value();
+                    auto accessor = m_gltf.accessors[index];
+                    auto [p, size] = m_bin.get_bytes(accessor);
+                    int stride = 0;
+                    switch (accessor.componentType.value())
+                    {
+                    case gltfformat::AccessorComponentType::UNSIGNED_SHORT:
+                    case gltfformat::AccessorComponentType::SHORT:
+                        stride = 2;
+                        break;
+
+                    case gltfformat::AccessorComponentType::UNSIGNED_INT:
+                        stride = 4;
+                        break;
 
                     default:
                         throw;
                     }
+                    mesh->indices = VertexBuffer::CreateStatic(
+                        Semantics::Index, stride, p, size);
+
+                    auto material = m_materials[gltfPrimitive.material.value()];
+                    mesh->submeshes.push_back({
+                        // .draw_offset = 0,
+                        .draw_count = (uint32_t)accessor.count.value(),
+                        .material = material,
+                    });
                 }
-                else if (k == "WEIGHTS_0")
+                else
                 {
-                    for (auto i = 0; i < count; ++i, p += 16)
+                    throw "not indices";
+                }
+            }
+
+            LOGD << group->primitives[0].mesh->vertices->Count() << "vertices";
+        }
+    }
+
+    void BuildHierarchy()
+    {
+        // build node hierarchy
+        for (int i = 0; i < m_nodes.size(); ++i)
+        {
+            auto &gltfNode = m_gltf.nodes[i];
+            auto node = m_nodes[i];
+            if (gltfNode.mesh.has_value())
+            {
+                hierarchy::SceneMeshPtr mesh;
+                for (auto &primitive : m_meshes[gltfNode.mesh.value()]->primitives)
+                {
+                    if (!mesh)
                     {
-                        primitive.skining[i].weights = *(std::array<float, 4> *)p;
+                        mesh = primitive.mesh;
+                    }
+                    else
+                    {
+                        mesh->AddSubmesh(primitive.mesh);
                     }
                 }
-                else if (k == "TANGENT")
-                {
-                    // do nothing
-                }
-                else
-                {
-                    auto a = 0;
-                }
-            }
-            mesh->vertices = VertexBuffer::CreateStatic(
-                Semantics::Vertex,
-                sizeof(GltfVertex), vertices.data(), (uint32_t)(vertices.size() * sizeof(GltfVertex)));
 
-            if (gltfPrimitive.material.has_value())
+                if (gltfNode.skin.has_value())
+                {
+                    auto &gltfSkin = m_gltf.skins[gltfNode.skin.value()];
+                    auto skin = std::make_shared<SceneMeshSkin>();
+                    for (auto j : gltfSkin.joints)
+                    {
+                        skin->joints.push_back(m_nodes[j]);
+                    }
+                    if (gltfSkin.inverseBindMatrices.has_value())
+                    {
+                        auto accessor = m_gltf.accessors[gltfSkin.inverseBindMatrices.value()];
+                        auto [p, size] = m_bin.get_bytes(accessor);
+                        skin->inverseBindMatrices.assign((std::array<float, 16> *)p, (std::array<float, 16> *)(p + size));
+                    }
+
+                    for (auto &primitive : m_meshes[gltfNode.mesh.value()]->primitives)
+                    {
+                        std::copy(primitive.skining.begin(), primitive.skining.end(), std::back_inserter(skin->vertexSkiningArray));
+                    }
+                    if (skin->vertexSkiningArray.size() != mesh->vertices->Count())
+                    {
+                        throw;
+                    }
+
+                    if (gltfSkin.skeleton.has_value())
+                    {
+                        skin->root = m_nodes[gltfSkin.skeleton.value()]->Parent();
+                    }
+
+                    mesh->skin = skin;
+                }
+
+                node->Mesh(mesh);
+            }
+            for (auto child : gltfNode.children)
             {
-                auto index = gltfPrimitive.indices.value();
-                auto accessor = gltf.accessors[index];
-                auto [p, size] = bin.get_bytes(accessor);
-                int stride = 0;
-                switch (accessor.componentType.value())
-                {
-                case gltfformat::AccessorComponentType::UNSIGNED_SHORT:
-                case gltfformat::AccessorComponentType::SHORT:
-                    stride = 2;
-                    break;
-
-                case gltfformat::AccessorComponentType::UNSIGNED_INT:
-                    stride = 4;
-                    break;
-
-                default:
-                    throw;
-                }
-                mesh->indices = VertexBuffer::CreateStatic(
-                    Semantics::Index, stride, p, size);
-
-                auto material = materials[gltfPrimitive.material.value()];
-                mesh->submeshes.push_back({
-                    // .draw_offset = 0,
-                    .draw_count = (uint32_t)accessor.count.value(),
-                    .material = material,
-                });
+                auto childNode = m_nodes[child];
+                node->AddChild(childNode);
             }
-            else
-            {
-                throw "not indices";
-            }
-        }
-    } // namespace hierarchy
-
-    // build node hierarchy
-    for (int i = 0; i < nodes.size(); ++i)
-    {
-        auto &gltfNode = gltf.nodes[i];
-        auto node = nodes[i];
-        if (gltfNode.mesh.has_value())
-        {
-            hierarchy::SceneMeshPtr mesh;
-            for (auto &primitive : groups[gltfNode.mesh.value()]->primitives)
-            {
-                if (!mesh)
-                {
-                    mesh = primitive.mesh;
-                }
-                else
-                {
-                    mesh->AddSubmesh(primitive.mesh);
-                }
-            }
-
-            if (gltfNode.skin.has_value())
-            {
-                auto &gltfSkin = gltf.skins[gltfNode.skin.value()];
-                auto skin = std::make_shared<SceneMeshSkin>();
-                for (auto j : gltfSkin.joints)
-                {
-                    skin->joints.push_back(nodes[j]);
-                }
-                if (gltfSkin.inverseBindMatrices.has_value())
-                {
-                    auto accessor = gltf.accessors[gltfSkin.inverseBindMatrices.value()];
-                    auto [p, size] = bin.get_bytes(accessor);
-                    skin->inverseBindMatrices.assign((std::array<float, 16> *)p, (std::array<float, 16> *)(p + size));
-                }
-
-                for (auto &primitive : groups[gltfNode.mesh.value()]->primitives)
-                {
-                    std::copy(primitive.skining.begin(), primitive.skining.end(), std::back_inserter(skin->vertexSkiningArray));
-                }
-                if (skin->vertexSkiningArray.size() != mesh->vertices->Count())
-                {
-                    throw;
-                }
-
-                if (gltfSkin.skeleton.has_value())
-                {                    
-                    skin->root = nodes[gltfSkin.skeleton.value()]->Parent();
-                }
-
-                mesh->skin = skin;
-            }
-
-            node->Mesh(mesh);
-        }
-        for (auto child : gltfNode.children)
-        {
-            auto childNode = nodes[child];
-            node->AddChild(childNode);
         }
     }
 
-    auto root = SceneNode::Create("gltf");
-    for (auto node : nodes)
+    SceneNodePtr CreateRoot()
     {
-        if (!node->Parent())
+        auto root = SceneNode::Create("gltf");
+        for (auto node : m_nodes)
         {
-            root->AddChild(node);
+            if (!node->Parent())
+            {
+                root->AddChild(node);
+            }
         }
-    }
-    root->UpdateWorld();
+        root->UpdateWorld();
 
-    return root;
-} // namespace hierarchy
+        return root;
+    }
+
+    SceneNodePtr Load()
+    {
+        LoadImages();
+        LoadMaterials();
+        LoadNodes();
+        LoadMeshes();
+        BuildHierarchy();
+        return CreateRoot();
+    }
+};
+
+SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
+{
+    gltfformat::glb glb;
+    if (!glb.load(bytes, byteLength))
+    {
+        return nullptr;
+    }
+
+    auto gltf = ::ParseGltf(glb.json.p, glb.json.size);
+
+    GltfLoader loader(gltf, glb.bin.p, glb.bin.size);
+
+    return loader.Load();
+}
 
 } // namespace hierarchy
