@@ -11,6 +11,7 @@ add_library(${TARGET_NAME}
     SceneGltf.cpp
     SceneMeshSkin.cpp
     VertexBuffer.cpp
+    DrawList.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

@@ -183,11 +183,13 @@ class ApplicationImpl
 
     VR m_vr;
     hierarchy::Scene m_scene;
+    hierarchy::DrawList m_drawlist;
 
     Renderer m_renderer;
 
     Gui m_imgui;
     View m_view;
+    gizmesh::GizmoSystem::Buffer m_gizmoBuffer;
 
     bool m_initialized = false;
 
@@ -245,6 +247,7 @@ public:
             YAP::ScopedSection(VR);
             m_vr.OnFrame(&m_scene);
         }
+        YAP::ScopedSection(Render);
 
         // imgui
         m_imgui.BeginFrame(state);
@@ -263,11 +266,44 @@ public:
         if (isShowView)
         {
             auto buffer = m_view.GizmoBuffer();
-            m_renderer.UpdateViewResource(viewState, m_view.Camera(), m_view.GizmoMesh(), buffer);
+            m_renderer.UpdateViewResource(viewState, m_view.Camera());
         }
-        YAP::ScopedSection(Render);
-        m_renderer.OnFrame(hwnd, state, &m_scene,
-                           m_view.GizmoNodeID(), m_view.GizmoMesh());
+
+        m_drawlist.Clear();
+        int rootCount;
+        auto roots = m_scene.GetRootNodes(&rootCount);
+        for (int i = 0; i < rootCount; ++i)
+        {
+            auto root = roots[i];
+            root->UpdateWorld();
+            m_drawlist.Traverse(root);
+        }
+
+        // gizmo
+        m_drawlist.Nodes.push_back({.NodeID = m_view.GizmoNodeID(),
+                                    .WorldMatrix = {
+                                        1, 0, 0, 0, //
+                                        0, 1, 0, 0, //
+                                        0, 0, 1, 0, //
+                                        0, 0, 0, 1, //
+                                    }});
+        m_gizmoBuffer = m_view.GizmoBuffer();
+        m_drawlist.Meshes.push_back({
+            .NodeID = m_view.GizmoNodeID(),
+            .Mesh = m_view.GizmoMesh(),
+            .Vertices = {
+                .Ptr = m_gizmoBuffer.pVertices,
+                .Bytes = m_gizmoBuffer.verticesBytes,
+                .Stride = m_gizmoBuffer.vertexStride,
+            },
+            .Indices = {
+                .Ptr = m_gizmoBuffer.pIndices,
+                .Bytes = m_gizmoBuffer.indicesBytes,
+                .Stride = m_gizmoBuffer.indexStride,
+            },
+        });
+
+        m_renderer.OnFrame(hwnd, state, &m_drawlist);
     }
 };
 

@@ -2,7 +2,7 @@
 #include "ImGuiDX12.h"
 #include <d12util.h>
 #include <OrbitCamera.h>
-#include <hierarchy.h>
+#include <DrawList.h>
 
 #include <plog/Log.h>
 #include <imgui.h>
@@ -76,8 +76,8 @@ public:
         m_imguiDX12.Initialize(m_device.Get(), BACKBUFFER_COUNT);
     }
 
-    void OnFrame(HWND hwnd, const screenstate::ScreenState &state, hierarchy::Scene *scene,
-                 int gizmoNodeID, const hierarchy::SceneMeshPtr &mesh)
+    void OnFrame(HWND hwnd, const screenstate::ScreenState &state,
+                 hierarchy::DrawList *drawlist)
     {
         auto viewRenderTarget = m_sceneMapper->GetOrCreate(m_sceneView);
 
@@ -86,15 +86,14 @@ public:
 
             // d3d
             UpdateBackbuffer(state, hwnd);
-            UpdateNodeConstants(scene);
+            UpdateNodes(drawlist);
             m_sceneMapper->Update(m_device);
             m_rootSignature->Update(m_device);
         }
         {
             YAP::ScopedSection(Draw);
-            Draw(viewRenderTarget, scene, gizmoNodeID, mesh);
+            Draw(viewRenderTarget, drawlist);
         }
-        // m_lastState = state;
     }
 
     size_t ViewTextureID()
@@ -105,12 +104,10 @@ public:
         return texture;
     }
 
-    void UpdateViewResource(const screenstate::ScreenState &viewState, const OrbitCamera *camera,
-                            const hierarchy::SceneMeshPtr &gizmoMesh, const gizmesh::GizmoSystem::Buffer &buffer)
+    void UpdateViewResource(const screenstate::ScreenState &viewState, const OrbitCamera *camera                            )
     {
         auto viewRenderTarget = m_sceneMapper->GetOrCreate(m_sceneView);
         Update3DViewResource(viewRenderTarget, viewState, camera);
-        UpdateGizmoMesh(gizmoMesh, buffer);
     }
 
 private:
@@ -161,54 +158,34 @@ private:
         }
     }
 
-    void UpdateGizmoMesh(const hierarchy::SceneMeshPtr &gizmoMesh, const gizmesh::GizmoSystem::Buffer &buffer)
+    void UpdateNodes(hierarchy::DrawList *drawlist)
     {
-        auto drawable = m_sceneMapper->GetOrCreate(m_device, gizmoMesh, m_rootSignature.get());
-        drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
-        drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
-    }
-
-    void UpdateNodeConstants(hierarchy::Scene *scene)
-    {
-        int nodeCount;
-        auto nodes = scene->GetRootNodes(&nodeCount);
-        for (int i = 0; i < nodeCount; ++i)
+        // nodes
+        for (auto &drawNode : drawlist->Nodes)
         {
-            auto root = nodes[i];
-            root->UpdateWorld();
-            UpdateNode(root);
+            m_rootSignature->GetNodeConstantsBuffer(drawNode.NodeID)->b1World = drawNode.WorldMatrix;
         }
         m_rootSignature->UploadNodeConstantsBuffer();
-    }
 
-    void
-    UpdateNode(const hierarchy::SceneNodePtr &node)
-    {
-        // auto current = node->Local() * parent;
-        m_rootSignature->GetNodeConstantsBuffer(node->ID())->b1World = node->World().RowMatrix();
-
-        auto mesh = node->Mesh();
-        if (mesh)
+        // skins
+        for (auto &drawMesh : drawlist->Meshes)
         {
+            auto mesh = drawMesh.Mesh;
             auto skin = mesh->skin;
+            auto drawable = m_sceneMapper->GetOrCreate(m_device, drawMesh.Mesh, nullptr);
             if (skin)
             {
-                // skining matrix
-                auto &vertices = mesh->vertices;
-                skin->Update(vertices->buffer.data(), vertices->stride, vertices->Count());
-                auto drawable = m_sceneMapper->GetOrCreate(m_device, mesh, nullptr);
-                if (drawable)
-                {
-                    drawable->VertexBuffer()->MapCopyUnmap(skin->cpuSkiningBuffer.data(), (uint32_t)skin->cpuSkiningBuffer.size(), mesh->vertices->stride);
-                }
+                drawable->VertexBuffer()->MapCopyUnmap(
+                    skin->cpuSkiningBuffer.data(), (uint32_t)skin->cpuSkiningBuffer.size(), mesh->vertices->stride);
             }
-        }
-
-        int childCount;
-        auto children = node->GetChildren(&childCount);
-        for (int i = 0; i < childCount; ++i)
-        {
-            UpdateNode(children[i]);
+            if (drawMesh.Vertices.Ptr)
+            {
+                drawable->VertexBuffer()->MapCopyUnmap(drawMesh.Vertices.Ptr, drawMesh.Vertices.Bytes, drawMesh.Vertices.Stride);
+            }
+            if (drawMesh.Indices.Ptr)
+            {
+                drawable->IndexBuffer()->MapCopyUnmap(drawMesh.Indices.Ptr, drawMesh.Indices.Bytes, drawMesh.Indices.Stride);
+            }
         }
     }
 
@@ -216,8 +193,7 @@ private:
     // command
     //
     void Draw(const std::shared_ptr<RenderTargetChain> &viewRenderTarget,
-              const hierarchy::Scene *scene,
-              int gizmoNodeID, const hierarchy::SceneMeshPtr &gizmoMesh)
+              const hierarchy::DrawList *drawlist)
     {
         // new frame
         m_commandlist->Reset(nullptr);
@@ -233,18 +209,10 @@ private:
             // global settings
             m_rootSignature->Begin(commandList);
 
-            // model
-            int nodeCount;
-            auto nodes = scene->GetRootNodes(&nodeCount);
-            for (int i = 0; i < nodeCount; ++i)
+            for (auto &drawMesh : drawlist->Meshes)
             {
-                DrawNode(commandList, nodes[i]);
-            }
-
-            // gizmo: draw
-            {
-                m_rootSignature->SetNodeDescriptorTable(commandList, gizmoNodeID);
-                DrawMesh(commandList, gizmoMesh);
+                m_rootSignature->SetNodeDescriptorTable(commandList, drawMesh.NodeID);
+                DrawMesh(commandList, drawMesh.Mesh);
             }
 
             viewRenderTarget->End(frameIndex, commandList);
@@ -263,24 +231,6 @@ private:
         m_queue->Execute(commandList);
         m_swapchain->Present();
         m_queue->SyncFence(callbacks);
-    }
-
-    void DrawNode(const ComPtr<ID3D12GraphicsCommandList> &commandList, const hierarchy::SceneNodePtr &node)
-    {
-        m_rootSignature->SetNodeDescriptorTable(commandList, node->ID());
-
-        auto mesh = node->Mesh();
-        if (mesh)
-        {
-            DrawMesh(commandList, mesh);
-        }
-
-        int childCount;
-        auto children = node->GetChildren(&childCount);
-        for (int i = 0; i < childCount; ++i)
-        {
-            DrawNode(commandList, children[i]);
-        }
     }
 
     void DrawMesh(const ComPtr<ID3D12GraphicsCommandList> &commandList, const hierarchy::SceneMeshPtr &mesh)
@@ -344,10 +294,9 @@ void Renderer::Initialize(void *hwnd)
     m_impl->Initialize((HWND)hwnd);
 }
 
-void Renderer::OnFrame(void *hwnd, const screenstate::ScreenState &state, hierarchy::Scene *scene,
-                       int gizmoNodeID, const hierarchy::SceneMeshPtr &mesh)
+void Renderer::OnFrame(void *hwnd, const screenstate::ScreenState &state, hierarchy::DrawList *drawlist)
 {
-    m_impl->OnFrame((HWND)hwnd, state, scene, gizmoNodeID, mesh);
+    m_impl->OnFrame((HWND)hwnd, state, drawlist);
 }
 
 size_t Renderer::ViewTextureID()
@@ -355,8 +304,7 @@ size_t Renderer::ViewTextureID()
     return m_impl->ViewTextureID();
 }
 
-void Renderer::UpdateViewResource(const screenstate::ScreenState &viewState, const OrbitCamera *camera,
-                                  const hierarchy::SceneMeshPtr &gizmoMesh, const gizmesh::GizmoSystem::Buffer &buffer)
+void Renderer::UpdateViewResource(const screenstate::ScreenState &viewState, const OrbitCamera *camera)
 {
-    m_impl->UpdateViewResource(viewState, camera, gizmoMesh, buffer);
+    m_impl->UpdateViewResource(viewState, camera);
 }
