@@ -456,7 +456,6 @@ void Gui::BeginFrame(const screenstate::ScreenState &state)
     DockSpace();
 }
 
-
 void Gui::Log(const char *msg)
 {
     m_logger->AddLog(msg);
@@ -609,13 +608,14 @@ bool Gui::View(const screenstate::ScreenState &state, size_t textureID, screenst
             viewState->Unset(screenstate::MouseButtonFlags::WheelMinus);
             viewState->Unset(screenstate::MouseButtonFlags::WheelPlus);
         }
+
         if (ImGui::IsItemActive())
         {
             // LOGD << "active";
         }
         else
         {
-            viewState->Unset(screenstate::MouseButtonFlags::LeftDown);
+            // viewState->Unset(screenstate::MouseButtonFlags::LeftDown);
             viewState->Unset(screenstate::MouseButtonFlags::RightDown);
             viewState->Unset(screenstate::MouseButtonFlags::MiddleDown);
         }

@@ -101,23 +101,32 @@ public:
                 0, 0, 1, 0,
                 0, 0, 0, 1};
         }
-
         {
             YAP::ScopedSection(Update);
-            Update(hwnd, state, scene);
+
+            // imgui
+            m_imgui.BeginFrame(state);
+            m_imgui.Update(scene, m_clearColor);
+
+            // view
+            Update3DView(state);
+
+            // d3d
+            UpdateBackbuffer(state, hwnd);
+            UpdateNodeConstants(scene);
+            m_sceneMapper->Update(m_device);
+            m_rootSignature->Update(m_device);
         }
         {
             YAP::ScopedSection(Draw);
             Draw(state, scene);
         }
+        m_lastState = state;
     }
 
 private:
-    void Update(HWND hwnd, const screenstate::ScreenState &state, hierarchy::Scene *scene)
+    void UpdateBackbuffer(const screenstate::ScreenState &state, HWND hwnd)
     {
-        m_sceneMapper->Update(m_device);
-
-        // update
         if (m_lastState.Width != state.Width || m_lastState.Height != state.Height)
         {
             // recreate swapchain
@@ -127,9 +136,10 @@ private:
                                 hwnd, BACKBUFFER_COUNT, state.Width, state.Height);
             m_backbuffer->Initialize(m_swapchain->Get(), m_device, BACKBUFFER_COUNT);
         }
+    }
 
-        m_imgui.BeginFrame(state);
-
+    void Update3DView(const screenstate::ScreenState &state)
+    {
         // 3d view
         auto resource = m_view->Resource(m_swapchain->CurrentFrameIndex());
         // if (resource)
@@ -179,11 +189,30 @@ private:
                     }
                     m_view->Initialize(viewState.Width, viewState.Height, m_device, BACKBUFFER_COUNT);
                 }
+
+                m_gizmo.Begin(viewState, m_camera->state);
+                // auto selected = m_imgui.Selected();
+                if (selected)
+                {
+                    // if (selected->EnableGizmo())
+                    {
+                        auto parent = selected->Parent();
+                        m_gizmo.Transform(selected->ID(),
+                                          selected->Local(),
+                                          parent ? parent->World() : falg::Transform{});
+                    }
+                }
+                auto buffer = m_gizmo.End();
+
+                auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh(), m_rootSignature.get());
+                drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
+                drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
             }
         }
+    }
 
-        m_imgui.Update(scene, m_clearColor);
-
+    void UpdateNodeConstants(hierarchy::Scene *scene)
+    {
         int nodeCount;
         auto nodes = scene->GetRootNodes(&nodeCount);
         for (int i = 0; i < nodeCount; ++i)
@@ -192,33 +221,7 @@ private:
             root->UpdateWorld();
             UpdateNode(root);
         }
-
         m_rootSignature->UploadNodeConstantsBuffer();
-        m_lastState = state;
-
-        // gizmo: upload
-        {
-            m_gizmo.Begin(state, m_camera->state);
-            auto selected = m_imgui.Selected();
-            if (selected)
-            {
-                // if (selected->EnableGizmo())
-                {
-                    auto parent = selected->Parent();
-                    m_gizmo.Transform(selected->ID(),
-                                      selected->Local(),
-                                      parent ? parent->World() : falg::Transform{});
-                }
-            }
-            auto buffer = m_gizmo.End();
-
-            auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh(), m_rootSignature.get());
-            drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
-            drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
-        }
-
-        // shader udpate
-        m_rootSignature->Update(m_device);
     }
 
     void
