@@ -116,6 +116,7 @@ public:
                 if (m_imgui.View(state, texture, &viewState))
                 {
                     Update3DView(viewState, texture);
+                    Update3DViewResource(viewState);
                 }
             }
 
@@ -146,25 +147,8 @@ private:
         }
     }
 
-    void Update3DView(const screenstate::ScreenState &viewState, size_t texture)
+    void Update3DViewResource(const screenstate::ScreenState &viewState)
     {
-        // scene
-        auto selected = m_imgui.Selected();
-        if (selected != m_selected)
-        {
-            if (selected)
-            {
-                m_camera->gaze = -selected->World().translation;
-            }
-            else
-            {
-                // m_camera->gaze = {0, 0, 0};
-            }
-
-            m_selected = selected;
-        }
-        m_camera->Update(viewState);
-
         // resource
         {
             auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
@@ -190,8 +174,36 @@ private:
             m_view->Initialize(viewState.Width, viewState.Height, m_device, BACKBUFFER_COUNT);
         }
 
+        // gizmo
+        {
+            auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh(), m_rootSignature.get());
+            auto buffer = m_gizmo.End();
+            drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
+            drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
+        }
+    }
+
+    void Update3DView(const screenstate::ScreenState &viewState, size_t texture)
+    {
+        // scene
+        auto selected = m_imgui.Selected();
+        if (selected != m_selected)
+        {
+            if (selected)
+            {
+                m_camera->gaze = -selected->World().translation;
+            }
+            else
+            {
+                // m_camera->gaze = {0, 0, 0};
+            }
+
+            m_selected = selected;
+        }
+        m_camera->Update(viewState);
+
+        // gizmo
         m_gizmo.Begin(viewState, m_camera->state);
-        // auto selected = m_imgui.Selected();
         if (selected)
         {
             // if (selected->EnableGizmo())
@@ -202,11 +214,6 @@ private:
                                   parent ? parent->World() : falg::Transform{});
             }
         }
-        auto buffer = m_gizmo.End();
-
-        auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh(), m_rootSignature.get());
-        drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
-        drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
     }
 
     void UpdateNodeConstants(hierarchy::Scene *scene)
