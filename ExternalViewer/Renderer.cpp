@@ -109,7 +109,11 @@ public:
             m_imgui.Update(scene, m_clearColor);
 
             // view
-            Update3DView(state);
+            {
+                auto resource = m_view->Resource(m_swapchain->CurrentFrameIndex());
+                auto texture = resource ? m_imguiDX12.GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get()) : 0;
+                Update3DView(state, texture);
+            }
 
             // d3d
             UpdateBackbuffer(state, hwnd);
@@ -138,13 +142,11 @@ private:
         }
     }
 
-    void Update3DView(const screenstate::ScreenState &state)
+    void Update3DView(const screenstate::ScreenState &state, size_t texture)
     {
         // 3d view
-        auto resource = m_view->Resource(m_swapchain->CurrentFrameIndex());
         // if (resource)
         {
-            auto texture = resource ? m_imguiDX12.GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get()) : 0;
             screenstate::ScreenState viewState;
             if (m_imgui.View(state, texture, &viewState))
             {
