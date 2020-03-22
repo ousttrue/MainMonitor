@@ -2,9 +2,6 @@
 #include <hierarchy.h>
 #include <ScreenState.h>
 
-// #include <d3d12.h>
-// #include <wrl/client.h>
-
 #include <list>
 #include <memory>
 #include <mutex>
@@ -16,9 +13,6 @@ class Gui
 
     // single selection
     std::weak_ptr<hierarchy::SceneNode> m_selected;
-
-    struct MetricsGuiMetric *m_metric = nullptr;
-    struct MetricsGuiPlot *m_plot = nullptr;
 
 public:
     Gui();

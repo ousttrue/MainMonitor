@@ -8,7 +8,6 @@ add_executable(${TARGET_NAME}
     ImGuiImplScreenState.cpp
     Gizmo.cpp
     Gui.cpp
-    metrics_gui.cpp
     Application.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
@@ -32,7 +31,6 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     ${EXTERNAL_DIR}/openvr/lib/win64/openvr_api.lib
     #
     d3dcompiler
-    Winmm
     d3d12
     dxgi
     )

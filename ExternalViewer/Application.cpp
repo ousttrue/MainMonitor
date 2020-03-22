@@ -9,8 +9,6 @@
 
 #include <plog/Log.h>
 #include <plog/Appenders/ColorConsoleAppender.h>
-#define YAP_ENABLE
-#include <YAP.h>
 
 ///
 /// logger setup
@@ -246,20 +244,17 @@ public:
         }
 
         {
-            YAP::ScopedSection(VR);
             m_vr.OnFrame(&m_scene);
         }
 
         // imgui
         {
-            YAP::ScopedSection(ImGui);
             m_imgui.NewFrame(state);
             m_imgui.Update(&m_scene, m_view.clearColor);
         }
 
         // renderering
         {
-            YAP::ScopedSection(Render);
             m_renderer.BeginFrame(hwnd, state.Width, state.Height);
 
             auto viewTextureID = m_renderer.ViewTextureID(m_sceneView);
@@ -267,7 +262,6 @@ public:
             bool isShowView = m_imgui.View(state, viewTextureID, &viewState);
             if (isShowView)
             {
-                YAP::ScopedSection(View);
                 m_view.Update3DView(viewState, m_imgui.Selected());
                 m_sceneView->Width = viewState.Width;
                 m_sceneView->Height = viewState.Height;

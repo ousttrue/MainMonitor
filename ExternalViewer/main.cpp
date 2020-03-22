@@ -4,9 +4,6 @@
 #include <filesystem>
 #include <iostream>
 
-#define YAP_ENABLE
-#include <YAP.h>
-
 const auto CLASS_NAME = L"ExternalViewerClass";
 const auto WINDOW_NAME = L"ExternalViewer";
 
@@ -28,30 +25,23 @@ int main(int argc, char **argv)
         windowplacement::Save(hwnd, (const wchar_t *)conf.c_str());
     };
 
-    YAP::Init(2, 4, 2048, 16);
     {
-        YAP::PushPhase(MainLoop);
         {
             screenstate::ScreenState state;
             while (true)
             {
-                YAP::NewFrame();
                 {
-                    YAP::ScopedSection(Window);
                     if (!window.TryGetInput(&state))
                     {
                         break;
                     }
                 }
                 {
-                    YAP::ScopedSection(Frame);
                     app.OnFrame(hwnd, state);
                 }
             }
         }
-        YAP::PopPhase();
     }
-    YAP::Finish();
 
     return 0;
 }

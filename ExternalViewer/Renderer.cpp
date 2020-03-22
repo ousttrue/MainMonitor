@@ -8,9 +8,6 @@
 #include <plog/Log.h>
 #include <imgui.h>
 
-#define YAP_ENABLE
-#include "YAP.h"
-
 using namespace d12u;
 
 const UINT BACKBUFFER_COUNT = 2;

@@ -12,11 +12,6 @@
 #include <Windows.h>
 #include <plog/Log.h>
 
-#define YAP_ENABLE
-#define YAP_IMPL //  in one cpp before .h inclusion
-// #define YAP_IMGUI // if you want Ocornut's ImGui
-#include <YAP.h>
-
 struct GltfVertex
 {
     std::array<float, 3> position;

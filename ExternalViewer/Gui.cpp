@@ -5,13 +5,6 @@
 #include "ImGuiImplScreenState.h"
 #include <plog/Log.h>
 
-#define YAP_ENABLE
-// #define YAP_IMPL
-#define YAP_IMGUI
-#include <YAP.h>
-
-#include "metrics_gui.h"
-
 #include <shobjidl.h>
 #include <wrl/client.h>
 std::wstring OpenFileDialog(const std::wstring &folder)
@@ -390,11 +383,8 @@ static bool ViewButton(void *p, ImTextureID user_texture_id, const ImVec2 &size,
 }
 
 Gui::Gui()
-    : m_logger(new ExampleAppLog),
-      m_metric(new MetricsGuiMetric), m_plot(new MetricsGuiPlot)
+    : m_logger(new ExampleAppLog)
 {
-    m_plot->AddMetric(m_metric);
-
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -434,9 +424,6 @@ Gui::~Gui()
 
 void Gui::NewFrame(const screenstate::ScreenState &state)
 {
-    m_metric->AddNewValue(state.DeltaSeconds);
-    m_plot->UpdateAxes();
-
     // Start the Dear ImGui frame
     ImGui_Impl_ScreenState_NewFrame(state);
     if (state.Has(screenstate::MouseButtonFlags::CursorUpdate))
@@ -503,13 +490,6 @@ void Gui::DrawNode(const hierarchy::SceneNodePtr &node, hierarchy::SceneNode *se
 bool Gui::Update(hierarchy::Scene *scene, float clearColor[4])
 {
     bool consumed = false;
-
-    YAP::ImGuiLogger(nullptr);
-
-    ImGui::Begin("Metrics");
-    m_plot->DrawList();
-    m_plot->DrawHistory();
-    ImGui::End();
 
     //
     // imgui
