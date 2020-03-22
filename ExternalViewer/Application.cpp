@@ -303,7 +303,7 @@ public:
             },
         });
 
-        m_renderer.OnFrame(hwnd, state, &m_drawlist);
+        m_renderer.OnFrame(hwnd, state.Width, state.Height, &m_drawlist);
     }
 };
 

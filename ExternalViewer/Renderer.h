@@ -22,7 +22,7 @@ public:
     Renderer(int maxModelCount);
     ~Renderer();
     void Initialize(void *hwnd);
-    void OnFrame(void *hwnd, const screenstate::ScreenState &state, hierarchy::DrawList *scene);
+    void OnFrame(void *hwnd, int width, int height, hierarchy::DrawList *scene);
 
     size_t ViewTextureID();
     void UpdateViewResource(const screenstate::ScreenState &viewState, const struct OrbitCamera *camera);

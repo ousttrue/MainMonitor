@@ -98,7 +98,7 @@ public:
         infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
     }
 
-    void OnFrame(HWND hwnd, const screenstate::ScreenState &state,
+    void OnFrame(HWND hwnd, int width, int height,
                  hierarchy::DrawList *drawlist)
     {
         auto viewRenderTarget = m_sceneMapper->GetOrCreate(m_sceneView);
@@ -107,7 +107,7 @@ public:
             YAP::ScopedSection(Update);
 
             // d3d
-            UpdateBackbuffer(state, hwnd);
+            UpdateBackbuffer(hwnd, width, height);
             UpdateNodes(drawlist);
             m_sceneMapper->Update(m_device);
             m_rootSignature->Update(m_device);
@@ -133,19 +133,19 @@ public:
     }
 
 private:
-    void UpdateBackbuffer(const screenstate::ScreenState &state, HWND hwnd)
+    void UpdateBackbuffer(HWND hwnd, int width, int height)
     {
-        if (m_width != state.Width || m_height != state.Height)
+        if (m_width != width || m_height != height)
         {
             // recreate swapchain
             m_queue->SyncFence();
             m_backbuffer->Release(); // require before resize
             m_swapchain->Resize(m_queue->Get(),
-                                hwnd, BACKBUFFER_COUNT, state.Width, state.Height);
+                                hwnd, BACKBUFFER_COUNT, width, height);
             m_backbuffer->Initialize(m_swapchain->Get(), m_device, BACKBUFFER_COUNT);
 
-            m_width = state.Width;
-            m_height = state.Height;
+            m_width = width;
+            m_height = height;
         }
     }
 
@@ -316,9 +316,9 @@ void Renderer::Initialize(void *hwnd)
     m_impl->Initialize((HWND)hwnd);
 }
 
-void Renderer::OnFrame(void *hwnd, const screenstate::ScreenState &state, hierarchy::DrawList *drawlist)
+void Renderer::OnFrame(void *hwnd, int width, int height, hierarchy::DrawList *drawlist)
 {
-    m_impl->OnFrame((HWND)hwnd, state, drawlist);
+    m_impl->OnFrame((HWND)hwnd, width, height, drawlist);
 }
 
 size_t Renderer::ViewTextureID()
