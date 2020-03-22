@@ -1,15 +1,11 @@
 #pragma once
 #include <memory>
 
-namespace camera
-{
-struct CameraState;
-}
-
 namespace hierarchy
 {
 struct DrawList;
-}
+struct SceneView;
+} // namespace hierarchy
 
 class Renderer
 {
@@ -19,8 +15,11 @@ public:
     Renderer(int maxModelCount);
     ~Renderer();
     void Initialize(void *hwnd);
-    void OnFrame(void *hwnd, int width, int height, hierarchy::DrawList *scene);
 
-    size_t ViewTextureID();
-    void UpdateViewResource(int width, int height, const camera::CameraState &camera);
+    void BeginFrame(void *hwnd, int width, int height);
+    void EndFrame();
+
+    size_t ViewTextureID(const std::shared_ptr<hierarchy::SceneView> &view);
+    void View(const std::shared_ptr<hierarchy::SceneView> &view,
+              const hierarchy::DrawList &drawlist);
 };

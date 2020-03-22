@@ -432,7 +432,7 @@ Gui::~Gui()
     ImGui::DestroyContext();
 }
 
-void Gui::BeginFrame(const screenstate::ScreenState &state)
+void Gui::NewFrame(const screenstate::ScreenState &state)
 {
     m_metric->AddNewValue(state.DeltaSeconds);
     m_plot->UpdateAxes();

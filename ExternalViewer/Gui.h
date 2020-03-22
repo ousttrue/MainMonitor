@@ -24,7 +24,7 @@ public:
     Gui();
     ~Gui();
 
-    void BeginFrame(const screenstate::ScreenState &state);
+    void NewFrame(const screenstate::ScreenState &state);
     bool View(const screenstate::ScreenState &state, size_t textureID, screenstate::ScreenState *viewState);
     bool Update(hierarchy::Scene *scene, float clearColor[4]);
 

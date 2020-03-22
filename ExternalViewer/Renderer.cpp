@@ -1,8 +1,9 @@
 #include "Renderer.h"
 #include "ImGuiDX12.h"
 #include <d12util.h>
-#include <CameraState.h>
+
 #include <DrawList.h>
+#include <SceneView.h>
 
 #include <plog/Log.h>
 #include <imgui.h>
@@ -29,8 +30,6 @@ class Impl
 
     ImGuiDX12 m_imguiDX12;
 
-    hierarchy::SceneViewPtr m_sceneView;
-
     // scene
     std::unique_ptr<hierarchy::SceneLight> m_light;
 
@@ -48,8 +47,7 @@ public:
           m_commandlist(new CommandList),
           m_rootSignature(new RootSignature),
           m_sceneMapper(new SceneMapper),
-          m_light(new hierarchy::SceneLight),
-          m_sceneView(new hierarchy::SceneView)
+          m_light(new hierarchy::SceneLight)
     {
     }
 
@@ -98,61 +96,54 @@ public:
         infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
     }
 
-    void OnFrame(HWND hwnd, int width, int height,
-                 hierarchy::DrawList *drawlist)
+    void BeginFrame(HWND hwnd, int width, int height)
     {
-        auto viewRenderTarget = m_sceneMapper->GetOrCreate(m_sceneView);
+        UpdateBackbuffer(hwnd, width, height);
+        m_sceneMapper->Update(m_device);
+        m_rootSignature->Update(m_device);
 
-        {
-            YAP::ScopedSection(Update);
-
-            // d3d
-            UpdateBackbuffer(hwnd, width, height);
-            UpdateNodes(drawlist);
-            m_sceneMapper->Update(m_device);
-            m_rootSignature->Update(m_device);
-        }
-        {
-            YAP::ScopedSection(Draw);
-            Draw(viewRenderTarget, drawlist);
-        }
+        // new frame
+        m_commandlist->Reset(nullptr);
     }
 
-    size_t ViewTextureID()
+    void EndFrame()
     {
-        auto viewRenderTarget = m_sceneMapper->GetOrCreate(m_sceneView);
+        auto commandList = m_commandlist->Get();
+        auto frameIndex = m_swapchain->CurrentFrameIndex();
+
+        // barrier
+        m_backbuffer->Begin(frameIndex, commandList, m_clearColor);
+
+        ImGui::Render();
+        m_imguiDX12.RenderDrawData(commandList.Get(), ImGui::GetDrawData());
+
+        m_backbuffer->End(frameIndex, commandList);
+
+        // execute
+        auto callbacks = m_commandlist->CloseAndGetCallbacks();
+        m_queue->Execute(commandList);
+        m_swapchain->Present();
+        m_queue->SyncFence(callbacks);
+    }
+
+    size_t ViewTextureID(const hierarchy::SceneViewPtr &sceneView)
+    {
+        // view texture for current frame
+        auto viewRenderTarget = m_sceneMapper->GetOrCreate(sceneView);
         auto resource = viewRenderTarget->Resource(m_swapchain->CurrentFrameIndex());
-        auto texture = resource ? m_imguiDX12.GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get()) : 0;
+        size_t texture = resource ? m_imguiDX12.GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get()) : -1;
         return texture;
     }
 
-    void UpdateViewResource(int width, int height, const camera::CameraState &camera)
+    void View(const hierarchy::SceneViewPtr &sceneView, const hierarchy::DrawList &drawlist)
     {
-        auto viewRenderTarget = m_sceneMapper->GetOrCreate(m_sceneView);
-        {
-            auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
-            buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(camera.projection);
-            buffer->b0View = falg::size_cast<DirectX::XMFLOAT4X4>(camera.view);
-            buffer->b0LightDir = m_light->LightDirection;
-            buffer->b0LightColor = m_light->LightColor;
-            buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(camera.position);
-            buffer->b0ScreenSizeFovY = {(float)width, (float)height, camera.fovYRadians};
-            m_rootSignature->UploadSceneConstantsBuffer();
-        }
+        auto viewRenderTarget = m_sceneMapper->GetOrCreate(sceneView);
 
-        if (viewRenderTarget->Resize(width, height))
-        {
-            // clear all
-            for (UINT i = 0; i < BACKBUFFER_COUNT; ++i)
-            {
-                auto resource = viewRenderTarget->Resource(i);
-                if (resource)
-                {
-                    m_imguiDX12.Remove(resource->renderTarget.Get());
-                }
-            }
-            viewRenderTarget->Initialize(width, height, m_device, BACKBUFFER_COUNT);
-        }
+        UpdateNodes(drawlist);
+
+        UpdateView(viewRenderTarget, sceneView);
+
+        DrawView(m_commandlist->Get(), m_swapchain->CurrentFrameIndex(), viewRenderTarget, drawlist);
     }
 
 private:
@@ -172,17 +163,17 @@ private:
         }
     }
 
-    void UpdateNodes(hierarchy::DrawList *drawlist)
+    void UpdateNodes(const hierarchy::DrawList &drawlist)
     {
         // nodes
-        for (auto &drawNode : drawlist->Nodes)
+        for (auto &drawNode : drawlist.Nodes)
         {
             m_rootSignature->GetNodeConstantsBuffer(drawNode.NodeID)->b1World = drawNode.WorldMatrix;
         }
         m_rootSignature->UploadNodeConstantsBuffer();
 
         // skins
-        for (auto &drawMesh : drawlist->Meshes)
+        for (auto &drawMesh : drawlist.Meshes)
         {
             auto mesh = drawMesh.Mesh;
             auto skin = mesh->skin;
@@ -203,18 +194,39 @@ private:
         }
     }
 
-    //
-    // command
-    //
-    void Draw(const std::shared_ptr<RenderTargetChain> &viewRenderTarget,
-              const hierarchy::DrawList *drawlist)
+    void UpdateView(const std::shared_ptr<RenderTargetChain> &viewRenderTarget,
+                    const hierarchy::SceneViewPtr &sceneView)
     {
-        // new frame
-        m_commandlist->Reset(nullptr);
-        auto commandList = m_commandlist->Get();
+        {
+            auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
+            buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(sceneView->Projection);
+            buffer->b0View = falg::size_cast<DirectX::XMFLOAT4X4>(sceneView->View);
+            buffer->b0LightDir = m_light->LightDirection;
+            buffer->b0LightColor = m_light->LightColor;
+            buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(sceneView->CameraPosition);
+            buffer->b0ScreenSizeFovY = {(float)sceneView->Width, (float)sceneView->Height, sceneView->CameraFovYRadians};
+            m_rootSignature->UploadSceneConstantsBuffer();
+        }
 
-        auto frameIndex = m_swapchain->CurrentFrameIndex();
+        if (viewRenderTarget->Resize(sceneView->Width, sceneView->Height))
+        {
+            // clear all
+            for (UINT i = 0; i < BACKBUFFER_COUNT; ++i)
+            {
+                auto resource = viewRenderTarget->Resource(i);
+                if (resource)
+                {
+                    m_imguiDX12.Remove(resource->renderTarget.Get());
+                }
+            }
+            viewRenderTarget->Initialize(sceneView->Width, sceneView->Height, m_device, BACKBUFFER_COUNT);
+        }
+    }
 
+    void DrawView(const ComPtr<ID3D12GraphicsCommandList> &commandList, int frameIndex,
+                  const std::shared_ptr<RenderTargetChain> &viewRenderTarget,
+                  const hierarchy::DrawList &drawlist)
+    {
         // clear
         if (viewRenderTarget->Resource(frameIndex))
         {
@@ -223,7 +235,7 @@ private:
             // global settings
             m_rootSignature->Begin(commandList);
 
-            for (auto &drawMesh : drawlist->Meshes)
+            for (auto &drawMesh : drawlist.Meshes)
             {
                 m_rootSignature->SetNodeDescriptorTable(commandList, drawMesh.NodeID);
                 DrawMesh(commandList, drawMesh.Mesh);
@@ -231,20 +243,6 @@ private:
 
             viewRenderTarget->End(frameIndex, commandList);
         }
-
-        // barrier
-        m_backbuffer->Begin(frameIndex, commandList, m_clearColor);
-
-        ImGui::Render();
-        m_imguiDX12.RenderDrawData(commandList.Get(), ImGui::GetDrawData());
-
-        m_backbuffer->End(frameIndex, commandList);
-
-        // execute
-        auto callbacks = m_commandlist->CloseAndGetCallbacks();
-        m_queue->Execute(commandList);
-        m_swapchain->Present();
-        m_queue->SyncFence(callbacks);
     }
 
     void DrawMesh(const ComPtr<ID3D12GraphicsCommandList> &commandList, const hierarchy::SceneMeshPtr &mesh)
@@ -308,17 +306,23 @@ void Renderer::Initialize(void *hwnd)
     m_impl->Initialize((HWND)hwnd);
 }
 
-void Renderer::OnFrame(void *hwnd, int width, int height, hierarchy::DrawList *drawlist)
+void Renderer::BeginFrame(void *hwnd, int width, int height)
 {
-    m_impl->OnFrame((HWND)hwnd, width, height, drawlist);
+    m_impl->BeginFrame((HWND)hwnd, width, height);
 }
 
-size_t Renderer::ViewTextureID()
+void Renderer::EndFrame()
 {
-    return m_impl->ViewTextureID();
+    m_impl->EndFrame();
 }
 
-void Renderer::UpdateViewResource(int width, int height, const camera::CameraState &camera)
+size_t Renderer::ViewTextureID(const std::shared_ptr<hierarchy::SceneView> &view)
 {
-    m_impl->UpdateViewResource(width, height, camera);
+    return m_impl->ViewTextureID(view);
+}
+
+void Renderer::View(const hierarchy::SceneViewPtr &view,
+                    const hierarchy::DrawList &drawlist)
+{
+    m_impl->View(view, drawlist);
 }

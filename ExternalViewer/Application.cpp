@@ -139,7 +139,7 @@ public:
         return m_gizmo.End();
     }
 
-    void Update3DView(const screenstate::ScreenState &viewState, size_t texture, const hierarchy::SceneNodePtr &selected)
+    void Update3DView(const screenstate::ScreenState &viewState, const hierarchy::SceneNodePtr &selected)
     {
         //
         // update camera
@@ -190,12 +190,14 @@ class ApplicationImpl
     Gui m_imgui;
     View m_view;
     gizmesh::GizmoSystem::Buffer m_gizmoBuffer;
+    std::shared_ptr<hierarchy::SceneView> m_sceneView;
+    size_t m_viewTextureID = 0;
 
     bool m_initialized = false;
 
 public:
     ApplicationImpl(int argc, char **argv)
-        : m_renderer(256)
+        : m_renderer(256), m_sceneView(new hierarchy::SceneView)
     {
         m_imGuiAppender.onWrite(std::bind(&Gui::Log, &m_imgui, std::placeholders::_1));
         plog::init(plog::debug, &m_consoleAppender).addAppender(&m_imGuiAppender);
@@ -247,28 +249,42 @@ public:
             YAP::ScopedSection(VR);
             m_vr.OnFrame(&m_scene);
         }
-        YAP::ScopedSection(Render);
 
         // imgui
-        m_imgui.BeginFrame(state);
-        m_imgui.Update(&m_scene, m_view.clearColor);
-
-        // view
-        auto viewTextureID = m_renderer.ViewTextureID();
-        screenstate::ScreenState viewState;
-        bool isShowView = m_imgui.View(state, viewTextureID, &viewState);
-        if (isShowView)
         {
-            m_view.Update3DView(viewState, viewTextureID, m_imgui.Selected());
+            YAP::ScopedSection(ImGui);
+            m_imgui.NewFrame(state);
+            m_imgui.Update(&m_scene, m_view.clearColor);
         }
 
-        // d3d
-        if (isShowView)
+        // renderering
         {
-            auto buffer = m_view.GizmoBuffer();
-            m_renderer.UpdateViewResource(viewState.Width, viewState.Height, m_view.Camera()->state);
-        }
+            YAP::ScopedSection(Render);
+            m_renderer.BeginFrame(hwnd, state.Width, state.Height);
 
+            auto viewTextureID = m_renderer.ViewTextureID(m_sceneView);
+            screenstate::ScreenState viewState;
+            bool isShowView = m_imgui.View(state, viewTextureID, &viewState);
+            if (isShowView)
+            {
+                YAP::ScopedSection(View);
+                m_view.Update3DView(viewState, m_imgui.Selected());
+                m_sceneView->Width = viewState.Width;
+                m_sceneView->Height = viewState.Height;
+                m_sceneView->Projection = m_view.Camera()->state.projection;
+                m_sceneView->View = m_view.Camera()->state.view;
+                m_sceneView->CameraPosition = m_view.Camera()->state.position;
+                m_sceneView->CameraFovYRadians = m_view.Camera()->state.fovYRadians;
+                updateDrawList();
+                m_renderer.View(m_sceneView, m_drawlist);
+            }
+
+            m_renderer.EndFrame();
+        }
+    }
+
+    void updateDrawList()
+    {
         m_drawlist.Clear();
         int rootCount;
         auto roots = m_scene.GetRootNodes(&rootCount);
@@ -302,8 +318,6 @@ public:
                 .Stride = m_gizmoBuffer.indexStride,
             },
         });
-
-        m_renderer.OnFrame(hwnd, state.Width, state.Height, &m_drawlist);
     }
 };
 
