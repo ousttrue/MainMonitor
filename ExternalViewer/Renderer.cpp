@@ -176,20 +176,23 @@ private:
         for (auto &drawMesh : drawlist.Meshes)
         {
             auto mesh = drawMesh.Mesh;
-            auto skin = mesh->skin;
             auto drawable = m_sceneMapper->GetOrCreate(m_device, drawMesh.Mesh, nullptr);
-            if (skin)
+            if (drawable)
             {
-                drawable->VertexBuffer()->MapCopyUnmap(
-                    skin->cpuSkiningBuffer.data(), (uint32_t)skin->cpuSkiningBuffer.size(), mesh->vertices->stride);
-            }
-            if (drawMesh.Vertices.Ptr)
-            {
-                drawable->VertexBuffer()->MapCopyUnmap(drawMesh.Vertices.Ptr, drawMesh.Vertices.Bytes, drawMesh.Vertices.Stride);
-            }
-            if (drawMesh.Indices.Ptr)
-            {
-                drawable->IndexBuffer()->MapCopyUnmap(drawMesh.Indices.Ptr, drawMesh.Indices.Bytes, drawMesh.Indices.Stride);
+                auto skin = mesh->skin;
+                if (skin)
+                {
+                    drawable->VertexBuffer()->MapCopyUnmap(
+                        skin->cpuSkiningBuffer.data(), (uint32_t)skin->cpuSkiningBuffer.size(), mesh->vertices->stride);
+                }
+                if (drawMesh.Vertices.Ptr)
+                {
+                    drawable->VertexBuffer()->MapCopyUnmap(drawMesh.Vertices.Ptr, drawMesh.Vertices.Bytes, drawMesh.Vertices.Stride);
+                }
+                if (drawMesh.Indices.Ptr)
+                {
+                    drawable->IndexBuffer()->MapCopyUnmap(drawMesh.Indices.Ptr, drawMesh.Indices.Bytes, drawMesh.Indices.Stride);
+                }
             }
         }
     }
