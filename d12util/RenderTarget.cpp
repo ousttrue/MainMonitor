@@ -70,6 +70,8 @@ void RenderTargetChain::Initialize(const ComPtr<IDXGISwapChain3> &swapChain,
         device->CreateDepthStencilView(resource.depthStencil.Get(), nullptr, dsv);
         dsv.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
     }
+
+    m_isSwapchain = true;
 }
 
 void RenderTargetChain::Initialize(UINT width, UINT height,
@@ -125,15 +127,19 @@ void RenderTargetChain::Begin(UINT frameIndex,
 
     commandList->RSSetViewports(1, &m_viewport);
     commandList->RSSetScissorRects(1, &m_scissorRect);
-    D3D12_RESOURCE_BARRIER barrier{
-        .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-        .Transition{
-            .pResource = m_resources[frameIndex].renderTarget.Get(),
-            .StateBefore = D3D12_RESOURCE_STATE_PRESENT,
-            .StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET,
-        },
-    };
-    commandList->ResourceBarrier(1, &barrier);
+
+    if (m_isSwapchain)
+    {
+        D3D12_RESOURCE_BARRIER barrier{
+            .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+            .Transition{
+                .pResource = m_resources[frameIndex].renderTarget.Get(),
+                .StateBefore = D3D12_RESOURCE_STATE_PRESENT,
+                .StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET,
+            },
+        };
+        commandList->ResourceBarrier(1, &barrier);
+    }
 
     auto rtv = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
     rtv.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) * frameIndex;
@@ -147,15 +153,18 @@ void RenderTargetChain::Begin(UINT frameIndex,
 void RenderTargetChain::End(UINT frameIndex,
                             const ComPtr<ID3D12GraphicsCommandList> &commandList)
 {
-    D3D12_RESOURCE_BARRIER barrier{
-        .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-        .Transition{
-            .pResource = m_resources[frameIndex].renderTarget.Get(),
-            .StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET,
-            .StateAfter = D3D12_RESOURCE_STATE_PRESENT,
-        },
-    };
-    commandList->ResourceBarrier(1, &barrier);
+    if (m_isSwapchain)
+    {
+        D3D12_RESOURCE_BARRIER barrier{
+            .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+            .Transition{
+                .pResource = m_resources[frameIndex].renderTarget.Get(),
+                .StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET,
+                .StateAfter = D3D12_RESOURCE_STATE_PRESENT,
+            },
+        };
+        commandList->ResourceBarrier(1, &barrier);
+    }
 }
 
 } // namespace d12u

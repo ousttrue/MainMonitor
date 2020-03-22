@@ -24,6 +24,8 @@ class RenderTargetChain
 
     std::vector<RenderTargetResources> m_resources;
 
+    bool m_isSwapchain = false;
+
 public:
     void Release()
     {
