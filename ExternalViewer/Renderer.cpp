@@ -183,7 +183,9 @@ public:
                 if (m_imgui.View(state, texture, &viewState))
                 {
                     m_view.Update3DView(viewState, texture, m_imgui.Selected());
-                    Update3DViewResource(viewRenderTarget, viewState, m_view.Camera(), m_view.GizmoMesh());
+                    Update3DViewResource(viewRenderTarget, viewState, m_view.Camera());
+                    auto buffer = m_view.GizmoBuffer();
+                    UpdateGizmoMesh(m_view.GizmoMesh(), buffer);
                 }
             }
 
@@ -195,7 +197,7 @@ public:
         }
         {
             YAP::ScopedSection(Draw);
-            Draw(viewRenderTarget, scene);
+            Draw(viewRenderTarget, scene, m_view.GizmoNodeID());
         }
         m_lastState = state;
     }
@@ -216,8 +218,7 @@ private:
 
     void Update3DViewResource(const std::shared_ptr<RenderTargetChain> &viewRenderTarget,
                               const screenstate::ScreenState &viewState,
-                              const OrbitCamera *camera,
-                              const hierarchy::SceneMeshPtr &gizmoMesh)
+                              const OrbitCamera *camera)
     {
         // resource
         {
@@ -244,14 +245,13 @@ private:
             }
             viewRenderTarget->Initialize(viewState.Width, viewState.Height, m_device, BACKBUFFER_COUNT);
         }
+    }
 
-        // gizmo
-        {
-            auto drawable = m_sceneMapper->GetOrCreate(m_device, gizmoMesh, m_rootSignature.get());
-            auto buffer = m_view.GizmoBuffer();
-            drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
-            drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
-        }
+    void UpdateGizmoMesh(const hierarchy::SceneMeshPtr &gizmoMesh, const gizmesh::GizmoSystem::Buffer &buffer)
+    {
+        auto drawable = m_sceneMapper->GetOrCreate(m_device, gizmoMesh, m_rootSignature.get());
+        drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
+        drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
     }
 
     void UpdateNodeConstants(hierarchy::Scene *scene)
@@ -302,7 +302,7 @@ private:
     // command
     //
     void Draw(const std::shared_ptr<RenderTargetChain> &viewRenderTarget,
-              const hierarchy::Scene *scene)
+              const hierarchy::Scene *scene, int gizmoNodeID)
     {
         // new frame
         m_commandlist->Reset(nullptr);
@@ -325,7 +325,7 @@ private:
 
             // gizmo: draw
             {
-                m_rootSignature->SetNodeDescriptorTable(commandList, m_view.GizmoNodeID());
+                m_rootSignature->SetNodeDescriptorTable(commandList, gizmoNodeID);
                 DrawMesh(commandList, m_view.GizmoMesh());
             }
 
