@@ -1,114 +1,35 @@
 #include "Renderer.h"
-#include "Gizmo.h"
-#include "Gui.h"
 #include "ImGuiDX12.h"
 #include <d12util.h>
-#include <unordered_map>
 #include <OrbitCamera.h>
 #include <hierarchy.h>
 
 #include <plog/Log.h>
 #include <imgui.h>
-#include <dxgi.h>
-#include <memory>
+
+#define YAP_ENABLE
 #include "YAP.h"
 
 using namespace d12u;
 
 const UINT BACKBUFFER_COUNT = 2;
 
-class View
-{
-    OrbitCamera m_camera;
-    Gizmo m_gizmo;
-    hierarchy::SceneNodePtr m_selected;
-
-public:
-    float clearColor[4] = {
-        0.2f,
-        0.2f,
-        0.3f,
-        1.0f};
-
-    View()
-    {
-        m_camera.zNear = 0.01f;
-    }
-
-    const OrbitCamera *Camera() const
-    {
-        return &m_camera;
-    }
-
-    int GizmoNodeID() const
-    {
-        return m_gizmo.GetNodeID();
-    }
-
-    hierarchy::SceneMeshPtr GizmoMesh() const
-    {
-        return m_gizmo.GetMesh();
-    }
-
-    gizmesh::GizmoSystem::Buffer GizmoBuffer()
-    {
-        return m_gizmo.End();
-    }
-
-    void Update3DView(const screenstate::ScreenState &viewState, size_t texture, const hierarchy::SceneNodePtr &selected)
-    {
-        //
-        // update camera
-        //
-        if (selected != m_selected)
-        {
-            if (selected)
-            {
-                m_camera.gaze = -selected->World().translation;
-            }
-            else
-            {
-                // m_camera->gaze = {0, 0, 0};
-            }
-
-            m_selected = selected;
-        }
-        m_camera.Update(viewState);
-
-        //
-        // update gizmo
-        //
-        m_gizmo.Begin(viewState, m_camera.state);
-        if (selected)
-        {
-            // if (selected->EnableGizmo())
-            {
-                auto parent = selected->Parent();
-                m_gizmo.Transform(selected->ID(),
-                                  selected->Local(),
-                                  parent ? parent->World() : falg::Transform{});
-            }
-        }
-    }
-};
-
 class Impl
 {
-    screenstate::ScreenState m_lastState = {};
-    Microsoft::WRL::ComPtr<ID3D12Device> m_device;
-    std::unique_ptr<CommandQueue> m_queue;
     std::unique_ptr<SwapChain> m_swapchain;
     std::unique_ptr<RenderTargetChain> m_backbuffer;
+    int m_width = 0;
+    int m_height = 0;
+
+    Microsoft::WRL::ComPtr<ID3D12Device> m_device;
+    std::unique_ptr<CommandQueue> m_queue;
     std::unique_ptr<RootSignature> m_rootSignature;
     std::unique_ptr<CommandList> m_commandlist;
     std::unique_ptr<SceneMapper> m_sceneMapper;
 
-    Gui m_imgui;
     ImGuiDX12 m_imguiDX12;
 
-    View m_view;
     hierarchy::SceneViewPtr m_sceneView;
-    // std::unique_ptr<RenderTargetChain> m_viewRenderTarget;
 
     // scene
     std::unique_ptr<hierarchy::SceneLight> m_light;
@@ -132,13 +53,10 @@ public:
     {
     }
 
-    void Log(const char *msg)
-    {
-        m_imgui.Log(msg);
-    }
-
     void Initialize(HWND hwnd)
     {
+        assert(!m_device);
+
         ComPtr<IDXGIFactory4> factory;
         ThrowIfFailed(CreateDXGIFactory2(GetDxgiFactoryFlags(), IID_PPV_ARGS(&factory)));
 
@@ -158,36 +76,13 @@ public:
         m_imguiDX12.Initialize(m_device.Get(), BACKBUFFER_COUNT);
     }
 
-    void OnFrame(HWND hwnd, const screenstate::ScreenState &state, hierarchy::Scene *scene)
+    void OnFrame(HWND hwnd, const screenstate::ScreenState &state, hierarchy::Scene *scene,
+                 int gizmoNodeID, const hierarchy::SceneMeshPtr &mesh)
     {
-        if (!m_device)
-        {
-            // first time
-            Initialize(hwnd);
-        }
-
         auto viewRenderTarget = m_sceneMapper->GetOrCreate(m_sceneView);
 
         {
             YAP::ScopedSection(Update);
-
-            // imgui
-            m_imgui.BeginFrame(state);
-            m_imgui.Update(scene, m_view.clearColor);
-
-            // view
-            {
-                auto resource = viewRenderTarget->Resource(m_swapchain->CurrentFrameIndex());
-                auto texture = resource ? m_imguiDX12.GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get()) : 0;
-                screenstate::ScreenState viewState;
-                if (m_imgui.View(state, texture, &viewState))
-                {
-                    m_view.Update3DView(viewState, texture, m_imgui.Selected());
-                    Update3DViewResource(viewRenderTarget, viewState, m_view.Camera());
-                    auto buffer = m_view.GizmoBuffer();
-                    UpdateGizmoMesh(m_view.GizmoMesh(), buffer);
-                }
-            }
 
             // d3d
             UpdateBackbuffer(state, hwnd);
@@ -197,15 +92,31 @@ public:
         }
         {
             YAP::ScopedSection(Draw);
-            Draw(viewRenderTarget, scene, m_view.GizmoNodeID());
+            Draw(viewRenderTarget, scene, gizmoNodeID, mesh);
         }
-        m_lastState = state;
+        // m_lastState = state;
+    }
+
+    size_t ViewTextureID()
+    {
+        auto viewRenderTarget = m_sceneMapper->GetOrCreate(m_sceneView);
+        auto resource = viewRenderTarget->Resource(m_swapchain->CurrentFrameIndex());
+        auto texture = resource ? m_imguiDX12.GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get()) : 0;
+        return texture;
+    }
+
+    void UpdateViewResource(const screenstate::ScreenState &viewState, const OrbitCamera *camera,
+                            const hierarchy::SceneMeshPtr &gizmoMesh, const gizmesh::GizmoSystem::Buffer &buffer)
+    {
+        auto viewRenderTarget = m_sceneMapper->GetOrCreate(m_sceneView);
+        Update3DViewResource(viewRenderTarget, viewState, camera);
+        UpdateGizmoMesh(gizmoMesh, buffer);
     }
 
 private:
     void UpdateBackbuffer(const screenstate::ScreenState &state, HWND hwnd)
     {
-        if (m_lastState.Width != state.Width || m_lastState.Height != state.Height)
+        if (m_width != state.Width || m_height != state.Height)
         {
             // recreate swapchain
             m_queue->SyncFence();
@@ -213,6 +124,9 @@ private:
             m_swapchain->Resize(m_queue->Get(),
                                 hwnd, BACKBUFFER_COUNT, state.Width, state.Height);
             m_backbuffer->Initialize(m_swapchain->Get(), m_device, BACKBUFFER_COUNT);
+
+            m_width = state.Width;
+            m_height = state.Height;
         }
     }
 
@@ -302,16 +216,20 @@ private:
     // command
     //
     void Draw(const std::shared_ptr<RenderTargetChain> &viewRenderTarget,
-              const hierarchy::Scene *scene, int gizmoNodeID)
+              const hierarchy::Scene *scene,
+              int gizmoNodeID, const hierarchy::SceneMeshPtr &gizmoMesh)
     {
         // new frame
         m_commandlist->Reset(nullptr);
         auto commandList = m_commandlist->Get();
 
-        // clear
         auto frameIndex = m_swapchain->CurrentFrameIndex();
-        viewRenderTarget->Begin(frameIndex, commandList, m_view.clearColor);
+
+        // clear
+        if (viewRenderTarget->Resource(frameIndex))
         {
+            viewRenderTarget->Begin(frameIndex, commandList, m_clearColor);
+
             // global settings
             m_rootSignature->Begin(commandList);
 
@@ -326,7 +244,7 @@ private:
             // gizmo: draw
             {
                 m_rootSignature->SetNodeDescriptorTable(commandList, gizmoNodeID);
-                DrawMesh(commandList, m_view.GizmoMesh());
+                DrawMesh(commandList, gizmoMesh);
             }
 
             viewRenderTarget->End(frameIndex, commandList);
@@ -421,12 +339,24 @@ Renderer::~Renderer()
     delete m_impl;
 }
 
-void Renderer::OnFrame(void *hwnd, const screenstate::ScreenState &state, hierarchy::Scene *scene)
+void Renderer::Initialize(void *hwnd)
 {
-    m_impl->OnFrame((HWND)hwnd, state, scene);
+    m_impl->Initialize((HWND)hwnd);
 }
 
-void Renderer::Log(const char *msg)
+void Renderer::OnFrame(void *hwnd, const screenstate::ScreenState &state, hierarchy::Scene *scene,
+                       int gizmoNodeID, const hierarchy::SceneMeshPtr &mesh)
 {
-    m_impl->Log(msg);
+    m_impl->OnFrame((HWND)hwnd, state, scene, gizmoNodeID, mesh);
+}
+
+size_t Renderer::ViewTextureID()
+{
+    return m_impl->ViewTextureID();
+}
+
+void Renderer::UpdateViewResource(const screenstate::ScreenState &viewState, const OrbitCamera *camera,
+                                  const hierarchy::SceneMeshPtr &gizmoMesh, const gizmesh::GizmoSystem::Buffer &buffer)
+{
+    m_impl->UpdateViewResource(viewState, camera, gizmoMesh, buffer);
 }

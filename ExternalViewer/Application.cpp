@@ -1,5 +1,8 @@
 #include "Application.h"
 #include "VR.h"
+#include "Gui.h"
+#include "Gizmo.h"
+#include <OrbitCamera.h>
 #include "Renderer.h"
 #include <hierarchy.h>
 #include <functional>
@@ -98,19 +101,101 @@ static std::shared_ptr<hierarchy::SceneMesh> CreateGrid()
     return mesh;
 }
 
+class View
+{
+    OrbitCamera m_camera;
+    Gizmo m_gizmo;
+    hierarchy::SceneNodePtr m_selected;
+
+public:
+    float clearColor[4] = {
+        0.2f,
+        0.2f,
+        0.3f,
+        1.0f};
+
+    View()
+    {
+        m_camera.zNear = 0.01f;
+    }
+
+    const OrbitCamera *Camera() const
+    {
+        return &m_camera;
+    }
+
+    int GizmoNodeID() const
+    {
+        return m_gizmo.GetNodeID();
+    }
+
+    hierarchy::SceneMeshPtr GizmoMesh() const
+    {
+        return m_gizmo.GetMesh();
+    }
+
+    gizmesh::GizmoSystem::Buffer GizmoBuffer()
+    {
+        return m_gizmo.End();
+    }
+
+    void Update3DView(const screenstate::ScreenState &viewState, size_t texture, const hierarchy::SceneNodePtr &selected)
+    {
+        //
+        // update camera
+        //
+        if (selected != m_selected)
+        {
+            if (selected)
+            {
+                m_camera.gaze = -selected->World().translation;
+            }
+            else
+            {
+                // m_camera->gaze = {0, 0, 0};
+            }
+
+            m_selected = selected;
+        }
+        m_camera.Update(viewState);
+
+        //
+        // update gizmo
+        //
+        m_gizmo.Begin(viewState, m_camera.state);
+        if (selected)
+        {
+            // if (selected->EnableGizmo())
+            {
+                auto parent = selected->Parent();
+                m_gizmo.Transform(selected->ID(),
+                                  selected->Local(),
+                                  parent ? parent->World() : falg::Transform{});
+            }
+        }
+    }
+};
+
 class ApplicationImpl
 {
     plog::ColorConsoleAppender<plog::MyFormatter> m_consoleAppender;
     plog::MyAppender<plog::MyFormatter> m_imGuiAppender;
+
     VR m_vr;
     hierarchy::Scene m_scene;
+
     Renderer m_renderer;
+
+    Gui m_imgui;
+    View m_view;
+
+    bool m_initialized = false;
 
 public:
     ApplicationImpl(int argc, char **argv)
         : m_renderer(256)
     {
-        m_imGuiAppender.onWrite(std::bind(&Renderer::Log, &m_renderer, std::placeholders::_1));
+        m_imGuiAppender.onWrite(std::bind(&Gui::Log, &m_imgui, std::placeholders::_1));
         plog::init(plog::debug, &m_consoleAppender).addAppender(&m_imGuiAppender);
 
         auto path = std::filesystem::current_path();
@@ -150,14 +235,39 @@ public:
 
     void OnFrame(void *hwnd, const screenstate::ScreenState &state)
     {
+        if (!m_initialized)
+        {
+            m_renderer.Initialize(hwnd);
+            m_initialized = true;
+        }
+
         {
             YAP::ScopedSection(VR);
             m_vr.OnFrame(&m_scene);
         }
+
+        // imgui
+        m_imgui.BeginFrame(state);
+        m_imgui.Update(&m_scene, m_view.clearColor);
+
+        // view
+        auto viewTextureID = m_renderer.ViewTextureID();
+        screenstate::ScreenState viewState;
+        bool isShowView = m_imgui.View(state, viewTextureID, &viewState);
+        if (isShowView)
         {
-            YAP::ScopedSection(Render);
-            m_renderer.OnFrame(hwnd, state, &m_scene);
+            m_view.Update3DView(viewState, viewTextureID, m_imgui.Selected());
         }
+
+        // d3d
+        if (isShowView)
+        {
+            auto buffer = m_view.GizmoBuffer();
+            m_renderer.UpdateViewResource(viewState, m_view.Camera(), m_view.GizmoMesh(), buffer);
+        }
+        YAP::ScopedSection(Render);
+        m_renderer.OnFrame(hwnd, state, &m_scene,
+                           m_view.GizmoNodeID(), m_view.GizmoMesh());
     }
 };
 
