@@ -8,7 +8,7 @@ thread_local std::array<float, 120> tl_delta;
 namespace frame_metrics
 {
 
-void delta_seconds(float seconds)
+void new_frame_delta_seconds(float seconds)
 {
     tl_delta[tl_pos++] = seconds;
     if (tl_pos >= 120)
@@ -21,6 +21,14 @@ void delta_seconds(float seconds)
 float imgui_plot(void *data, int index)
 {
     return tl_delta[tl_pos - 60 + index];
+}
+
+void push(const char *section)
+{
+}
+
+void pop()
+{
 }
 
 } // namespace frame_metrics

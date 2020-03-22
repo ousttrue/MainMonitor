@@ -31,14 +31,17 @@ int main(int argc, char **argv)
             screenstate::ScreenState state;
             while (true)
             {
-                frame_metrics::delta_seconds(state.DeltaSeconds);
+                frame_metrics::new_frame_delta_seconds(state.DeltaSeconds);
+                frame_metrics::scoped("frame");
                 {
+                    frame_metrics::scoped("window");
                     if (!window.TryGetInput(&state))
                     {
                         break;
                     }
                 }
                 {
+                    frame_metrics::scoped("app");
                     app.OnFrame(hwnd, state);
                 }
             }

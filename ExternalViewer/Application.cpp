@@ -2,6 +2,7 @@
 #include "VR.h"
 #include "Gui.h"
 #include "Gizmo.h"
+#include "frame_metrics.h"
 #include <OrbitCamera.h>
 #include "Renderer.h"
 #include <hierarchy.h>
@@ -244,24 +245,28 @@ public:
         }
 
         {
+            frame_metrics::scoped("vr");
             m_vr.OnFrame(&m_scene);
         }
 
         // imgui
+        bool isShowView = false;
+        screenstate::ScreenState viewState;
         {
+            frame_metrics::scoped("imgui");
             m_imgui.NewFrame(state);
             m_imgui.Update(&m_scene, m_view.clearColor);
+            auto viewTextureID = m_renderer.ViewTextureID(m_sceneView);
+            isShowView = m_imgui.View(state, viewTextureID, &viewState);
         }
 
         // renderering
         {
+            frame_metrics::scoped("render");
             m_renderer.BeginFrame(hwnd, state.Width, state.Height);
-
-            auto viewTextureID = m_renderer.ViewTextureID(m_sceneView);
-            screenstate::ScreenState viewState;
-            bool isShowView = m_imgui.View(state, viewTextureID, &viewState);
             if (isShowView)
             {
+                frame_metrics::scoped("view");
                 m_view.Update3DView(viewState, m_imgui.Selected());
                 m_sceneView->Width = viewState.Width;
                 m_sceneView->Height = viewState.Height;
@@ -272,7 +277,6 @@ public:
                 updateDrawList();
                 m_renderer.View(m_sceneView, m_drawlist);
             }
-
             m_renderer.EndFrame();
         }
     }
