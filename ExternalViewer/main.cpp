@@ -1,5 +1,6 @@
 #include "Application.h"
 #include "save_windowplacement.h"
+#include "frame_metrics.h"
 #include <Win32Window.h>
 #include <filesystem>
 #include <iostream>
@@ -30,6 +31,7 @@ int main(int argc, char **argv)
             screenstate::ScreenState state;
             while (true)
             {
+                frame_metrics::delta_seconds(state.DeltaSeconds);
                 {
                     if (!window.TryGetInput(&state))
                     {

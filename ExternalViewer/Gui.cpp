@@ -1,4 +1,5 @@
 #include "Gui.h"
+#include "frame_metrics.h"
 #include <imgui.h>
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui_internal.h>
@@ -491,6 +492,23 @@ bool Gui::Update(hierarchy::Scene *scene, float clearColor[4])
 {
     bool consumed = false;
 
+    ImGui::Begin("Performance");
+    {
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+        {
+            auto width = ImGui::GetWindowContentRegionWidth();
+            ImVec2 p = ImGui::GetCursorScreenPos();
+
+            ImGui::PlotHistogram("frame", frame_metrics::imgui_plot, NULL, 60, 0, NULL, 0, 2.0f / 60.0f, ImVec2(width, 100));
+
+            //trying to add lines on top of my image here:
+            p.y += 50;
+            ImGui::GetWindowDrawList()->AddLine(p, ImVec2(p.x + width, p.y), IM_COL32(255, 0, 0, 200), 1.0f);
+        }
+    }
+    ImGui::End();
+
     //
     // imgui
     //
@@ -543,7 +561,6 @@ bool Gui::Update(hierarchy::Scene *scene, float clearColor[4])
         ImGui::SameLine();
         ImGui::Text("counter = %d", counter);
 
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
         ImGui::End();
     }
 
