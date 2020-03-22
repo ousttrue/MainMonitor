@@ -5,6 +5,7 @@
 #include "Uploader.h"
 #include "RootSignature.h"
 #include "Shader.h"
+#include "RenderTarget.h"
 #include <hierarchy.h>
 #include <DirectXMath.h>
 #include <plog/Log.h>
@@ -134,6 +135,19 @@ std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &devic
 
     m_meshMap.insert(std::make_pair(sceneMesh, gpuMesh));
     return gpuMesh;
+}
+
+std::shared_ptr<RenderTargetChain> SceneMapper::GetOrCreate(const hierarchy::SceneViewPtr &view)
+{
+    auto found = m_renderTargetMap.find(view);
+    if (found != m_renderTargetMap.end())
+    {
+        return found->second;
+    }
+
+    auto renderTarget = std::make_shared<RenderTargetChain>();
+    m_renderTargetMap.insert(std::make_pair(view, renderTarget));
+    return renderTarget;
 }
 
 } // namespace d12u

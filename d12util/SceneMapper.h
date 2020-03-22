@@ -1,11 +1,12 @@
 #include <memory>
 #include <unordered_map>
-#include <Scene.h>
+#include <hierarchy.h>
 #include <d3d12.h>
 #include <wrl/client.h>
 
 namespace d12u
 {
+
 class SceneMapper
 {
     template <class T>
@@ -13,6 +14,7 @@ class SceneMapper
 
     std::unique_ptr<class Uploader> m_uploader;
     std::unordered_map<hierarchy::SceneMeshPtr, std::shared_ptr<class Mesh>> m_meshMap;
+    std::unordered_map<hierarchy::SceneViewPtr, std::shared_ptr<class RenderTargetChain>> m_renderTargetMap;
 
 public:
     SceneMapper();
@@ -22,5 +24,7 @@ public:
     std::shared_ptr<class Mesh> GetOrCreate(const ComPtr<ID3D12Device> &device,
                                             const hierarchy::SceneMeshPtr &model,
                                             class RootSignature *rootSignature);
+    std::shared_ptr<class RenderTargetChain> GetOrCreate(const hierarchy::SceneViewPtr &view);
 };
+
 } // namespace d12u

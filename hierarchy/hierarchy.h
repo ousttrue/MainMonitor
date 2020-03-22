@@ -8,3 +8,5 @@
 #include "SceneMeshSkin.h"
 #include "VertexBuffer.h"
 #include "SceneMesh.h"
+#include "SceneView.h"
+

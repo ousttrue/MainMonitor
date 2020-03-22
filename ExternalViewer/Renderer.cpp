@@ -107,7 +107,8 @@ class Impl
     ImGuiDX12 m_imguiDX12;
 
     View m_view;
-    std::unique_ptr<RenderTargetChain> m_viewRenderTarget;
+    hierarchy::SceneViewPtr m_sceneView;
+    // std::unique_ptr<RenderTargetChain> m_viewRenderTarget;
 
     // scene
     std::unique_ptr<hierarchy::SceneLight> m_light;
@@ -123,11 +124,11 @@ public:
         : m_queue(new CommandQueue),
           m_swapchain(new SwapChain),
           m_backbuffer(new RenderTargetChain),
-          m_viewRenderTarget(new RenderTargetChain),
           m_commandlist(new CommandList),
           m_rootSignature(new RootSignature),
           m_sceneMapper(new SceneMapper),
-          m_light(new hierarchy::SceneLight)
+          m_light(new hierarchy::SceneLight),
+          m_sceneView(new hierarchy::SceneView)
     {
     }
 
@@ -164,6 +165,9 @@ public:
             // first time
             Initialize(hwnd);
         }
+
+        auto viewRenderTarget = m_sceneMapper->GetOrCreate(m_sceneView);
+
         {
             YAP::ScopedSection(Update);
 
@@ -173,13 +177,13 @@ public:
 
             // view
             {
-                auto resource = m_viewRenderTarget->Resource(m_swapchain->CurrentFrameIndex());
+                auto resource = viewRenderTarget->Resource(m_swapchain->CurrentFrameIndex());
                 auto texture = resource ? m_imguiDX12.GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get()) : 0;
                 screenstate::ScreenState viewState;
                 if (m_imgui.View(state, texture, &viewState))
                 {
                     m_view.Update3DView(viewState, texture, m_imgui.Selected());
-                    Update3DViewResource(viewState, m_view.Camera(), m_view.GizmoMesh());
+                    Update3DViewResource(viewRenderTarget, viewState, m_view.Camera(), m_view.GizmoMesh());
                 }
             }
 
@@ -191,7 +195,7 @@ public:
         }
         {
             YAP::ScopedSection(Draw);
-            Draw(state, scene);
+            Draw(viewRenderTarget, scene);
         }
         m_lastState = state;
     }
@@ -210,7 +214,10 @@ private:
         }
     }
 
-    void Update3DViewResource(const screenstate::ScreenState &viewState, const OrbitCamera *camera, const hierarchy::SceneMeshPtr &gizmoMesh)
+    void Update3DViewResource(const std::shared_ptr<RenderTargetChain> &viewRenderTarget,
+                              const screenstate::ScreenState &viewState,
+                              const OrbitCamera *camera,
+                              const hierarchy::SceneMeshPtr &gizmoMesh)
     {
         // resource
         {
@@ -223,18 +230,19 @@ private:
             buffer->b0ScreenSizeFovY = {(float)viewState.Width, (float)viewState.Height, camera->state.fovYRadians};
             m_rootSignature->UploadSceneConstantsBuffer();
         }
-        if (m_viewRenderTarget->Resize(viewState.Width, viewState.Height))
+
+        if (viewRenderTarget->Resize(viewState.Width, viewState.Height))
         {
             // clear all
             for (UINT i = 0; i < BACKBUFFER_COUNT; ++i)
             {
-                auto resource = m_viewRenderTarget->Resource(i);
+                auto resource = viewRenderTarget->Resource(i);
                 if (resource)
                 {
                     m_imguiDX12.Remove(resource->renderTarget.Get());
                 }
             }
-            m_viewRenderTarget->Initialize(viewState.Width, viewState.Height, m_device, BACKBUFFER_COUNT);
+            viewRenderTarget->Initialize(viewState.Width, viewState.Height, m_device, BACKBUFFER_COUNT);
         }
 
         // gizmo
@@ -293,7 +301,8 @@ private:
     //
     // command
     //
-    void Draw(const screenstate::ScreenState &state, const hierarchy::Scene *scene)
+    void Draw(const std::shared_ptr<RenderTargetChain> &viewRenderTarget,
+              const hierarchy::Scene *scene)
     {
         // new frame
         m_commandlist->Reset(nullptr);
@@ -301,7 +310,7 @@ private:
 
         // clear
         auto frameIndex = m_swapchain->CurrentFrameIndex();
-        m_viewRenderTarget->Begin(frameIndex, commandList, m_view.clearColor);
+        viewRenderTarget->Begin(frameIndex, commandList, m_view.clearColor);
         {
             // global settings
             m_rootSignature->Begin(commandList);
@@ -320,7 +329,7 @@ private:
                 DrawMesh(commandList, m_view.GizmoMesh());
             }
 
-            m_viewRenderTarget->End(frameIndex, commandList);
+            viewRenderTarget->End(frameIndex, commandList);
         }
 
         // barrier
