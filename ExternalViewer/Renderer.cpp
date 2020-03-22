@@ -163,12 +163,6 @@ public:
         {
             // first time
             Initialize(hwnd);
-
-            m_rootSignature->GetNodeConstantsBuffer(m_view.GizmoNodeID())->b1World = {
-                1, 0, 0, 0,
-                0, 1, 0, 0,
-                0, 0, 1, 0,
-                0, 0, 0, 1};
         }
         {
             YAP::ScopedSection(Update);
