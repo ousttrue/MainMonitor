@@ -17,6 +17,81 @@ using namespace d12u;
 
 const UINT BACKBUFFER_COUNT = 2;
 
+class View
+{
+    OrbitCamera m_camera;
+    Gizmo m_gizmo;
+    hierarchy::SceneNodePtr m_selected;
+
+public:
+    float clearColor[4] = {
+        0.2f,
+        0.2f,
+        0.3f,
+        1.0f};
+
+    View()
+    {
+        m_camera.zNear = 0.01f;
+    }
+
+    const OrbitCamera *Camera() const
+    {
+        return &m_camera;
+    }
+
+    int GizmoNodeID() const
+    {
+        return m_gizmo.GetNodeID();
+    }
+
+    hierarchy::SceneMeshPtr GizmoMesh() const
+    {
+        return m_gizmo.GetMesh();
+    }
+
+    gizmesh::GizmoSystem::Buffer GizmoBuffer()
+    {
+        return m_gizmo.End();
+    }
+
+    void Update3DView(const screenstate::ScreenState &viewState, size_t texture, const hierarchy::SceneNodePtr &selected)
+    {
+        //
+        // update camera
+        //
+        if (selected != m_selected)
+        {
+            if (selected)
+            {
+                m_camera.gaze = -selected->World().translation;
+            }
+            else
+            {
+                // m_camera->gaze = {0, 0, 0};
+            }
+
+            m_selected = selected;
+        }
+        m_camera.Update(viewState);
+
+        //
+        // update gizmo
+        //
+        m_gizmo.Begin(viewState, m_camera.state);
+        if (selected)
+        {
+            // if (selected->EnableGizmo())
+            {
+                auto parent = selected->Parent();
+                m_gizmo.Transform(selected->ID(),
+                                  selected->Local(),
+                                  parent ? parent->World() : falg::Transform{});
+            }
+        }
+    }
+};
+
 class Impl
 {
     screenstate::ScreenState m_lastState = {};
@@ -24,7 +99,6 @@ class Impl
     std::unique_ptr<CommandQueue> m_queue;
     std::unique_ptr<SwapChain> m_swapchain;
     std::unique_ptr<RenderTargetChain> m_backbuffer;
-    std::unique_ptr<RenderTargetChain> m_view;
     std::unique_ptr<RootSignature> m_rootSignature;
     std::unique_ptr<CommandList> m_commandlist;
     std::unique_ptr<SceneMapper> m_sceneMapper;
@@ -32,13 +106,11 @@ class Impl
     Gui m_imgui;
     ImGuiDX12 m_imguiDX12;
 
-    // scene
-    std::unique_ptr<OrbitCamera> m_camera;
-    std::unique_ptr<hierarchy::SceneLight> m_light;
-    hierarchy::SceneNodePtr m_selected;
+    View m_view;
+    std::unique_ptr<RenderTargetChain> m_viewRenderTarget;
 
-    // gizmo
-    Gizmo m_gizmo;
+    // scene
+    std::unique_ptr<hierarchy::SceneLight> m_light;
 
     float m_clearColor[4] = {
         0.2f,
@@ -51,14 +123,12 @@ public:
         : m_queue(new CommandQueue),
           m_swapchain(new SwapChain),
           m_backbuffer(new RenderTargetChain),
-          m_view(new RenderTargetChain),
+          m_viewRenderTarget(new RenderTargetChain),
           m_commandlist(new CommandList),
           m_rootSignature(new RootSignature),
           m_sceneMapper(new SceneMapper),
-          m_camera(new OrbitCamera),
           m_light(new hierarchy::SceneLight)
     {
-        m_camera->zNear = 0.01f;
     }
 
     void Log(const char *msg)
@@ -80,7 +150,6 @@ public:
         m_queue->Initialize(m_device);
         m_swapchain->Initialize(factory, m_queue->Get(), hwnd, BACKBUFFER_COUNT);
         m_backbuffer->Initialize(m_swapchain->Get(), m_device, BACKBUFFER_COUNT);
-        // m_view->InitializeIfSizeChanged(640, 480, m_device, BACKBUFFER_COUNT);
         m_sceneMapper->Initialize(m_device);
         m_commandlist->InitializeDirect(m_device);
         m_rootSignature->Initialize(m_device);
@@ -95,7 +164,7 @@ public:
             // first time
             Initialize(hwnd);
 
-            m_rootSignature->GetNodeConstantsBuffer(m_gizmo.GetNodeID())->b1World = {
+            m_rootSignature->GetNodeConstantsBuffer(m_view.GizmoNodeID())->b1World = {
                 1, 0, 0, 0,
                 0, 1, 0, 0,
                 0, 0, 1, 0,
@@ -106,17 +175,17 @@ public:
 
             // imgui
             m_imgui.BeginFrame(state);
-            m_imgui.Update(scene, m_clearColor);
+            m_imgui.Update(scene, m_view.clearColor);
 
             // view
             {
-                auto resource = m_view->Resource(m_swapchain->CurrentFrameIndex());
+                auto resource = m_viewRenderTarget->Resource(m_swapchain->CurrentFrameIndex());
                 auto texture = resource ? m_imguiDX12.GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get()) : 0;
                 screenstate::ScreenState viewState;
                 if (m_imgui.View(state, texture, &viewState))
                 {
-                    Update3DView(viewState, texture);
-                    Update3DViewResource(viewState);
+                    m_view.Update3DView(viewState, texture, m_imgui.Selected());
+                    Update3DViewResource(viewState, m_view.Camera(), m_view.GizmoMesh());
                 }
             }
 
@@ -147,72 +216,39 @@ private:
         }
     }
 
-    void Update3DViewResource(const screenstate::ScreenState &viewState)
+    void Update3DViewResource(const screenstate::ScreenState &viewState, const OrbitCamera *camera, const hierarchy::SceneMeshPtr &gizmoMesh)
     {
         // resource
         {
             auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
-            buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.projection);
-            buffer->b0View = falg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.view);
+            buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(camera->state.projection);
+            buffer->b0View = falg::size_cast<DirectX::XMFLOAT4X4>(camera->state.view);
             buffer->b0LightDir = m_light->LightDirection;
             buffer->b0LightColor = m_light->LightColor;
-            buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(m_camera->state.position);
-            buffer->b0ScreenSizeFovY = {(float)viewState.Width, (float)viewState.Height, m_camera->state.fovYRadians};
+            buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(camera->state.position);
+            buffer->b0ScreenSizeFovY = {(float)viewState.Width, (float)viewState.Height, camera->state.fovYRadians};
             m_rootSignature->UploadSceneConstantsBuffer();
         }
-        if (m_view->Resize(viewState.Width, viewState.Height))
+        if (m_viewRenderTarget->Resize(viewState.Width, viewState.Height))
         {
             // clear all
             for (UINT i = 0; i < BACKBUFFER_COUNT; ++i)
             {
-                auto resource = m_view->Resource(i);
+                auto resource = m_viewRenderTarget->Resource(i);
                 if (resource)
                 {
                     m_imguiDX12.Remove(resource->renderTarget.Get());
                 }
             }
-            m_view->Initialize(viewState.Width, viewState.Height, m_device, BACKBUFFER_COUNT);
+            m_viewRenderTarget->Initialize(viewState.Width, viewState.Height, m_device, BACKBUFFER_COUNT);
         }
 
         // gizmo
         {
-            auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh(), m_rootSignature.get());
-            auto buffer = m_gizmo.End();
+            auto drawable = m_sceneMapper->GetOrCreate(m_device, gizmoMesh, m_rootSignature.get());
+            auto buffer = m_view.GizmoBuffer();
             drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
             drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
-        }
-    }
-
-    void Update3DView(const screenstate::ScreenState &viewState, size_t texture)
-    {
-        // scene
-        auto selected = m_imgui.Selected();
-        if (selected != m_selected)
-        {
-            if (selected)
-            {
-                m_camera->gaze = -selected->World().translation;
-            }
-            else
-            {
-                // m_camera->gaze = {0, 0, 0};
-            }
-
-            m_selected = selected;
-        }
-        m_camera->Update(viewState);
-
-        // gizmo
-        m_gizmo.Begin(viewState, m_camera->state);
-        if (selected)
-        {
-            // if (selected->EnableGizmo())
-            {
-                auto parent = selected->Parent();
-                m_gizmo.Transform(selected->ID(),
-                                  selected->Local(),
-                                  parent ? parent->World() : falg::Transform{});
-            }
         }
     }
 
@@ -271,7 +307,7 @@ private:
 
         // clear
         auto frameIndex = m_swapchain->CurrentFrameIndex();
-        m_view->Begin(frameIndex, commandList, m_clearColor);
+        m_viewRenderTarget->Begin(frameIndex, commandList, m_view.clearColor);
         {
             // global settings
             m_rootSignature->Begin(commandList);
@@ -286,15 +322,11 @@ private:
 
             // gizmo: draw
             {
-                m_rootSignature->SetNodeDescriptorTable(commandList, m_gizmo.GetNodeID());
-                auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh(), m_rootSignature.get());
-                if (drawable->IsDrawable(m_commandlist.get()))
-                {
-                    DrawMesh(commandList, m_gizmo.GetMesh());
-                }
+                m_rootSignature->SetNodeDescriptorTable(commandList, m_view.GizmoNodeID());
+                DrawMesh(commandList, m_view.GizmoMesh());
             }
 
-            m_view->End(frameIndex, commandList);
+            m_viewRenderTarget->End(frameIndex, commandList);
         }
 
         // barrier

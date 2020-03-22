@@ -25,12 +25,8 @@ public:
     Gizmo();
     ~Gizmo();
 
-    int GetNodeID()
+    int GetNodeID() const
     {
-        if (!m_gizmoNode)
-        {
-            m_gizmoNode = hierarchy::SceneNode::Create("gizmo");
-        }
         return m_gizmoNode->ID();
     }
 
