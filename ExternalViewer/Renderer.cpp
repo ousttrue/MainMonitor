@@ -112,7 +112,11 @@ public:
             {
                 auto resource = m_view->Resource(m_swapchain->CurrentFrameIndex());
                 auto texture = resource ? m_imguiDX12.GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get()) : 0;
-                Update3DView(state, texture);
+                screenstate::ScreenState viewState;
+                if (m_imgui.View(state, texture, &viewState))
+                {
+                    Update3DView(viewState, texture);
+                }
             }
 
             // d3d
@@ -142,75 +146,67 @@ private:
         }
     }
 
-    void Update3DView(const screenstate::ScreenState &state, size_t texture)
+    void Update3DView(const screenstate::ScreenState &viewState, size_t texture)
     {
-        // 3d view
-        // if (resource)
+        // scene
+        auto selected = m_imgui.Selected();
+        if (selected != m_selected)
         {
-            screenstate::ScreenState viewState;
-            if (m_imgui.View(state, texture, &viewState))
+            if (selected)
             {
-                // scene
-                auto selected = m_imgui.Selected();
-                if (selected != m_selected)
-                {
-                    if (selected)
-                    {
-                        m_camera->gaze = -selected->World().translation;
-                    }
-                    else
-                    {
-                        // m_camera->gaze = {0, 0, 0};
-                    }
+                m_camera->gaze = -selected->World().translation;
+            }
+            else
+            {
+                // m_camera->gaze = {0, 0, 0};
+            }
 
-                    m_selected = selected;
-                }
-                m_camera->Update(viewState);
+            m_selected = selected;
+        }
+        m_camera->Update(viewState);
 
-                // resource
+        // resource
+        {
+            auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
+            buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.projection);
+            buffer->b0View = falg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.view);
+            buffer->b0LightDir = m_light->LightDirection;
+            buffer->b0LightColor = m_light->LightColor;
+            buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(m_camera->state.position);
+            buffer->b0ScreenSizeFovY = {(float)viewState.Width, (float)viewState.Height, m_camera->state.fovYRadians};
+            m_rootSignature->UploadSceneConstantsBuffer();
+        }
+        if (m_view->Resize(viewState.Width, viewState.Height))
+        {
+            // clear all
+            for (UINT i = 0; i < BACKBUFFER_COUNT; ++i)
+            {
+                auto resource = m_view->Resource(i);
+                if (resource)
                 {
-                    auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
-                    buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.projection);
-                    buffer->b0View = falg::size_cast<DirectX::XMFLOAT4X4>(m_camera->state.view);
-                    buffer->b0LightDir = m_light->LightDirection;
-                    buffer->b0LightColor = m_light->LightColor;
-                    buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(m_camera->state.position);
-                    buffer->b0ScreenSizeFovY = {(float)viewState.Width, (float)viewState.Height, m_camera->state.fovYRadians};
-                    m_rootSignature->UploadSceneConstantsBuffer();
+                    m_imguiDX12.Remove(resource->renderTarget.Get());
                 }
-                if (m_view->Resize(viewState.Width, viewState.Height))
-                {
-                    // clear all
-                    for (UINT i = 0; i < BACKBUFFER_COUNT; ++i)
-                    {
-                        auto resource = m_view->Resource(i);
-                        if (resource)
-                        {
-                            m_imguiDX12.Remove(resource->renderTarget.Get());
-                        }
-                    }
-                    m_view->Initialize(viewState.Width, viewState.Height, m_device, BACKBUFFER_COUNT);
-                }
+            }
+            m_view->Initialize(viewState.Width, viewState.Height, m_device, BACKBUFFER_COUNT);
+        }
 
-                m_gizmo.Begin(viewState, m_camera->state);
-                // auto selected = m_imgui.Selected();
-                if (selected)
-                {
-                    // if (selected->EnableGizmo())
-                    {
-                        auto parent = selected->Parent();
-                        m_gizmo.Transform(selected->ID(),
-                                          selected->Local(),
-                                          parent ? parent->World() : falg::Transform{});
-                    }
-                }
-                auto buffer = m_gizmo.End();
-
-                auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh(), m_rootSignature.get());
-                drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
-                drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
+        m_gizmo.Begin(viewState, m_camera->state);
+        // auto selected = m_imgui.Selected();
+        if (selected)
+        {
+            // if (selected->EnableGizmo())
+            {
+                auto parent = selected->Parent();
+                m_gizmo.Transform(selected->ID(),
+                                  selected->Local(),
+                                  parent ? parent->World() : falg::Transform{});
             }
         }
+        auto buffer = m_gizmo.End();
+
+        auto drawable = m_sceneMapper->GetOrCreate(m_device, m_gizmo.GetMesh(), m_rootSignature.get());
+        drawable->VertexBuffer()->MapCopyUnmap(buffer.pVertices, buffer.verticesBytes, buffer.vertexStride);
+        drawable->IndexBuffer()->MapCopyUnmap(buffer.pIndices, buffer.indicesBytes, buffer.indexStride);
     }
 
     void UpdateNodeConstants(hierarchy::Scene *scene)
