@@ -74,6 +74,28 @@ public:
         m_rootSignature->Initialize(m_device);
 
         m_imguiDX12.Initialize(m_device.Get(), BACKBUFFER_COUNT);
+
+        //
+        // settings
+        // https://blog.techlab-xe.net/dx12-debug-id3d12infoqueue/
+        //
+        ComPtr<ID3D12InfoQueue> infoQueue;
+        m_device.As(&infoQueue);
+
+        D3D12_MESSAGE_ID denyIds[] = {
+            D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
+        };
+        D3D12_MESSAGE_SEVERITY severities[] = {
+            D3D12_MESSAGE_SEVERITY_INFO};
+        D3D12_INFO_QUEUE_FILTER filter{};
+        filter.DenyList.NumIDs = _countof(denyIds);
+        filter.DenyList.pIDList = denyIds;
+        filter.DenyList.NumSeverities = _countof(severities);
+        filter.DenyList.pSeverityList = severities;
+
+        infoQueue->PushStorageFilter(&filter);
+
+        infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
     }
 
     void OnFrame(HWND hwnd, const screenstate::ScreenState &state,
@@ -104,7 +126,7 @@ public:
         return texture;
     }
 
-    void UpdateViewResource(const screenstate::ScreenState &viewState, const OrbitCamera *camera                            )
+    void UpdateViewResource(const screenstate::ScreenState &viewState, const OrbitCamera *camera)
     {
         auto viewRenderTarget = m_sceneMapper->GetOrCreate(m_sceneView);
         Update3DViewResource(viewRenderTarget, viewState, camera);

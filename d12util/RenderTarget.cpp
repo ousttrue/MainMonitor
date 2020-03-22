@@ -102,12 +102,19 @@ void RenderTargetChain::Initialize(UINT width, UINT height,
         D3D12_HEAP_PROPERTIES prop{
             .Type = D3D12_HEAP_TYPE_DEFAULT,
         };
-        // D3D12_CLEAR_VALUE clear{DXGI_FORMAT_D32_FLOAT, 1.0f, 0};
+        D3D12_CLEAR_VALUE clear{
+            .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+            .Color = {
+                0,
+                0,
+                0,
+                0,
+            }};
         ThrowIfFailed(device->CreateCommittedResource(&prop,
                                                       D3D12_HEAP_FLAG_NONE,
                                                       &desc,
                                                       D3D12_RESOURCE_STATE_RENDER_TARGET,
-                                                      nullptr,
+                                                      &clear,
                                                       IID_PPV_ARGS(&resource.renderTarget)));
         device->CreateRenderTargetView(resource.renderTarget.Get(), nullptr, rtv);
         rtv.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
