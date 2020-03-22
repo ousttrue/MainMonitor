@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "Gizmo.h"
 #include "Gui.h"
+#include "ImGuiDX12.h"
 #include <d12util.h>
 #include <unordered_map>
 #include <OrbitCamera.h>
@@ -28,7 +29,8 @@ class Impl
     std::unique_ptr<CommandList> m_commandlist;
     std::unique_ptr<SceneMapper> m_sceneMapper;
 
-    std::unique_ptr<Gui> m_imgui;
+    Gui m_imgui;
+    ImGuiDX12 m_imguiDX12;
 
     // scene
     std::unique_ptr<OrbitCamera> m_camera;
@@ -61,10 +63,7 @@ public:
 
     void Log(const char *msg)
     {
-        if (m_imgui)
-        {
-            m_imgui->Log(msg);
-        }
+        m_imgui.Log(msg);
     }
 
     void Initialize(HWND hwnd)
@@ -86,7 +85,7 @@ public:
         m_commandlist->InitializeDirect(m_device);
         m_rootSignature->Initialize(m_device);
 
-        m_imgui.reset(new Gui(m_device, BACKBUFFER_COUNT, hwnd));
+        m_imguiDX12.Initialize(m_device.Get(), BACKBUFFER_COUNT);
     }
 
     void OnFrame(HWND hwnd, const screenstate::ScreenState &state, hierarchy::Scene *scene)
@@ -129,18 +128,18 @@ private:
             m_backbuffer->Initialize(m_swapchain->Get(), m_device, BACKBUFFER_COUNT);
         }
 
-        m_imgui->BeginFrame(state);
+        m_imgui.BeginFrame(state);
 
         // 3d view
         auto resource = m_view->Resource(m_swapchain->CurrentFrameIndex());
         // if (resource)
         {
-            auto texture = resource ? m_imgui->GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get()) : 0;
+            auto texture = resource ? m_imguiDX12.GetOrCreateTexture(m_device.Get(), resource->renderTarget.Get()) : 0;
             screenstate::ScreenState viewState;
-            if (m_imgui->View(state, texture, &viewState))
+            if (m_imgui.View(state, texture, &viewState))
             {
                 // scene
-                auto selected = m_imgui->Selected();
+                auto selected = m_imgui.Selected();
                 if (selected != m_selected)
                 {
                     if (selected)
@@ -175,7 +174,7 @@ private:
                         auto resource = m_view->Resource(i);
                         if (resource)
                         {
-                            m_imgui->Remove(resource->renderTarget.Get());
+                            m_imguiDX12.Remove(resource->renderTarget.Get());
                         }
                     }
                     m_view->Initialize(viewState.Width, viewState.Height, m_device, BACKBUFFER_COUNT);
@@ -183,7 +182,7 @@ private:
             }
         }
 
-        m_imgui->Update(scene, m_clearColor);
+        m_imgui.Update(scene, m_clearColor);
 
         int nodeCount;
         auto nodes = scene->GetRootNodes(&nodeCount);
@@ -200,7 +199,7 @@ private:
         // gizmo: upload
         {
             m_gizmo.Begin(state, m_camera->state);
-            auto selected = m_imgui->Selected();
+            auto selected = m_imgui.Selected();
             if (selected)
             {
                 // if (selected->EnableGizmo())
@@ -292,7 +291,10 @@ private:
 
         // barrier
         m_backbuffer->Begin(frameIndex, commandList, m_clearColor);
-        m_imgui->EndFrame(commandList);
+
+        ImGui::Render();
+        m_imguiDX12.RenderDrawData(commandList.Get(), ImGui::GetDrawData());
+
         m_backbuffer->End(frameIndex, commandList);
 
         // execute

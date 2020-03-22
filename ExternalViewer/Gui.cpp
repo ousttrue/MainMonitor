@@ -3,7 +3,6 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui_internal.h>
 #include "ImGuiImplScreenState.h"
-#include "ImGuiDX12.h"
 #include <plog/Log.h>
 
 #define YAP_ENABLE
@@ -13,13 +12,11 @@
 
 #include "metrics_gui.h"
 
-template <class T>
-using ComPtr = Microsoft::WRL::ComPtr<T>;
-
 #include <shobjidl.h>
+#include <wrl/client.h>
 std::wstring OpenFileDialog(const std::wstring &folder)
 {
-    ComPtr<IFileOpenDialog> pFileOpen;
+    Microsoft::WRL::ComPtr<IFileOpenDialog> pFileOpen;
     if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL,
                                 IID_PPV_ARGS(&pFileOpen))))
     {
@@ -44,7 +41,7 @@ std::wstring OpenFileDialog(const std::wstring &folder)
         return L"";
     }
 
-    ComPtr<IShellItem> pItem;
+    Microsoft::WRL::ComPtr<IShellItem> pItem;
     if (FAILED(pFileOpen->GetResult(&pItem)))
     {
         return L"";
@@ -392,8 +389,8 @@ static bool ViewButton(void *p, ImTextureID user_texture_id, const ImVec2 &size,
     return pressed;
 }
 
-Gui::Gui(const ComPtr<ID3D12Device> &device, int bufferCount, HWND hwnd)
-    : m_dx12(new ImGuiDX12), m_logger(new ExampleAppLog),
+Gui::Gui()
+    : m_logger(new ExampleAppLog),
       m_metric(new MetricsGuiMetric), m_plot(new MetricsGuiPlot)
 {
     m_plot->AddMetric(m_metric);
@@ -413,7 +410,6 @@ Gui::Gui(const ComPtr<ID3D12Device> &device, int bufferCount, HWND hwnd)
 
     // Setup Platform/Renderer bindings
     ImGui_Impl_ScreenState_Init();
-    m_dx12->Initialize(device.Get(), bufferCount);
 
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -434,17 +430,6 @@ Gui::Gui(const ComPtr<ID3D12Device> &device, int bufferCount, HWND hwnd)
 Gui::~Gui()
 {
     ImGui::DestroyContext();
-}
-
-size_t Gui::GetOrCreateTexture(ID3D12Device *device,
-                               ID3D12Resource *resource)
-{
-    return m_dx12->GetOrCreateTexture(device, resource);
-}
-
-void Gui::Remove(ID3D12Resource *resource)
-{
-    m_dx12->Remove(resource);
 }
 
 void Gui::BeginFrame(const screenstate::ScreenState &state)
@@ -471,11 +456,6 @@ void Gui::BeginFrame(const screenstate::ScreenState &state)
     DockSpace();
 }
 
-void Gui::EndFrame(const ComPtr<ID3D12GraphicsCommandList> &commandList)
-{
-    ImGui::Render();
-    m_dx12->RenderDrawData(commandList.Get(), ImGui::GetDrawData());
-}
 
 void Gui::Log(const char *msg)
 {
