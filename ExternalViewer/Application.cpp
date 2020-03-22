@@ -266,7 +266,7 @@ public:
         if (isShowView)
         {
             auto buffer = m_view.GizmoBuffer();
-            m_renderer.UpdateViewResource(viewState, m_view.Camera());
+            m_renderer.UpdateViewResource(viewState.Width, viewState.Height, m_view.Camera()->state);
         }
 
         m_drawlist.Clear();

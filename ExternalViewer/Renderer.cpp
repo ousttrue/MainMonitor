@@ -1,7 +1,7 @@
 #include "Renderer.h"
 #include "ImGuiDX12.h"
 #include <d12util.h>
-#include <OrbitCamera.h>
+#include <CameraState.h>
 #include <DrawList.h>
 
 #include <plog/Log.h>
@@ -126,10 +126,33 @@ public:
         return texture;
     }
 
-    void UpdateViewResource(const screenstate::ScreenState &viewState, const OrbitCamera *camera)
+    void UpdateViewResource(int width, int height, const camera::CameraState &camera)
     {
         auto viewRenderTarget = m_sceneMapper->GetOrCreate(m_sceneView);
-        Update3DViewResource(viewRenderTarget, viewState, camera);
+        {
+            auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
+            buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(camera.projection);
+            buffer->b0View = falg::size_cast<DirectX::XMFLOAT4X4>(camera.view);
+            buffer->b0LightDir = m_light->LightDirection;
+            buffer->b0LightColor = m_light->LightColor;
+            buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(camera.position);
+            buffer->b0ScreenSizeFovY = {(float)width, (float)height, camera.fovYRadians};
+            m_rootSignature->UploadSceneConstantsBuffer();
+        }
+
+        if (viewRenderTarget->Resize(width, height))
+        {
+            // clear all
+            for (UINT i = 0; i < BACKBUFFER_COUNT; ++i)
+            {
+                auto resource = viewRenderTarget->Resource(i);
+                if (resource)
+                {
+                    m_imguiDX12.Remove(resource->renderTarget.Get());
+                }
+            }
+            viewRenderTarget->Initialize(width, height, m_device, BACKBUFFER_COUNT);
+        }
     }
 
 private:
@@ -146,37 +169,6 @@ private:
 
             m_width = width;
             m_height = height;
-        }
-    }
-
-    void Update3DViewResource(const std::shared_ptr<RenderTargetChain> &viewRenderTarget,
-                              const screenstate::ScreenState &viewState,
-                              const OrbitCamera *camera)
-    {
-        // resource
-        {
-            auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
-            buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(camera->state.projection);
-            buffer->b0View = falg::size_cast<DirectX::XMFLOAT4X4>(camera->state.view);
-            buffer->b0LightDir = m_light->LightDirection;
-            buffer->b0LightColor = m_light->LightColor;
-            buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(camera->state.position);
-            buffer->b0ScreenSizeFovY = {(float)viewState.Width, (float)viewState.Height, camera->state.fovYRadians};
-            m_rootSignature->UploadSceneConstantsBuffer();
-        }
-
-        if (viewRenderTarget->Resize(viewState.Width, viewState.Height))
-        {
-            // clear all
-            for (UINT i = 0; i < BACKBUFFER_COUNT; ++i)
-            {
-                auto resource = viewRenderTarget->Resource(i);
-                if (resource)
-                {
-                    m_imguiDX12.Remove(resource->renderTarget.Get());
-                }
-            }
-            viewRenderTarget->Initialize(viewState.Width, viewState.Height, m_device, BACKBUFFER_COUNT);
         }
     }
 
@@ -326,7 +318,7 @@ size_t Renderer::ViewTextureID()
     return m_impl->ViewTextureID();
 }
 
-void Renderer::UpdateViewResource(const screenstate::ScreenState &viewState, const OrbitCamera *camera)
+void Renderer::UpdateViewResource(int width, int height, const camera::CameraState &camera)
 {
-    m_impl->UpdateViewResource(viewState, camera);
+    m_impl->UpdateViewResource(width, height, camera);
 }

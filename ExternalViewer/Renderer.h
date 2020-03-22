@@ -1,18 +1,15 @@
 #pragma once
 #include <memory>
-#include <gizmesh.h>
 
-namespace screenstate
+namespace camera
 {
-struct ScreenState;
+struct CameraState;
 }
 
 namespace hierarchy
 {
-class Scene;
-class SceneMesh;
 struct DrawList;
-} // namespace hierarchy
+}
 
 class Renderer
 {
@@ -25,5 +22,5 @@ public:
     void OnFrame(void *hwnd, int width, int height, hierarchy::DrawList *scene);
 
     size_t ViewTextureID();
-    void UpdateViewResource(const screenstate::ScreenState &viewState, const struct OrbitCamera *camera);
+    void UpdateViewResource(int width, int height, const camera::CameraState &camera);
 };
