@@ -32,6 +32,7 @@ TODO
     * [ ] light info
     * [ ] gizmo info
     * [ ] profiler
+    * [ ] node context menu(remove)
 * gizmo
     * [x] VertexColor
     * [ ] Hover
@@ -51,6 +52,10 @@ TODO
     * [ ] camera gaze to selected node
     * [ ] GRPC remote API
     * [ ] bullet physics
+    * [ ] load on thread
+        * [ ] progress bar
+    * [ ] bvh load
+    * [ ] node type
 
 ## hlsl memo
 

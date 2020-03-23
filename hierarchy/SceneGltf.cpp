@@ -59,26 +59,25 @@ std::wstring ToUnicode(std::string const &src, UINT CP)
 namespace hierarchy
 {
 
-SceneNodePtr SceneGltf::LoadFromPath(const std::string &path)
+SceneNodePtr SceneGltf::LoadFromPath(const std::filesystem::path &path)
 {
     auto bytes = read_allbytes(path);
     if (bytes.empty())
     {
+        LOGW << "fail to read bytes: " << path.filename().c_str();
         return nullptr;
     }
 
-    return LoadGlbBytes(bytes.data(), (int)bytes.size());
-}
-
-SceneNodePtr SceneGltf::LoadFromPath(const std::wstring &path)
-{
-    auto bytes = read_allbytes(path);
-    if (bytes.empty())
+    auto node = LoadGlbBytes(bytes.data(), (int)bytes.size());
+    if (!node)
     {
+        LOGW << "fail to load: " << path.filename().c_str();
         return nullptr;
     }
 
-    return LoadGlbBytes(bytes.data(), (int)bytes.size());
+    LOGI << "load: " << path.filename().c_str();
+    node->Name((const char *)path.filename().u8string().c_str());
+    return node;
 }
 
 class GltfLoader

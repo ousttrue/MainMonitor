@@ -214,11 +214,6 @@ public:
             if (node)
             {
                 m_scene.AddRootNode(node);
-                LOGI << "load: " << argv[2];
-            }
-            else
-            {
-                LOGW << "fail to load: " << argv[2];
             }
         }
 

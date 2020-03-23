@@ -314,12 +314,7 @@ static void DockSpace(hierarchy::Scene *scene)
 
                 if (node)
                 {
-                    LOGI << "load: " << path;
                     scene->AddRootNode(node);
-                }
-                else
-                {
-                    LOGW << "fail to load: " << path;
                 }
             }
             ImGui::EndMenu();
