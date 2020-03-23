@@ -245,7 +245,7 @@ public:
         }
 
         {
-            frame_metrics::scoped("vr");
+            frame_metrics::scoped s("vr");
             m_vr.OnFrame(&m_scene);
         }
 
@@ -253,7 +253,7 @@ public:
         bool isShowView = false;
         screenstate::ScreenState viewState;
         {
-            frame_metrics::scoped("imgui");
+            frame_metrics::scoped s("imgui");
             m_imgui.OnFrame(state, &m_scene);
 
             // view
@@ -264,11 +264,11 @@ public:
 
         // renderering
         {
-            frame_metrics::scoped("render");
+            frame_metrics::scoped s("render");
             m_renderer.BeginFrame(hwnd, state.Width, state.Height);
             if (isShowView)
             {
-                frame_metrics::scoped("view");
+                frame_metrics::scoped ss("view");
                 m_view.Update3DView(viewState, m_imgui.Selected());
                 m_sceneView->Width = viewState.Width;
                 m_sceneView->Height = viewState.Height;

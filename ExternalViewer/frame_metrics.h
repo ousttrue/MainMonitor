@@ -16,43 +16,28 @@ void push(const char (&section)[N])
 void pop();
 
 template <size_t N>
-struct scoped_RAII
+struct scoped
 {
-    bool moved = false;
-
-    scoped_RAII(const char (&section)[N])
+    scoped(const char (&section)[N])
     {
         push(section);
     }
-    ~scoped_RAII()
+    ~scoped()
     {
-        if (moved)
-        {
-            auto a = 0;
-        }
-        else
-        {
-            pop();
-        }
+        pop();
     }
 
-    scoped_RAII(const scoped_RAII &) = delete;
-    scoped_RAII &operator=(const scoped_RAII &) = delete;
-
-    scoped_RAII(scoped_RAII &&rhs)
-    {
-        rhs.moved = true;
-    }
-    scoped_RAII &operator=(scoped_RAII &&rhs)
-    {
-        rhs.moved = true;
-    }
+    scoped(const scoped &) = delete;
+    scoped &operator=(const scoped &) = delete;
 };
 
-template <size_t N>
-scoped_RAII<N> scoped(const char (&section)[N])
+struct section
 {
-    return std::move(scoped_RAII<N>(section));
-}
+    int parent;
+    const char *name;
+    float start;
+    float end;
+};
+const section *get_sections(int *count);
 
 } // namespace frame_metrics

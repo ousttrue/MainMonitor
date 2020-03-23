@@ -6,6 +6,15 @@
 #include "ImGuiImplScreenState.h"
 #include <plog/Log.h>
 
+static uint32_t s_colors[] = {
+    IM_COL32(255, 0, 0, 200),
+    IM_COL32(0, 255, 0, 200),
+    IM_COL32(0, 0, 255, 200),
+    IM_COL32(0, 255, 255, 200),
+    IM_COL32(255, 0, 255, 200),
+    IM_COL32(255, 255, 0, 200),
+};
+
 #include <shobjidl.h>
 #include <wrl/client.h>
 std::wstring OpenFileDialog(const std::wstring &folder)
@@ -584,15 +593,15 @@ private:
             }
 
             {
-                // ImVec2 p = ImGui::GetCursorScreenPos();
-                // int count;
-                // auto section = frame_metrics::get_sections(&count);
-                // for (int i = 0; i < count; ++i, ++section)
-                // {
-                //     float start = width * section->start * TIME_RANGE_INV;
-                //     float end = width * section->end * TIME_RANGE_INV;
-                //     ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(p.x + start, p.y), ImVec2(p.x + end, p.y + 20), IM_COL32(255, 0, 0, 200));
-                // }
+                ImVec2 p = ImGui::GetCursorScreenPos();
+                int count;
+                auto section = frame_metrics::get_sections(&count);
+                for (int i = 0; i < count; ++i, ++section)
+                {
+                    float start = width * section->start * TIME_RANGE_INV;
+                    float end = width * section->end * TIME_RANGE_INV;
+                    ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(p.x + start, p.y), ImVec2(p.x + end, p.y + 20), s_colors[i % _countof(s_colors)]);
+                }
             }
         }
         ImGui::End();

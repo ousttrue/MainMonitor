@@ -32,16 +32,16 @@ int main(int argc, char **argv)
             while (true)
             {
                 frame_metrics::new_frame();
-                frame_metrics::scoped("frame");
+                frame_metrics::scoped s("frame");
                 {
-                    frame_metrics::scoped("window");
+                    frame_metrics::scoped ss("window");
                     if (!window.TryGetInput(&state))
                     {
                         break;
                     }
                 }
                 {
-                    frame_metrics::scoped("app");
+                    frame_metrics::scoped ss("app");
                     app.OnFrame(hwnd, state);
                 }
             }
