@@ -490,7 +490,7 @@ public:
     bool View(const screenstate::ScreenState &state, size_t textureID, screenstate::ScreenState *viewState)
     {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-        bool isOpen = ImGui::Begin("render target", nullptr,
+        bool isOpen = ImGui::Begin("view", nullptr,
                                    ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         if (isOpen)
         {
@@ -668,7 +668,7 @@ hierarchy::SceneNodePtr Gui::Selected() const
     return m_impl->Selected();
 }
 
-void Gui::NewFrame(const screenstate::ScreenState &state, hierarchy::Scene *scene)
+void Gui::OnFrame(const screenstate::ScreenState &state, hierarchy::Scene *scene)
 {
     m_impl->NewFrame(state, scene);
 }
