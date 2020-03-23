@@ -254,8 +254,7 @@ public:
         screenstate::ScreenState viewState;
         {
             frame_metrics::scoped("imgui");
-            m_imgui.NewFrame(state);
-            m_imgui.Update(&m_scene, m_view.clearColor);
+            m_imgui.NewFrame(state, &m_scene);
             auto viewTextureID = m_renderer.ViewTextureID(m_sceneView);
             isShowView = m_imgui.View(state, viewTextureID, &viewState);
         }

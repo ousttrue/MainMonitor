@@ -242,7 +242,7 @@ static void ImGui_Impl_Win32_UpdateMouseCursor()
 // Note that you already dock windows into each others _without_ a DockSpace() by just moving windows
 // from their title bar (or by holding SHIFT if io.ConfigDockingWithShift is set).
 // DockSpace() is only useful to construct to a central location for your application.
-static void DockSpace()
+static void DockSpace(hierarchy::Scene *scene)
 {
     static bool opt_fullscreen_persistant = true;
     bool opt_fullscreen = opt_fullscreen_persistant;
@@ -294,6 +294,26 @@ static void DockSpace()
 
     if (ImGui::BeginMenuBar())
     {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("open"))
+            {
+                auto path = OpenFileDialog(L"");
+
+                auto node = hierarchy::SceneGltf::LoadFromPath(path);
+
+                if (node)
+                {
+                    LOGI << "load: " << path;
+                    scene->AddRootNode(node);
+                }
+                else
+                {
+                    LOGW << "fail to load: " << path;
+                }
+            }
+            ImGui::EndMenu();
+        }
         if (ImGui::BeginMenu("Docking"))
         {
             // Disabling fullscreen would allow the window to be moved to the front of other windows,
@@ -383,256 +403,277 @@ static bool ViewButton(void *p, ImTextureID user_texture_id, const ImVec2 &size,
     return pressed;
 }
 
-Gui::Gui()
-    : m_logger(new ExampleAppLog)
+//
+// GuiImpl
+//
+class GuiImpl
 {
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO();
-    (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    std::unique_ptr<struct ExampleAppLog> m_logger;
 
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    //ImGui::StyleColorsClassic();
+    // single selection
+    std::weak_ptr<hierarchy::SceneNode> m_selected;
 
-    // Setup Platform/Renderer bindings
-    ImGui_Impl_ScreenState_Init();
+public:
+    GuiImpl()
+        : m_logger(new ExampleAppLog)
+    {
+        // Setup Dear ImGui context
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO &io = ImGui::GetIO();
+        (void)io;
+        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-    // Load Fonts
-    // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-    // - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-    // - Read 'docs/FONTS.txt' for more instructions and details.
-    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-    //io.Fonts->AddFontDefault();
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
-    //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
-    //IM_ASSERT(font != NULL);
+        // Setup Dear ImGui style
+        ImGui::StyleColorsDark();
+        //ImGui::StyleColorsClassic();
+
+        // Setup Platform/Renderer bindings
+        ImGui_Impl_ScreenState_Init();
+
+        // Load Fonts
+        // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
+        // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
+        // - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
+        // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
+        // - Read 'docs/FONTS.txt' for more instructions and details.
+        // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
+        //io.Fonts->AddFontDefault();
+        //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
+        //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
+        //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
+        //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
+        //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
+        //IM_ASSERT(font != NULL);
+    }
+
+    ~GuiImpl()
+    {
+        ImGui::DestroyContext();
+    }
+
+    void Log(const char *msg)
+    {
+        m_logger->AddLog(msg);
+    }
+
+    hierarchy::SceneNodePtr Selected() const
+    {
+        return m_selected.lock();
+    }
+
+    void NewFrame(const screenstate::ScreenState &state, hierarchy::Scene *scene)
+    {
+        // Start the Dear ImGui frame
+        ImGui_Impl_ScreenState_NewFrame(state);
+        if (state.Has(screenstate::MouseButtonFlags::CursorUpdate))
+        {
+            ImGui_Impl_Win32_UpdateMouseCursor();
+            // Update OS mouse cursor with the cursor requested by imgui
+            // ImGuiMouseCursor mouse_cursor = io.MouseDrawCursor ? ImGuiMouseCursor_None : ImGui::GetMouseCursor();
+            // if (g_LastMouseCursor != mouse_cursor)
+            // {
+            //     g_LastMouseCursor = mouse_cursor;
+            //     UpdateMouseCursor();
+            // }
+        }
+
+        ImGui::NewFrame();
+
+        DockSpace(scene);
+
+        Update(scene);
+    }
+
+    bool View(const screenstate::ScreenState &state, size_t textureID, screenstate::ScreenState *viewState)
+    {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+        bool isOpen = ImGui::Begin("render target", nullptr,
+                                   ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        if (isOpen)
+        {
+            auto size = ImGui::GetContentRegionAvail();
+            auto pos = ImGui::GetWindowPos();
+            auto frameHeight = ImGui::GetFrameHeight();
+
+            *viewState = state;
+            viewState->Width = (int)size.x;
+            viewState->Height = (int)size.y;
+            viewState->MouseX = state.MouseX - (int)pos.x;
+            viewState->MouseY = state.MouseY - (int)pos.y - (int)frameHeight;
+
+            ViewButton(this, (ImTextureID)textureID, size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), 0);
+            // update camera
+            if (!ImGui::IsWindowHovered())
+            {
+                viewState->Unset(screenstate::MouseButtonFlags::WheelMinus);
+                viewState->Unset(screenstate::MouseButtonFlags::WheelPlus);
+            }
+
+            if (ImGui::IsItemActive())
+            {
+                // LOGD << "active";
+            }
+            else
+            {
+                // viewState->Unset(screenstate::MouseButtonFlags::LeftDown);
+                viewState->Unset(screenstate::MouseButtonFlags::RightDown);
+                viewState->Unset(screenstate::MouseButtonFlags::MiddleDown);
+            }
+        }
+        ImGui::End();
+        ImGui::PopStyleVar();
+
+        return isOpen;
+    }
+
+private:
+    void DrawNode(const hierarchy::SceneNodePtr &node, hierarchy::SceneNode *selected)
+    {
+        int childCount;
+        auto children = node->GetChildren(&childCount);
+        ImGui::PushID(node->ID());
+        auto flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+        flags |= ImGuiTreeNodeFlags_DefaultOpen;
+        if (childCount == 0)
+        {
+            flags |= ImGuiTreeNodeFlags_Leaf;
+        }
+        if (node.get() == selected)
+        {
+            flags |= ImGuiTreeNodeFlags_Selected;
+        }
+        auto isOpen = ImGui::TreeNodeEx(node->Name().c_str(), flags);
+        if (ImGui::IsItemClicked())
+        {
+            m_selected = node;
+        }
+
+        if (isOpen)
+        {
+            // children
+            for (int i = 0; i < childCount; ++i)
+            {
+                DrawNode(children[i], selected);
+            }
+            ImGui::TreePop();
+        }
+
+        ImGui::PopID();
+    }
+
+    void Update(hierarchy::Scene *scene)
+    {
+        ImGui::Begin("Performance");
+        {
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+            auto width = ImGui::GetWindowContentRegionWidth();
+            const float TIME_RANGE = 2.0f / 60.0f;
+            const float TIME_RANGE_INV = 1.0f / TIME_RANGE;
+            {
+                ImVec2 p = ImGui::GetCursorScreenPos();
+
+                ImGui::PlotHistogram("frame", frame_metrics::imgui_plot, NULL, 60, 0, NULL, 0, TIME_RANGE, ImVec2(width, 100));
+
+                //trying to add lines on top of my image here:
+                p.y += 50;
+                ImGui::GetWindowDrawList()->AddLine(p, ImVec2(p.x + width, p.y), IM_COL32(255, 0, 0, 200), 1.0f);
+            }
+
+            {
+                // ImVec2 p = ImGui::GetCursorScreenPos();
+                // int count;
+                // auto section = frame_metrics::get_sections(&count);
+                // for (int i = 0; i < count; ++i, ++section)
+                // {
+                //     float start = width * section->start * TIME_RANGE_INV;
+                //     float end = width * section->end * TIME_RANGE_INV;
+                //     ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(p.x + start, p.y), ImVec2(p.x + end, p.y + 20), IM_COL32(255, 0, 0, 200));
+                // }
+            }
+        }
+        ImGui::End();
+
+        {
+            m_logger->Draw("logger");
+        }
+        {
+            ImGui::ShowDemoWindow();
+        }
+
+        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
+        static bool show_demo_window = true;
+        static bool show_another_window = true;
+
+        {
+            static float f = 0.0f;
+            static int counter = 0;
+
+            ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
+
+            ImGui::Text("This is some useful text."); // Display some text (you can use a format strings too)
+            // ImGui::Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
+            // ImGui::Checkbox("Another Window", &show_another_window);
+
+            ImGui::SliderFloat("float", &f, 0.0f, 1.0f); // Edit 1 float using a slider from 0.0f to 1.0f
+            // ImGui::ColorEdit3("clear color", clearColor); // Edit 3 floats representing a color
+
+            if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
+                counter++;
+            ImGui::SameLine();
+            ImGui::Text("counter = %d", counter);
+
+            ImGui::End();
+        }
+
+        {
+            // scene tree
+            ImGui::Begin("scene graph");
+
+            int rootCount;
+            auto roots = scene->GetRootNodes(&rootCount);
+            for (int i = 0; i < rootCount; ++i)
+            {
+                DrawNode(roots[i], m_selected.lock().get());
+            }
+
+            ImGui::End();
+        }
+    }
+};
+
+//
+// Gui
+//
+Gui::Gui()
+    : m_impl(new GuiImpl)
+{
 }
 
 Gui::~Gui()
 {
-    ImGui::DestroyContext();
-}
-
-void Gui::NewFrame(const screenstate::ScreenState &state)
-{
-    // Start the Dear ImGui frame
-    ImGui_Impl_ScreenState_NewFrame(state);
-    if (state.Has(screenstate::MouseButtonFlags::CursorUpdate))
-    {
-        ImGui_Impl_Win32_UpdateMouseCursor();
-        // Update OS mouse cursor with the cursor requested by imgui
-        // ImGuiMouseCursor mouse_cursor = io.MouseDrawCursor ? ImGuiMouseCursor_None : ImGui::GetMouseCursor();
-        // if (g_LastMouseCursor != mouse_cursor)
-        // {
-        //     g_LastMouseCursor = mouse_cursor;
-        //     UpdateMouseCursor();
-        // }
-    }
-
-    ImGui::NewFrame();
-
-    DockSpace();
+    delete m_impl;
 }
 
 void Gui::Log(const char *msg)
 {
-    m_logger->AddLog(msg);
+    m_impl->Log(msg);
 }
 
-void Gui::ShowLogger()
+hierarchy::SceneNodePtr Gui::Selected() const
 {
-    m_logger->Draw("Logger");
+    return m_impl->Selected();
 }
 
-void Gui::DrawNode(const hierarchy::SceneNodePtr &node, hierarchy::SceneNode *selected)
+void Gui::NewFrame(const screenstate::ScreenState &state, hierarchy::Scene *scene)
 {
-    int childCount;
-    auto children = node->GetChildren(&childCount);
-    ImGui::PushID(node->ID());
-    auto flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-    flags |= ImGuiTreeNodeFlags_DefaultOpen;
-    if (childCount == 0)
-    {
-        flags |= ImGuiTreeNodeFlags_Leaf;
-    }
-    if (node.get() == selected)
-    {
-        flags |= ImGuiTreeNodeFlags_Selected;
-    }
-    auto isOpen = ImGui::TreeNodeEx(node->Name().c_str(), flags);
-    if (ImGui::IsItemClicked())
-    {
-        m_selected = node;
-    }
-
-    if (isOpen)
-    {
-        // children
-        for (int i = 0; i < childCount; ++i)
-        {
-            DrawNode(children[i], selected);
-        }
-        ImGui::TreePop();
-    }
-
-    ImGui::PopID();
-}
-
-bool Gui::Update(hierarchy::Scene *scene, float clearColor[4])
-{
-    bool consumed = false;
-
-    ImGui::Begin("Performance");
-    {
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-        auto width = ImGui::GetWindowContentRegionWidth();
-        const float TIME_RANGE = 2.0f / 60.0f;
-        const float TIME_RANGE_INV = 1.0f / TIME_RANGE;
-        {
-            ImVec2 p = ImGui::GetCursorScreenPos();
-
-            ImGui::PlotHistogram("frame", frame_metrics::imgui_plot, NULL, 60, 0, NULL, 0, TIME_RANGE, ImVec2(width, 100));
-
-            //trying to add lines on top of my image here:
-            p.y += 50;
-            ImGui::GetWindowDrawList()->AddLine(p, ImVec2(p.x + width, p.y), IM_COL32(255, 0, 0, 200), 1.0f);
-        }
-
-        {
-            // ImVec2 p = ImGui::GetCursorScreenPos();
-            // int count;
-            // auto section = frame_metrics::get_sections(&count);
-            // for (int i = 0; i < count; ++i, ++section)
-            // {
-            //     float start = width * section->start * TIME_RANGE_INV;
-            //     float end = width * section->end * TIME_RANGE_INV;
-            //     ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(p.x + start, p.y), ImVec2(p.x + end, p.y + 20), IM_COL32(255, 0, 0, 200));
-            // }
-        }
-    }
-    ImGui::End();
-
-    //
-    // imgui
-    //
-    {
-        ImGui::Begin("main");
-        if (ImGui::Button("open"))
-        {
-            auto path = OpenFileDialog(L"");
-
-            auto node = hierarchy::SceneGltf::LoadFromPath(path);
-
-            if (node)
-            {
-                LOGI << "load: " << path;
-                scene->AddRootNode(node);
-            }
-            else
-            {
-                LOGW << "fail to load: " << path;
-            }
-        }
-        ImGui::End();
-    }
-    {
-        ShowLogger();
-    }
-    {
-        ImGui::ShowDemoWindow();
-    }
-
-    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-    static bool show_demo_window = true;
-    static bool show_another_window = true;
-
-    {
-        static float f = 0.0f;
-        static int counter = 0;
-
-        ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
-
-        ImGui::Text("This is some useful text."); // Display some text (you can use a format strings too)
-        // ImGui::Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
-        // ImGui::Checkbox("Another Window", &show_another_window);
-
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);  // Edit 1 float using a slider from 0.0f to 1.0f
-        ImGui::ColorEdit3("clear color", clearColor); // Edit 3 floats representing a color
-
-        if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
-            counter++;
-        ImGui::SameLine();
-        ImGui::Text("counter = %d", counter);
-
-        ImGui::End();
-    }
-
-    {
-        // scene tree
-        ImGui::Begin("scene graph");
-
-        int rootCount;
-        auto roots = scene->GetRootNodes(&rootCount);
-        for (int i = 0; i < rootCount; ++i)
-        {
-            DrawNode(roots[i], m_selected.lock().get());
-        }
-
-        ImGui::End();
-    }
-
-    return ImGui::IsAnyWindowHovered();
+    m_impl->NewFrame(state, scene);
 }
 
 bool Gui::View(const screenstate::ScreenState &state, size_t textureID, screenstate::ScreenState *viewState)
 {
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    bool isOpen = ImGui::Begin("render target", nullptr,
-                               ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-    if (isOpen)
-    {
-        auto size = ImGui::GetContentRegionAvail();
-        auto pos = ImGui::GetWindowPos();
-        auto frameHeight = ImGui::GetFrameHeight();
-
-        *viewState = state;
-        viewState->Width = (int)size.x;
-        viewState->Height = (int)size.y;
-        viewState->MouseX = state.MouseX - (int)pos.x;
-        viewState->MouseY = state.MouseY - (int)pos.y - (int)frameHeight;
-
-        ViewButton(this, (ImTextureID)textureID, size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), 0);
-        // update camera
-        if (!ImGui::IsWindowHovered())
-        {
-            viewState->Unset(screenstate::MouseButtonFlags::WheelMinus);
-            viewState->Unset(screenstate::MouseButtonFlags::WheelPlus);
-        }
-
-        if (ImGui::IsItemActive())
-        {
-            // LOGD << "active";
-        }
-        else
-        {
-            // viewState->Unset(screenstate::MouseButtonFlags::LeftDown);
-            viewState->Unset(screenstate::MouseButtonFlags::RightDown);
-            viewState->Unset(screenstate::MouseButtonFlags::MiddleDown);
-        }
-    }
-    ImGui::End();
-    ImGui::PopStyleVar();
-
-    return isOpen;
+    return m_impl->View(state, textureID, viewState);
 }
