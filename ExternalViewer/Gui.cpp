@@ -496,15 +496,29 @@ bool Gui::Update(hierarchy::Scene *scene, float clearColor[4])
     {
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
+        auto width = ImGui::GetWindowContentRegionWidth();
+        const float TIME_RANGE = 2.0f / 60.0f;
+        const float TIME_RANGE_INV = 1.0f / TIME_RANGE;
         {
-            auto width = ImGui::GetWindowContentRegionWidth();
             ImVec2 p = ImGui::GetCursorScreenPos();
 
-            ImGui::PlotHistogram("frame", frame_metrics::imgui_plot, NULL, 60, 0, NULL, 0, 2.0f / 60.0f, ImVec2(width, 100));
+            ImGui::PlotHistogram("frame", frame_metrics::imgui_plot, NULL, 60, 0, NULL, 0, TIME_RANGE, ImVec2(width, 100));
 
             //trying to add lines on top of my image here:
             p.y += 50;
             ImGui::GetWindowDrawList()->AddLine(p, ImVec2(p.x + width, p.y), IM_COL32(255, 0, 0, 200), 1.0f);
+        }
+
+        {
+            // ImVec2 p = ImGui::GetCursorScreenPos();
+            // int count;
+            // auto section = frame_metrics::get_sections(&count);
+            // for (int i = 0; i < count; ++i, ++section)
+            // {
+            //     float start = width * section->start * TIME_RANGE_INV;
+            //     float end = width * section->end * TIME_RANGE_INV;
+            //     ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(p.x + start, p.y), ImVec2(p.x + end, p.y + 20), IM_COL32(255, 0, 0, 200));
+            // }
         }
     }
     ImGui::End();
