@@ -23,7 +23,7 @@ float imgui_plot(void *data, int index)
     return tl_delta[tl_pos - 60 + index];
 }
 
-void push(const char *section)
+void push_internal(const char *section, size_t n)
 {
 }
 
