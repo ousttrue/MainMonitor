@@ -31,7 +31,7 @@ int main(int argc, char **argv)
             screenstate::ScreenState state;
             while (true)
             {
-                frame_metrics::new_frame_delta_seconds(state.DeltaSeconds);
+                frame_metrics::new_frame();
                 frame_metrics::scoped("frame");
                 {
                     frame_metrics::scoped("window");

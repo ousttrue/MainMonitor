@@ -3,7 +3,7 @@
 namespace frame_metrics
 {
 
-void new_frame_delta_seconds(float seconds);
+void new_frame();
 float imgui_plot(void *data, int index);
 
 void push_internal(const char *section, size_t n);
