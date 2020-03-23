@@ -18,7 +18,7 @@ target_include_directories(${TARGET_NAME} PRIVATE
     ${EXTERNAL_DIR}/openvr/headers
     ${EXTERNAL_DIR}/plog/include
     ${EXTERNAL_DIR}/nlohmann-json/include
-    ${EXTERNAL_DIR}/MetricsGui
+    ${EXTERNAL_DIR}/IconFontCppHeaders
     )
 target_link_libraries(${TARGET_NAME} PRIVATE
     falg

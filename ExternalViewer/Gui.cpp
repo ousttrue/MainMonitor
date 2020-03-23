@@ -5,6 +5,7 @@
 #include <imgui_internal.h>
 #include "ImGuiImplScreenState.h"
 #include <plog/Log.h>
+#include <IconsFontAwesome4.h>
 
 static uint32_t s_colors[] = {
     IM_COL32(255, 0, 0, 200),
@@ -456,6 +457,27 @@ public:
         //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
         //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
         //IM_ASSERT(font != NULL);
+
+        {
+            auto filename = "C:/Windows/Fonts/meiryo.ttc";
+            float size_pixels = 24.0f;
+            ImVector<ImWchar> ranges;
+            ImFontGlyphRangesBuilder builder;
+            // builder.AddText("奈也");
+            // builder.AddRanges(io.Fonts->GetGlyphRangesJapanese());
+            // builder.BuildRanges(&ranges);
+            ImFont *font = io.Fonts->AddFontFromFileTTF(filename, size_pixels, NULL, ranges.Data);
+        }
+        {
+            float size_icon = 20.0f;
+            ImFontConfig config;
+            config.MergeMode = true;
+            config.PixelSnapH = true;
+            config.GlyphMinAdvanceX = size_icon;
+            static const ImWchar icon_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
+            io.Fonts->AddFontFromFileTTF("fonts/fontawesome-webfont.ttf", size_icon, &config, icon_ranges);
+            // io.Fonts->Build();
+        }
     }
 
     ~GuiImpl()
@@ -634,6 +656,9 @@ private:
                 counter++;
             ImGui::SameLine();
             ImGui::Text("counter = %d", counter);
+
+            ImGui::Text("%s among %d items", ICON_FA_SEARCH, 10);
+            ImGui::Text("%s", ICON_FA_SEARCH " Search");
 
             ImGui::End();
         }
