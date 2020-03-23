@@ -76,7 +76,7 @@ public:
         };
 
         auto index = m_textureDescriptorMap.size();
-        LOGD << "imgui: new texture#" << index;
+        // LOGD << "imgui: new texture#" << index;
 
         auto handle = m_pHeap->GetCPUDescriptorHandleForHeapStart();
         handle.ptr += index * m_increment;

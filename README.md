@@ -33,6 +33,7 @@ TODO
     * [ ] gizmo info
     * [ ] profiler
     * [ ] node context menu(remove)
+    * [ ] color log
 * gizmo
     * [x] VertexColor
     * [ ] Hover
