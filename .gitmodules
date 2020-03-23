@@ -22,3 +22,6 @@
 [submodule "external/MetricsGui"]
 	path = external/MetricsGui
 	url = https://github.com/GameTechDev/MetricsGui.git
+[submodule "external/IconFontCppHeaders"]
+	path = external/IconFontCppHeaders
+	url = https://github.com/juliettef/IconFontCppHeaders.git
