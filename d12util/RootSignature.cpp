@@ -200,7 +200,7 @@ std::shared_ptr<Material> RootSignature::GetOrCreate(const ComPtr<ID3D12Device> 
     }
 
     auto gpuMaterial = std::make_shared<Material>();
-    if(!gpuMaterial->Initialize(device, m_rootSignature, gpuShader))
+    if(!gpuMaterial->Initialize(device, m_rootSignature, gpuShader, sceneMaterial))
     {
         throw;
     }

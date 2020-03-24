@@ -6,10 +6,30 @@ namespace d12u
 
 bool Material::Initialize(const ComPtr<ID3D12Device> &device,
                           const ComPtr<ID3D12RootSignature> &rootSignature,
-                          const std::shared_ptr<Shader> &shader)
+                          const std::shared_ptr<Shader> &shader,
+                          const hierarchy::SceneMaterialPtr &material)
 {
     int inputLayoutCount;
     auto inputLayout = shader->inputLayout(&inputLayoutCount);
+
+    D3D12_BLEND_DESC blend{
+        .AlphaToCoverageEnable = FALSE,
+        .IndependentBlendEnable = FALSE,
+        .RenderTarget = {
+            {
+                .BlendEnable = FALSE,
+                .LogicOpEnable = FALSE,
+                .SrcBlend = D3D12_BLEND_ONE,
+                .DestBlend = D3D12_BLEND_ZERO,
+                .BlendOp = D3D12_BLEND_OP_ADD,
+                .SrcBlendAlpha = D3D12_BLEND_ONE,
+                .DestBlendAlpha = D3D12_BLEND_ZERO,
+                .BlendOpAlpha = D3D12_BLEND_OP_ADD,
+                .LogicOp = D3D12_LOGIC_OP_NOOP,
+                .RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL,
+            },
+        },
+    };
 
     // Describe and create the graphics pipeline state object (PSO).
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {
@@ -22,24 +42,7 @@ bool Material::Initialize(const ComPtr<ID3D12Device> &device,
             .pShaderBytecode = shader->m_ps->GetBufferPointer(),
             .BytecodeLength = shader->m_ps->GetBufferSize(),
         },
-        .BlendState = {
-            .AlphaToCoverageEnable = FALSE,
-            .IndependentBlendEnable = FALSE,
-            .RenderTarget = {
-                {
-                    FALSE,
-                    FALSE,
-                    D3D12_BLEND_ONE,
-                    D3D12_BLEND_ZERO,
-                    D3D12_BLEND_OP_ADD,
-                    D3D12_BLEND_ONE,
-                    D3D12_BLEND_ZERO,
-                    D3D12_BLEND_OP_ADD,
-                    D3D12_LOGIC_OP_NOOP,
-                    D3D12_COLOR_WRITE_ENABLE_ALL,
-                },
-            },
-        },
+        .BlendState = blend,
         .SampleMask = UINT_MAX,
         .RasterizerState = {
             .FillMode = D3D12_FILL_MODE_SOLID,
