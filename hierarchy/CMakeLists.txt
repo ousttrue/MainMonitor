@@ -13,6 +13,7 @@ add_library(${TARGET_NAME}
     VertexBuffer.cpp
     DrawList.cpp
     frame_metrics.cpp
+    ToUnicode.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

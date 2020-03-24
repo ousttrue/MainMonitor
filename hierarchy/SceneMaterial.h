@@ -8,6 +8,13 @@
 namespace hierarchy
 {
 
+enum class AlphaMode
+{
+    Opaque,
+    Mask,
+    Blend,
+};
+
 class SceneMaterial
 {
 
@@ -16,6 +23,8 @@ public:
 
     std::string name;
     ShaderWatcherPtr shader;
+    AlphaMode alphaMode{};
+    float alphaCutoff = 0;
     SceneImagePtr colorImage;
 };
 using SceneMaterialPtr = std::shared_ptr<SceneMaterial>;

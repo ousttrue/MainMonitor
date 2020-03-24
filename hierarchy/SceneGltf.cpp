@@ -3,13 +3,14 @@
 #include "ShaderManager.h"
 #include "VertexBuffer.h"
 #include "SceneMeshSkin.h"
+#include "ToUnicode.h"
 #include <vector>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <gltfformat/glb.h>
 #include <gltfformat/bin.h>
-#include <Windows.h>
+// #include <Windows.h>
 #include <plog/Log.h>
 
 struct GltfVertex
@@ -41,19 +42,6 @@ static std::vector<uint8_t> read_allbytes(T path)
     }
 
     return buffer;
-}
-
-std::wstring ToUnicode(std::string const &src, UINT CP)
-{
-    auto const dest_size = ::MultiByteToWideChar(CP, 0U, src.data(), -1, nullptr, 0U);
-    std::vector<wchar_t> dest(dest_size, L'\0');
-    if (::MultiByteToWideChar(CP, 0U, src.data(), -1, dest.data(), (UINT)dest.size()) == 0)
-    {
-        throw std::system_error{static_cast<int>(::GetLastError()), std::system_category()};
-    }
-    dest.resize(std::char_traits<wchar_t>::length(dest.data()));
-    dest.shrink_to_fit();
-    return std::wstring(dest.begin(), dest.end());
 }
 
 namespace hierarchy
@@ -114,7 +102,7 @@ class GltfLoader
             const gltfformat::MeshPrimitive &gltfPrimitive)
         {
             mesh = SceneMesh::Create();
-            mesh->name = ToUnicode(gltfMesh.name, CP_UTF8);
+            mesh->name = Utf8ToUnicode(gltfMesh.name);
 
             std::vector<GltfVertex> vertices;
             int vertexCount = 0;
@@ -221,7 +209,7 @@ public:
 
             // TO_PNG
             auto image = SceneImage::Load(bytes.p, bytes.size);
-            image->name = ToUnicode(gltfImage.name, CP_UTF8);
+            image->name = Utf8ToUnicode(gltfImage.name);
             m_images.push_back(image);
         }
     }
@@ -233,6 +221,22 @@ public:
         {
             auto material = SceneMaterial::Create();
             auto shader = IsUnlit(gltfMaterial) ? "gltf_unlit" : "gltf_standard";
+
+            switch (gltfMaterial.alphaMode.value_or(gltfformat::MaterialAlphaMode::OPAQUE))
+            {
+            case gltfformat::MaterialAlphaMode::OPAQUE:
+                material->alphaMode = AlphaMode::Opaque;
+                break;
+            case gltfformat::MaterialAlphaMode::MASK:
+                material->alphaMode = AlphaMode::Mask;
+                break;
+            case gltfformat::MaterialAlphaMode::BLEND:
+                material->alphaMode = AlphaMode::Blend;
+                break;
+            default:
+                throw "unknown";
+            }
+
             material->shader = ShaderManager::Instance().get(shader);
             if (gltfMaterial.pbrMetallicRoughness.has_value())
             {

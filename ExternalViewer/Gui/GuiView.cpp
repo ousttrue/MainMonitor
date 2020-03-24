@@ -69,7 +69,7 @@ bool View(void *view, const screenstate::ScreenState &state, size_t textureID,
 
         ImGui::Checkbox("grid", &value->showGrid);
         ImGui::SameLine();
-        ImGui::Checkbox("vr", &value->showVR);
+        ImGui::Checkbox("openvr", &value->showVR);
         ImGui::SameLine();
         ImGui::Checkbox("gizmo", &value->showGizmo);
         ImGui::ColorEdit3("clear", value->clearColor);
