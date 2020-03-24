@@ -10,12 +10,6 @@ class CameraView
     hierarchy::SceneNodePtr m_selected;
 
 public:
-    float clearColor[4] = {
-        0.2f,
-        0.2f,
-        0.3f,
-        1.0f};
-
     CameraView()
     {
         m_camera.zNear = 0.01f;

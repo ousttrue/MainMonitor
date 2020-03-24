@@ -153,7 +153,10 @@ void RenderTargetChain::Begin(UINT frameIndex,
     auto dsv = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
     dsv.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV) * frameIndex;
     commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
-    commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
+    if (clearColor)
+    {
+        commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
+    }
     commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0, 0, 0, nullptr);
 }
 

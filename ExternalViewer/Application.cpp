@@ -2,6 +2,7 @@
 #include "VR.h"
 #include "CameraView.h"
 #include "Gui/Gui.h"
+#include "Gui/GuiView.h"
 #include "Gizmo.h"
 #include "frame_metrics.h"
 #include <OrbitCamera.h>
@@ -84,6 +85,14 @@ class ApplicationImpl
     gizmesh::GizmoSystem::Buffer m_gizmoBuffer;
     std::shared_ptr<hierarchy::SceneView> m_sceneView;
     size_t m_viewTextureID = 0;
+    gui::ViewValue m_viewValue{
+        .clearColor = {
+            0.3f,
+            0.6f,
+            0.5f,
+            1.0f,
+        },
+    };
 
     bool m_initialized = false;
 
@@ -149,7 +158,8 @@ public:
             // view
             auto viewTextureID = m_renderer.ViewTextureID(m_sceneView);
             // imgui window for rendertarget. convert screenState for view
-            isShowView = m_imgui.View(m_sceneView.get(), state, viewTextureID, &viewState);
+            isShowView = m_imgui.View(m_sceneView.get(), state, viewTextureID,
+                                      &viewState, &m_viewValue);
         }
 
         // renderering
@@ -167,7 +177,7 @@ public:
                 m_sceneView->CameraPosition = m_view.Camera()->state.position;
                 m_sceneView->CameraFovYRadians = m_view.Camera()->state.fovYRadians;
                 updateDrawList();
-                m_renderer.View(m_sceneView, m_drawlist);
+                m_renderer.View(m_sceneView, m_drawlist, m_viewValue.clearColor);
             }
             m_renderer.EndFrame();
         }
@@ -176,15 +186,21 @@ public:
     void updateDrawList()
     {
         m_drawlist.Clear();
-        for (auto &node : m_scene.gizmoNodes)
+        if (m_viewValue.showGrid)
         {
-            node->UpdateWorld();
-            m_drawlist.Traverse(node);
+            for (auto &node : m_scene.gizmoNodes)
+            {
+                node->UpdateWorld();
+                m_drawlist.Traverse(node);
+            }
         }
-        for (auto &node : m_scene.vrNodes)
+        if (m_viewValue.showVR)
         {
-            node->UpdateWorld();
-            m_drawlist.Traverse(node);
+            for (auto &node : m_scene.vrNodes)
+            {
+                node->UpdateWorld();
+                m_drawlist.Traverse(node);
+            }
         }
         for (auto &node : m_scene.sceneNodes)
         {
@@ -193,28 +209,31 @@ public:
         }
 
         // gizmo
-        m_drawlist.Nodes.push_back({.NodeID = m_view.GizmoNodeID(),
-                                    .WorldMatrix = {
-                                        1, 0, 0, 0, //
-                                        0, 1, 0, 0, //
-                                        0, 0, 1, 0, //
-                                        0, 0, 0, 1, //
-                                    }});
-        m_gizmoBuffer = m_view.GizmoBuffer();
-        m_drawlist.Meshes.push_back({
-            .NodeID = m_view.GizmoNodeID(),
-            .Mesh = m_view.GizmoMesh(),
-            .Vertices = {
-                .Ptr = m_gizmoBuffer.pVertices,
-                .Bytes = m_gizmoBuffer.verticesBytes,
-                .Stride = m_gizmoBuffer.vertexStride,
-            },
-            .Indices = {
-                .Ptr = m_gizmoBuffer.pIndices,
-                .Bytes = m_gizmoBuffer.indicesBytes,
-                .Stride = m_gizmoBuffer.indexStride,
-            },
-        });
+        if (m_viewValue.showGizmo)
+        {
+            m_drawlist.Nodes.push_back({.NodeID = m_view.GizmoNodeID(),
+                                        .WorldMatrix = {
+                                            1, 0, 0, 0, //
+                                            0, 1, 0, 0, //
+                                            0, 0, 1, 0, //
+                                            0, 0, 0, 1, //
+                                        }});
+            m_gizmoBuffer = m_view.GizmoBuffer();
+            m_drawlist.Meshes.push_back({
+                .NodeID = m_view.GizmoNodeID(),
+                .Mesh = m_view.GizmoMesh(),
+                .Vertices = {
+                    .Ptr = m_gizmoBuffer.pVertices,
+                    .Bytes = m_gizmoBuffer.verticesBytes,
+                    .Stride = m_gizmoBuffer.vertexStride,
+                },
+                .Indices = {
+                    .Ptr = m_gizmoBuffer.pIndices,
+                    .Bytes = m_gizmoBuffer.indicesBytes,
+                    .Stride = m_gizmoBuffer.indexStride,
+                },
+            });
+        }
     }
 };
 

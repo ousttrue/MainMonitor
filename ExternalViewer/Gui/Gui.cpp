@@ -606,9 +606,10 @@ void Gui::OnFrame(const screenstate::ScreenState &state, hierarchy::Scene *scene
     m_impl->NewFrame(state, scene);
 }
 
-bool Gui::View(void *view, const screenstate::ScreenState &state, size_t textureID, screenstate::ScreenState *viewState)
+bool Gui::View(void *view, const screenstate::ScreenState &state, size_t textureID,
+               screenstate::ScreenState *viewState, ViewValue *value)
 {
-    return ::gui::View(view, state, textureID, viewState);
+    return ::gui::View(view, state, textureID, viewState, value);
 }
 
 } // namespace gui

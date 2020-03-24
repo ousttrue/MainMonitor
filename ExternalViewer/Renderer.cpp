@@ -31,12 +31,6 @@ class Impl
     // scene
     std::unique_ptr<hierarchy::SceneLight> m_light;
 
-    float m_clearColor[4] = {
-        0.2f,
-        0.2f,
-        0.3f,
-        1.0f};
-
 public:
     Impl(int maxModelCount)
         : m_queue(new d12u::CommandQueue),
@@ -110,7 +104,7 @@ public:
         auto frameIndex = m_swapchain->CurrentFrameIndex();
 
         // barrier
-        m_backbuffer->Begin(frameIndex, commandList, m_clearColor);
+        m_backbuffer->Begin(frameIndex, commandList, nullptr);
 
         ImGui::Render();
         m_imguiDX12.RenderDrawData(commandList.Get(), ImGui::GetDrawData());
@@ -133,7 +127,8 @@ public:
         return texture;
     }
 
-    void View(const hierarchy::SceneViewPtr &sceneView, const hierarchy::DrawList &drawlist)
+    void View(const hierarchy::SceneViewPtr &sceneView, const hierarchy::DrawList &drawlist,
+              const float clear[4])
     {
         auto viewRenderTarget = m_sceneMapper->GetOrCreate(sceneView);
 
@@ -141,7 +136,7 @@ public:
 
         UpdateView(viewRenderTarget, sceneView);
 
-        DrawView(m_commandlist->Get(), m_swapchain->CurrentFrameIndex(), viewRenderTarget, drawlist);
+        DrawView(m_commandlist->Get(), m_swapchain->CurrentFrameIndex(), viewRenderTarget, drawlist, clear);
     }
 
 private:
@@ -226,12 +221,13 @@ private:
 
     void DrawView(const ComPtr<ID3D12GraphicsCommandList> &commandList, int frameIndex,
                   const std::shared_ptr<d12u::RenderTargetChain> &viewRenderTarget,
-                  const hierarchy::DrawList &drawlist)
+                  const hierarchy::DrawList &drawlist,
+                  const float clear[4])
     {
         // clear
         if (viewRenderTarget->Resource(frameIndex))
         {
-            viewRenderTarget->Begin(frameIndex, commandList, m_clearColor);
+            viewRenderTarget->Begin(frameIndex, commandList, clear);
 
             // global settings
             m_rootSignature->Begin(commandList);
@@ -323,7 +319,8 @@ size_t Renderer::ViewTextureID(const std::shared_ptr<hierarchy::SceneView> &view
 }
 
 void Renderer::View(const hierarchy::SceneViewPtr &view,
-                    const hierarchy::DrawList &drawlist)
+                    const hierarchy::DrawList &drawlist,
+                    const float clear[4])
 {
-    m_impl->View(view, drawlist);
+    m_impl->View(view, drawlist, clear);
 }
