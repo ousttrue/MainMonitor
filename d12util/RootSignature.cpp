@@ -170,7 +170,7 @@ std::shared_ptr<Shader> RootSignature::GetOrCreate(const ComPtr<ID3D12Device> &d
         return found->second;
     }
 
-    auto gpuShader = std::make_shared<Shader>();
+    auto gpuShader = std::make_shared<Shader>(shader->name());
     auto [source, generation] = shader->source();
     if (!source.empty())
     {

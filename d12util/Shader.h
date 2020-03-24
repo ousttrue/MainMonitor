@@ -1,5 +1,6 @@
 #pragma once
 #include "Helper.h"
+#include <d3dcompiler.h>
 
 namespace d12u
 {
@@ -15,9 +16,16 @@ class Shader : NonCopyable
     // keep semantics string
     std::vector<std::string> m_semantics;
     std::vector<D3D12_INPUT_ELEMENT_DESC> m_layout;
-    bool InputLayoutFromReflection(const ComPtr<ID3DBlob> &vs);
+    bool InputLayoutFromReflection(const ComPtr<ID3D12ShaderReflection> &reflection);
+
+    std::string m_name;
 
 public:
+    Shader(const std::string &name)
+        : m_name(name)
+    {
+    }
+
     const D3D12_INPUT_ELEMENT_DESC *inputLayout(int *count) const
     {
         *count = (int)m_layout.size();

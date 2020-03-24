@@ -1,11 +1,10 @@
 #include "Shader.h"
-#include <d3dcompiler.h>
 #include <plog/log.h>
 
 namespace d12u
 {
 
-bool Shader::InputLayoutFromReflection(const ComPtr<ID3DBlob> &vs)
+bool Shader::InputLayoutFromReflection(const ComPtr<ID3D12ShaderReflection> &pReflection)
 {
     // Define the vertex input layout.
     // D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
@@ -15,11 +14,6 @@ bool Shader::InputLayoutFromReflection(const ComPtr<ID3DBlob> &vs)
     //         {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
     //     };
     // auto inputElementDescs = InputLayoutFromReflection(vertexShader);
-    ComPtr<ID3D12ShaderReflection> pReflection;
-    if (FAILED(D3DReflect(vs->GetBufferPointer(), vs->GetBufferSize(), IID_PPV_ARGS(&pReflection))))
-    {
-        return false;
-    }
 
     D3D12_SHADER_DESC desc;
     pReflection->GetDesc(&desc);
@@ -126,7 +120,7 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
 
         {
             ComPtr<ID3DBlob> error;
-            if (FAILED(D3DCompile(source.data(), source.size(), "shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &error)))
+            if (FAILED(D3DCompile(source.data(), source.size(), m_name.c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &error)))
             {
                 LOGW << ToString(error);
                 return false;
@@ -134,16 +128,40 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
         }
         {
             ComPtr<ID3DBlob> error;
-            if (FAILED(D3DCompile(source.data(), source.size(), "shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr)))
+            if (FAILED(D3DCompile(source.data(), source.size(), m_name.c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr)))
             {
                 LOGW << ToString(error);
                 return false;
             }
         }
 
-        if (!InputLayoutFromReflection(vertexShader))
+        ComPtr<ID3D12ShaderReflection> pReflection;
+        if (FAILED(D3DReflect(vertexShader->GetBufferPointer(), vertexShader->GetBufferSize(), IID_PPV_ARGS(&pReflection))))
         {
             return false;
+        }
+        if (!InputLayoutFromReflection(pReflection))
+        {
+            return false;
+        }
+
+        {
+            D3D12_SHADER_DESC desc;
+            pReflection->GetDesc(&desc);
+
+            for (unsigned i = 0; i < desc.ConstantBuffers; ++i)
+            {
+                auto cb = pReflection->GetConstantBufferByIndex(i);
+                D3D12_SHADER_BUFFER_DESC cbDesc;
+                cb->GetDesc(&cbDesc);
+                for (unsigned j = 0; j < cbDesc.Variables; ++j)
+                {
+                    auto cbVariable = cb->GetVariableByIndex(j);
+                    D3D12_SHADER_VARIABLE_DESC variableDesc;
+                    cbVariable->GetDesc(&variableDesc);
+                    auto a = 0;
+                }
+            }
         }
 
         // Describe and create the graphics pipeline state object (PSO).

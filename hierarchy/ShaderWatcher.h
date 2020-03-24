@@ -15,7 +15,7 @@ class ShaderWatcher
 
 public:
     ShaderWatcher(const std::string &name);
-
+    const std::string &name() const { return m_name; }
     void source(const std::string &source)
     {
         if (m_source == source)
