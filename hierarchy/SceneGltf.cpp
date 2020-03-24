@@ -80,6 +80,19 @@ SceneNodePtr SceneGltf::LoadFromPath(const std::filesystem::path &path)
     return node;
 }
 
+static bool IsUnlit(const gltfformat::Material &gltfMatrial)
+{
+    if (!gltfMatrial.extensions.has_value())
+    {
+        return false;
+    }
+    if (!gltfMatrial.extensions.value().KHR_materials_unlit.has_value())
+    {
+        return false;
+    }
+    return true;
+}
+
 class GltfLoader
 {
     const gltfformat::glTF &m_gltf;
@@ -219,7 +232,8 @@ public:
         for (auto &gltfMaterial : m_gltf.materials)
         {
             auto material = SceneMaterial::Create();
-            material->shader = ShaderManager::Instance().get("gltf_standard");
+            auto shader = IsUnlit(gltfMaterial) ? "gltf_unlit" : "gltf_standard";
+            material->shader = ShaderManager::Instance().get(shader);
             if (gltfMaterial.pbrMetallicRoughness.has_value())
             {
                 auto &pbr = gltfMaterial.pbrMetallicRoughness.value();
