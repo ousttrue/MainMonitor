@@ -278,7 +278,7 @@ private:
                 }
             }
 
-            if (material->m_shader->Set(commandList))
+            if (material->Set(commandList))
             {
                 m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, offset, 0, 0);
             }

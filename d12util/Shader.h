@@ -10,7 +10,6 @@ class Shader : NonCopyable
     template <typename T>
     using ComPtr = Microsoft::WRL::ComPtr<T>;
 
-    ComPtr<ID3D12PipelineState> m_pipelineState;
     int m_generation = -1;
 
     // keep semantics string
@@ -21,6 +20,9 @@ class Shader : NonCopyable
     std::string m_name;
 
 public:
+    ComPtr<ID3DBlob> m_vs;
+    ComPtr<ID3DBlob> m_ps;
+
     Shader(const std::string &name)
         : m_name(name)
     {
@@ -32,9 +34,7 @@ public:
         return m_layout.data();
     }
     bool Initialize(const ComPtr<ID3D12Device> &device,
-                    const ComPtr<ID3D12RootSignature> &rootSignature,
                     const std::string &source, int generation);
-    bool Set(const ComPtr<ID3D12GraphicsCommandList> &commandList);
 };
 
 } // namespace d12u
