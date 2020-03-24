@@ -31,6 +31,33 @@ bool Material::Initialize(const ComPtr<ID3D12Device> &device,
         },
     };
 
+    switch (material->alphaMode)
+    {
+    case hierarchy::AlphaMode::Opaque:
+        break;
+
+    case hierarchy::AlphaMode::Mask:
+        break;
+
+    case hierarchy::AlphaMode::Blend:
+        blend.RenderTarget[0] = {
+            .BlendEnable = TRUE,
+            .LogicOpEnable = FALSE,
+            .SrcBlend = D3D12_BLEND_SRC_ALPHA,
+            .DestBlend = D3D12_BLEND_INV_SRC_ALPHA,
+            .BlendOp = D3D12_BLEND_OP_ADD,
+            .SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA,
+            .DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA,
+            .BlendOpAlpha = D3D12_BLEND_OP_ADD,
+            .LogicOp = D3D12_LOGIC_OP_NOOP,
+            .RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL,
+        };
+        break;
+
+    default:
+        throw;
+    }
+
     // Describe and create the graphics pipeline state object (PSO).
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {
         .pRootSignature = rootSignature.Get(),
