@@ -3,13 +3,12 @@ add_executable(${TARGET_NAME}
     main.cpp
     Renderer.cpp
     VR.cpp
-    ImGuiDX12.cpp
-    ImGuiDX12FrameResources.cpp
-    ImGuiImplScreenState.cpp
-    Gizmo.cpp
-    Gui.cpp
     Application.cpp
-    frame_metrics.cpp
+    Gui/ImGuiDX12.cpp
+    Gui/ImGuiDX12FrameResources.cpp
+    Gui/ImGuiImplScreenState.cpp
+    Gui/Gui.cpp
+    Gui/Gizmo.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

@@ -1,5 +1,5 @@
 #include "Renderer.h"
-#include "ImGuiDX12.h"
+#include "Gui/ImGuiDX12.h"
 #include <d12util.h>
 
 #include <DrawList.h>
@@ -8,22 +8,23 @@
 #include <plog/Log.h>
 #include <imgui.h>
 
-using namespace d12u;
-
 const UINT BACKBUFFER_COUNT = 2;
+
+template <class T>
+using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 class Impl
 {
-    std::unique_ptr<SwapChain> m_swapchain;
-    std::unique_ptr<RenderTargetChain> m_backbuffer;
+    std::unique_ptr<d12u::SwapChain> m_swapchain;
+    std::unique_ptr<d12u::RenderTargetChain> m_backbuffer;
     int m_width = 0;
     int m_height = 0;
 
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
-    std::unique_ptr<CommandQueue> m_queue;
-    std::unique_ptr<RootSignature> m_rootSignature;
-    std::unique_ptr<CommandList> m_commandlist;
-    std::unique_ptr<SceneMapper> m_sceneMapper;
+    std::unique_ptr<d12u::CommandQueue> m_queue;
+    std::unique_ptr<d12u::RootSignature> m_rootSignature;
+    std::unique_ptr<d12u::CommandList> m_commandlist;
+    std::unique_ptr<d12u::SceneMapper> m_sceneMapper;
 
     ImGuiDX12 m_imguiDX12;
 
@@ -38,12 +39,12 @@ class Impl
 
 public:
     Impl(int maxModelCount)
-        : m_queue(new CommandQueue),
-          m_swapchain(new SwapChain),
-          m_backbuffer(new RenderTargetChain),
-          m_commandlist(new CommandList),
-          m_rootSignature(new RootSignature),
-          m_sceneMapper(new SceneMapper),
+        : m_queue(new d12u::CommandQueue),
+          m_swapchain(new d12u::SwapChain),
+          m_backbuffer(new d12u::RenderTargetChain),
+          m_commandlist(new d12u::CommandList),
+          m_rootSignature(new d12u::RootSignature),
+          m_sceneMapper(new d12u::SceneMapper),
           m_light(new hierarchy::SceneLight)
     {
     }
@@ -53,10 +54,10 @@ public:
         assert(!m_device);
 
         ComPtr<IDXGIFactory4> factory;
-        ThrowIfFailed(CreateDXGIFactory2(GetDxgiFactoryFlags(), IID_PPV_ARGS(&factory)));
+        d12u::ThrowIfFailed(CreateDXGIFactory2(d12u::GetDxgiFactoryFlags(), IID_PPV_ARGS(&factory)));
 
-        ComPtr<IDXGIAdapter1> hardwareAdapter = GetHardwareAdapter(factory.Get());
-        ThrowIfFailed(D3D12CreateDevice(
+        ComPtr<IDXGIAdapter1> hardwareAdapter = d12u::GetHardwareAdapter(factory.Get());
+        d12u::ThrowIfFailed(D3D12CreateDevice(
             hardwareAdapter.Get(),
             D3D_FEATURE_LEVEL_11_0,
             IID_PPV_ARGS(&m_device)));
@@ -194,7 +195,7 @@ private:
         }
     }
 
-    void UpdateView(const std::shared_ptr<RenderTargetChain> &viewRenderTarget,
+    void UpdateView(const std::shared_ptr<d12u::RenderTargetChain> &viewRenderTarget,
                     const hierarchy::SceneViewPtr &sceneView)
     {
         {
@@ -224,7 +225,7 @@ private:
     }
 
     void DrawView(const ComPtr<ID3D12GraphicsCommandList> &commandList, int frameIndex,
-                  const std::shared_ptr<RenderTargetChain> &viewRenderTarget,
+                  const std::shared_ptr<d12u::RenderTargetChain> &viewRenderTarget,
                   const hierarchy::DrawList &drawlist)
     {
         // clear

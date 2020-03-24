@@ -12,6 +12,7 @@ add_library(${TARGET_NAME}
     SceneMeshSkin.cpp
     VertexBuffer.cpp
     DrawList.cpp
+    frame_metrics.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

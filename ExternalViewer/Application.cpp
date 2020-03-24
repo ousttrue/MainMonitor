@@ -1,7 +1,7 @@
 #include "Application.h"
 #include "VR.h"
-#include "Gui.h"
-#include "Gizmo.h"
+#include "Gui/Gui.h"
+#include "Gui/Gizmo.h"
 #include "frame_metrics.h"
 #include <OrbitCamera.h>
 #include "Renderer.h"
