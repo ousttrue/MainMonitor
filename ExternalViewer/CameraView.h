@@ -3,10 +3,8 @@
 #include <OrbitCamera.h>
 #include <hierarchy.h>
 
-namespace gui
-{
 
-class View
+class CameraView
 {
     OrbitCamera m_camera;
     Gizmo m_gizmo;
@@ -19,7 +17,7 @@ public:
         0.3f,
         1.0f};
 
-    View()
+    CameraView()
     {
         m_camera.zNear = 0.01f;
     }
@@ -47,4 +45,4 @@ public:
     void Update3DView(const screenstate::ScreenState &viewState, const hierarchy::SceneNodePtr &selected);
 };
 
-} // namespace gui
+

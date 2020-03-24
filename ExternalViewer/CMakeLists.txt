@@ -8,8 +8,8 @@ add_executable(${TARGET_NAME}
     Gui/ImGuiDX12FrameResources.cpp
     Gui/ImGuiImplScreenState.cpp
     Gui/Gui.cpp
-    Gui/Gizmo.cpp
-    Gui/View.cpp
+    Gizmo.cpp
+    CameraView.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

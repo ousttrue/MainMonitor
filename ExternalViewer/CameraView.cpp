@@ -1,11 +1,8 @@
-#include "View.h"
+#include "CameraView.h"
 #include <ScreenState.h>
 #include <hierarchy.h>
 
-namespace gui
-{
-
-void View::Update3DView(const screenstate::ScreenState &viewState, const hierarchy::SceneNodePtr &selected)
+void CameraView::Update3DView(const screenstate::ScreenState &viewState, const hierarchy::SceneNodePtr &selected)
 {
     //
     // update camera
@@ -40,5 +37,3 @@ void View::Update3DView(const screenstate::ScreenState &viewState, const hierarc
         }
     }
 }
-
-} // namespace gui

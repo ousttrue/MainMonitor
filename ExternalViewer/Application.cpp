@@ -1,13 +1,13 @@
 #include "Application.h"
 #include "VR.h"
+#include "CameraView.h"
 #include "Gui/Gui.h"
-#include "Gui/Gizmo.h"
+#include "Gizmo.h"
 #include "frame_metrics.h"
 #include <OrbitCamera.h>
 #include "Renderer.h"
 #include <hierarchy.h>
 #include <functional>
-#include "Gui/View.h"
 
 #include <plog/Log.h>
 #include <plog/Appenders/ColorConsoleAppender.h>
@@ -81,7 +81,7 @@ class ApplicationImpl
     Renderer m_renderer;
 
     gui::Gui m_imgui;
-    gui::View m_view;
+    CameraView m_view;
     gizmesh::GizmoSystem::Buffer m_gizmoBuffer;
     std::shared_ptr<hierarchy::SceneView> m_sceneView;
     size_t m_viewTextureID = 0;
