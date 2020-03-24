@@ -409,6 +409,8 @@ static bool ViewButton(void *p, ImTextureID user_texture_id, const ImVec2 &size,
     return pressed;
 }
 
+namespace gui
+{
 //
 // GuiImpl
 //
@@ -692,3 +694,5 @@ bool Gui::View(const screenstate::ScreenState &state, size_t textureID, screenst
 {
     return m_impl->View(state, textureID, viewState);
 }
+
+} // namespace gui

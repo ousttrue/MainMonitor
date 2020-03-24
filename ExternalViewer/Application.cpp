@@ -153,7 +153,7 @@ class ApplicationImpl
 
     Renderer m_renderer;
 
-    Gui m_imgui;
+    gui::Gui m_imgui;
     View m_view;
     gizmesh::GizmoSystem::Buffer m_gizmoBuffer;
     std::shared_ptr<hierarchy::SceneView> m_sceneView;
@@ -165,7 +165,7 @@ public:
     ApplicationImpl(int argc, char **argv)
         : m_renderer(256), m_sceneView(new hierarchy::SceneView)
     {
-        m_imGuiAppender.onWrite(std::bind(&Gui::Log, &m_imgui, std::placeholders::_1));
+        m_imGuiAppender.onWrite(std::bind(&gui::Gui::Log, &m_imgui, std::placeholders::_1));
         plog::init(plog::debug, &m_consoleAppender).addAppender(&m_imGuiAppender);
 
         auto path = std::filesystem::current_path();
