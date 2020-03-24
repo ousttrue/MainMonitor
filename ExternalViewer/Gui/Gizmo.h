@@ -1,4 +1,4 @@
-#pragma
+#pragma once
 #include <gizmesh.h>
 #include <SceneNode.h>
 #include <ScreenState.h>

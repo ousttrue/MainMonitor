@@ -9,6 +9,7 @@ add_executable(${TARGET_NAME}
     Gui/ImGuiImplScreenState.cpp
     Gui/Gui.cpp
     Gui/Gizmo.cpp
+    Gui/View.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

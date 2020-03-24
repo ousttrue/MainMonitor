@@ -7,6 +7,7 @@
 #include "Renderer.h"
 #include <hierarchy.h>
 #include <functional>
+#include "Gui/View.h"
 
 #include <plog/Log.h>
 #include <plog/Appenders/ColorConsoleAppender.h>
@@ -67,80 +68,6 @@ public:
 
 } // namespace plog
 
-class View
-{
-    OrbitCamera m_camera;
-    Gizmo m_gizmo;
-    hierarchy::SceneNodePtr m_selected;
-
-public:
-    float clearColor[4] = {
-        0.2f,
-        0.2f,
-        0.3f,
-        1.0f};
-
-    View()
-    {
-        m_camera.zNear = 0.01f;
-    }
-
-    const OrbitCamera *Camera() const
-    {
-        return &m_camera;
-    }
-
-    int GizmoNodeID() const
-    {
-        return m_gizmo.GetNodeID();
-    }
-
-    hierarchy::SceneMeshPtr GizmoMesh() const
-    {
-        return m_gizmo.GetMesh();
-    }
-
-    gizmesh::GizmoSystem::Buffer GizmoBuffer()
-    {
-        return m_gizmo.End();
-    }
-
-    void Update3DView(const screenstate::ScreenState &viewState, const hierarchy::SceneNodePtr &selected)
-    {
-        //
-        // update camera
-        //
-        if (selected != m_selected)
-        {
-            if (selected)
-            {
-                m_camera.gaze = -selected->World().translation;
-            }
-            else
-            {
-                // m_camera->gaze = {0, 0, 0};
-            }
-
-            m_selected = selected;
-        }
-        m_camera.Update(viewState);
-
-        //
-        // update gizmo
-        //
-        m_gizmo.Begin(viewState, m_camera.state);
-        if (selected)
-        {
-            // if (selected->EnableGizmo())
-            {
-                auto parent = selected->Parent();
-                m_gizmo.Transform(selected->ID(),
-                                  selected->Local(),
-                                  parent ? parent->World() : falg::Transform{});
-            }
-        }
-    }
-};
 
 class ApplicationImpl
 {
@@ -154,7 +81,7 @@ class ApplicationImpl
     Renderer m_renderer;
 
     gui::Gui m_imgui;
-    View m_view;
+    gui::View m_view;
     gizmesh::GizmoSystem::Buffer m_gizmoBuffer;
     std::shared_ptr<hierarchy::SceneView> m_sceneView;
     size_t m_viewTextureID = 0;
