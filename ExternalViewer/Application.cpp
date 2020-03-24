@@ -233,7 +233,7 @@ public:
             if (isShowView)
             {
                 frame_metrics::scoped ss("view");
-                m_view.Update3DView(viewState, m_imgui.Selected());
+                m_view.Update3DView(viewState, m_scene.selected.lock());
                 m_sceneView->Width = viewState.Width;
                 m_sceneView->Height = viewState.Height;
                 m_sceneView->Projection = m_view.Camera()->state.projection;

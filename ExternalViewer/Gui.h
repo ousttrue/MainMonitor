@@ -10,7 +10,6 @@ public:
     Gui();
     ~Gui();
     void Log(const char *msg);
-    hierarchy::SceneNodePtr Selected() const;
     void OnFrame(const screenstate::ScreenState &state, hierarchy::Scene *scene);
     bool View(const screenstate::ScreenState &state, size_t textureID, screenstate::ScreenState *viewState);
 };

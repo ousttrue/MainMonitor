@@ -17,6 +17,9 @@ public:
     std::vector<SceneNodePtr> vrNodes;
     std::vector<SceneNodePtr> sceneNodes;
 
+    // single selection
+    std::weak_ptr<hierarchy::SceneNode> selected;
+
     Scene();
 };
 

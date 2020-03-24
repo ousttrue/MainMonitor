@@ -416,9 +416,6 @@ class GuiImpl
 {
     std::unique_ptr<struct ExampleAppLog> m_logger;
 
-    // single selection
-    std::weak_ptr<hierarchy::SceneNode> m_selected;
-
 public:
     GuiImpl()
         : m_logger(new ExampleAppLog)
@@ -484,11 +481,6 @@ public:
     void Log(const char *msg)
     {
         m_logger->AddLog(msg);
-    }
-
-    hierarchy::SceneNodePtr Selected() const
-    {
-        return m_selected.lock();
     }
 
     void NewFrame(const screenstate::ScreenState &state, hierarchy::Scene *scene)
@@ -557,7 +549,7 @@ public:
     }
 
 private:
-    void DrawNode(const hierarchy::SceneNodePtr &node, hierarchy::SceneNode *selected)
+    void DrawNode(const hierarchy::SceneNodePtr &node, hierarchy::Scene *scene)
     {
         int childCount;
         auto children = node->GetChildren(&childCount);
@@ -568,14 +560,14 @@ private:
         {
             flags |= ImGuiTreeNodeFlags_Leaf;
         }
-        if (node.get() == selected)
+        if (node == scene->selected.lock())
         {
             flags |= ImGuiTreeNodeFlags_Selected;
         }
         auto isOpen = ImGui::TreeNodeEx(node->Name().c_str(), flags);
         if (ImGui::IsItemClicked())
         {
-            m_selected = node;
+            scene->selected = node;
         }
 
         if (isOpen)
@@ -583,7 +575,7 @@ private:
             // children
             for (int i = 0; i < childCount; ++i)
             {
-                DrawNode(children[i], selected);
+                DrawNode(children[i], scene);
             }
             ImGui::TreePop();
         }
@@ -665,7 +657,7 @@ private:
 
             for (auto &node : scene->sceneNodes)
             {
-                DrawNode(node, m_selected.lock().get());
+                DrawNode(node, scene);
             }
 
             ImGui::End();
@@ -689,11 +681,6 @@ Gui::~Gui()
 void Gui::Log(const char *msg)
 {
     m_impl->Log(msg);
-}
-
-hierarchy::SceneNodePtr Gui::Selected() const
-{
-    return m_impl->Selected();
 }
 
 void Gui::OnFrame(const screenstate::ScreenState &state, hierarchy::Scene *scene)
