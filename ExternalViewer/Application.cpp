@@ -118,10 +118,10 @@ public:
 
         if (argc > 2)
         {
-            auto node = hierarchy::SceneGltf::LoadFromPath(argv[2]);
-            if (node)
+            auto model = hierarchy::SceneModel::LoadFromPath(argv[2]);
+            if (model)
             {
-                m_scene.sceneNodes.push_back(node);
+                m_scene.sceneNodes.push_back(model->root);
             }
         }
 

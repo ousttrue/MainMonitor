@@ -311,12 +311,12 @@ static void DockSpace(hierarchy::Scene *scene)
             {
                 auto path = OpenFileDialog(L"");
 
-                auto node = hierarchy::SceneGltf::LoadFromPath(path);
+                auto model = hierarchy::SceneModel::LoadFromPath(path);
 
-                if (node)
+                if (model)
                 {
                     scene->sceneNodes.clear();
-                    scene->sceneNodes.push_back(node);
+                    scene->sceneNodes.push_back(model->root);
                 }
             }
             ImGui::EndMenu();

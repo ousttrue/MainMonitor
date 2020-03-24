@@ -8,7 +8,7 @@ add_library(${TARGET_NAME}
     ShaderManager.cpp
     Scene.cpp
     ParseGltf.cpp
-    SceneGltf.cpp
+    SceneModel.cpp
     SceneMeshSkin.cpp
     VertexBuffer.cpp
     DrawList.cpp

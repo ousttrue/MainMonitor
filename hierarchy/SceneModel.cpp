@@ -1,4 +1,4 @@
-#include "SceneGltf.h"
+#include "SceneModel.h"
 #include "ParseGltf.h"
 #include "ShaderManager.h"
 #include "VertexBuffer.h"
@@ -44,30 +44,6 @@ static std::vector<uint8_t> read_allbytes(T path)
     return buffer;
 }
 
-namespace hierarchy
-{
-
-SceneNodePtr SceneGltf::LoadFromPath(const std::filesystem::path &path)
-{
-    auto bytes = read_allbytes(path);
-    if (bytes.empty())
-    {
-        LOGW << "fail to read bytes: " << path.filename().c_str();
-        return nullptr;
-    }
-
-    auto node = LoadGlbBytes(bytes.data(), (int)bytes.size());
-    if (!node)
-    {
-        LOGW << "fail to load: " << path.filename().c_str();
-        return nullptr;
-    }
-
-    LOGI << "load: " << path.filename().c_str();
-    node->Name((const char *)path.filename().u8string().c_str());
-    return node;
-}
-
 static bool IsUnlit(const gltfformat::Material &gltfMatrial)
 {
     if (!gltfMatrial.extensions.has_value())
@@ -81,14 +57,15 @@ static bool IsUnlit(const gltfformat::Material &gltfMatrial)
     return true;
 }
 
+namespace hierarchy
+{
+
 class GltfLoader
 {
     const gltfformat::glTF &m_gltf;
     gltfformat::bin m_bin;
 
-    std::vector<SceneImagePtr> m_images;
-    std::vector<SceneMaterialPtr> m_materials;
-    std::vector<SceneNodePtr> m_nodes;
+    SceneModelPtr m_model;
 
     struct GltfPrimitive
     {
@@ -195,13 +172,13 @@ class GltfLoader
 
 public:
     GltfLoader(const gltfformat::glTF &gltf, const uint8_t *p, int size)
-        : m_gltf(gltf), m_bin(gltf, p, size)
+        : m_gltf(gltf), m_bin(gltf, p, size), m_model(new SceneModel)
     {
     }
 
     void LoadImages()
     {
-        m_images.reserve(m_gltf.images.size());
+        m_model->images.reserve(m_gltf.images.size());
         for (auto &gltfImage : m_gltf.images)
         {
             auto &bufferView = m_gltf.bufferViews[gltfImage.bufferView.value()];
@@ -210,13 +187,13 @@ public:
             // TO_PNG
             auto image = SceneImage::Load(bytes.p, bytes.size);
             image->name = Utf8ToUnicode(gltfImage.name);
-            m_images.push_back(image);
+            m_model->images.push_back(image);
         }
     }
 
     void LoadMaterials()
     {
-        m_materials.reserve(m_gltf.materials.size());
+        m_model->materials.reserve(m_gltf.materials.size());
         for (auto &gltfMaterial : m_gltf.materials)
         {
             auto material = SceneMaterial::Create();
@@ -244,7 +221,7 @@ public:
                 if (pbr.baseColorTexture.has_value())
                 {
                     auto &gltfTexture = m_gltf.textures[pbr.baseColorTexture.value().index.value()];
-                    auto image = m_images[gltfTexture.source.value()];
+                    auto image = m_model->images[gltfTexture.source.value()];
                     material->colorImage = image;
                 }
 
@@ -252,14 +229,14 @@ public:
             }
             material->name = gltfMaterial.name;
 
-            m_materials.push_back(material);
+            m_model->materials.push_back(material);
         }
     }
 
     void LoadNodes()
     {
         int i = 0;
-        m_nodes.reserve(m_gltf.nodes.size());
+        m_model->nodes.reserve(m_gltf.nodes.size());
         for (auto &gltfNode : m_gltf.nodes)
         {
             auto name = gltfNode.name;
@@ -307,7 +284,7 @@ public:
                 }
             }
             // node->EnableGizmo(true);
-            m_nodes.push_back(node);
+            m_model->nodes.push_back(node);
             ++i;
         }
     }
@@ -407,7 +384,7 @@ public:
                 auto index = gltfPrimitive.indices.value();
                 auto accessor = m_gltf.accessors[index];
 
-                auto material = m_materials[gltfPrimitive.material.value()];
+                auto material = m_model->materials[gltfPrimitive.material.value()];
                 prim.mesh->submeshes.push_back({
                     .draw_count = (uint32_t)accessor.count.value(),
                     .material = material,
@@ -432,7 +409,7 @@ public:
             }
             // if (gltfPrimitive.material.has_value())
             {
-                auto material = m_materials[gltfPrimitive.material.value()];
+                auto material = m_model->materials[gltfPrimitive.material.value()];
                 prim.mesh->submeshes.push_back({
                     .draw_count = prim.mesh->indices->Count(),
                     .material = material,
@@ -449,7 +426,7 @@ public:
         auto skin = std::make_shared<SceneMeshSkin>();
         for (auto j : gltfSkin.joints)
         {
-            skin->joints.push_back(m_nodes[j]);
+            skin->joints.push_back(m_model->nodes[j]);
         }
         if (gltfSkin.inverseBindMatrices.has_value())
         {
@@ -465,7 +442,7 @@ public:
 
         if (gltfSkin.skeleton.has_value())
         {
-            skin->root = m_nodes[gltfSkin.skeleton.value()]->Parent();
+            skin->root = m_model->nodes[gltfSkin.skeleton.value()]->Parent();
         }
 
         return skin;
@@ -474,10 +451,10 @@ public:
     void BuildHierarchy()
     {
         // build node hierarchy
-        for (int i = 0; i < m_nodes.size(); ++i)
+        for (int i = 0; i < m_model->nodes.size(); ++i)
         {
             auto &gltfNode = m_gltf.nodes[i];
-            auto node = m_nodes[i];
+            auto node = m_model->nodes[i];
             if (gltfNode.mesh.has_value())
             {
                 auto meshGroup = m_meshes[gltfNode.mesh.value()];
@@ -515,7 +492,7 @@ public:
             }
             for (auto child : gltfNode.children)
             {
-                auto childNode = m_nodes[child];
+                auto childNode = m_model->nodes[child];
                 node->AddChild(childNode);
             }
         }
@@ -524,7 +501,7 @@ public:
     SceneNodePtr CreateRoot()
     {
         auto root = SceneNode::Create("gltf");
-        for (auto node : m_nodes)
+        for (auto node : m_model->nodes)
         {
             if (!node->Parent())
             {
@@ -536,18 +513,42 @@ public:
         return root;
     }
 
-    SceneNodePtr Load()
+    SceneModelPtr Load()
     {
         LoadImages();
         LoadMaterials();
         LoadNodes();
         LoadMeshes();
         BuildHierarchy();
-        return CreateRoot();
+        m_model->root = CreateRoot();
+        return m_model;
     }
 };
 
-SceneNodePtr SceneGltf::LoadGlbBytes(const uint8_t *bytes, int byteLength)
+SceneModelPtr SceneModel::LoadFromPath(const std::filesystem::path &path)
+{
+    auto bytes = read_allbytes(path);
+    if (bytes.empty())
+    {
+        LOGW << "fail to read bytes: " << path.filename().c_str();
+        return nullptr;
+    }
+
+    auto model = LoadGlbBytes(bytes.data(), (int)bytes.size());
+    if (!model)
+    {
+        LOGW << "fail to load: " << path.filename().c_str();
+        return nullptr;
+    }
+
+    LOGI << "load: " << path.filename().c_str();
+    model->name = (const char *)path.filename().u8string().c_str();
+    model->root->Name(model->name);
+
+    return model;
+}
+
+SceneModelPtr SceneModel::LoadGlbBytes(const uint8_t *bytes, int byteLength)
 {
     gltfformat::glb glb;
     if (!glb.load(bytes, byteLength))

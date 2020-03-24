@@ -4,7 +4,7 @@
 #include "ShaderManager.h"
 #include "ShaderWatcher.h"
 #include "SceneLight.h"
-#include "SceneGltf.h"
+#include "SceneModel.h"
 #include "SceneMeshSkin.h"
 #include "VertexBuffer.h"
 #include "SceneMesh.h"
