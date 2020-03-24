@@ -67,39 +67,6 @@ public:
 
 } // namespace plog
 
-static std::shared_ptr<hierarchy::SceneMesh> CreateGrid()
-{
-    struct GridVertex
-    {
-        std::array<float, 2> position;
-        std::array<float, 2> uv;
-    };
-    GridVertex vertices[] = {
-        {{-1, 1}, {0, 0}},
-        {{-1, -1}, {0, 1}},
-        {{1, -1}, {1, 1}},
-        {{1, 1}, {1, 0}},
-    };
-    uint16_t indices[] = {
-        0, 1, 2, //
-        2, 3, 0, //
-    };
-    auto mesh = hierarchy::SceneMesh::Create();
-    mesh->vertices = hierarchy::VertexBuffer::CreateStatic(
-        hierarchy::Semantics::Vertex,
-        sizeof(vertices[0]), vertices, sizeof(vertices));
-    mesh->indices = hierarchy::VertexBuffer::CreateStatic(
-        hierarchy::Semantics::Index,
-        2, indices, sizeof(indices));
-    {
-        auto material = hierarchy::SceneMaterial::Create();
-        material->shader = hierarchy::ShaderManager::Instance().get("grid");
-        mesh->submeshes.push_back({.draw_count = _countof(indices),
-                                   .material = material});
-    }
-    return mesh;
-}
-
 class View
 {
     OrbitCamera m_camera;
@@ -208,18 +175,20 @@ public:
         }
         hierarchy::ShaderManager::Instance().watch(path);
 
+        {
+            auto node = hierarchy::SceneNode::Create("grid");
+            node->Mesh(hierarchy::CreateGrid());
+            m_scene.gizmoNodes.push_back(node);
+        }
+
         if (argc > 2)
         {
             auto node = hierarchy::SceneGltf::LoadFromPath(argv[2]);
             if (node)
             {
-                m_scene.AddRootNode(node);
+                m_scene.sceneNodes.push_back(node);
             }
         }
-
-        auto node = hierarchy::SceneNode::Create("grid");
-        node->Mesh(CreateGrid());
-        m_scene.AddRootNode(node);
 
         if (m_vr.Connect())
         {
@@ -281,13 +250,20 @@ public:
     void updateDrawList()
     {
         m_drawlist.Clear();
-        int rootCount;
-        auto roots = m_scene.GetRootNodes(&rootCount);
-        for (int i = 0; i < rootCount; ++i)
+        for (auto &node : m_scene.gizmoNodes)
         {
-            auto root = roots[i];
-            root->UpdateWorld();
-            m_drawlist.Traverse(root);
+            node->UpdateWorld();
+            m_drawlist.Traverse(node);
+        }
+        for (auto &node : m_scene.vrNodes)
+        {
+            node->UpdateWorld();
+            m_drawlist.Traverse(node);
+        }
+        for (auto &node : m_scene.sceneNodes)
+        {
+            node->UpdateWorld();
+            m_drawlist.Traverse(node);
         }
 
         // gizmo

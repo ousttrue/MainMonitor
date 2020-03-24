@@ -314,7 +314,8 @@ static void DockSpace(hierarchy::Scene *scene)
 
                 if (node)
                 {
-                    scene->AddRootNode(node);
+                    scene->sceneNodes.clear();
+                    scene->sceneNodes.push_back(node);
                 }
             }
             ImGui::EndMenu();
@@ -662,11 +663,9 @@ private:
             // scene tree
             ImGui::Begin("scene graph");
 
-            int rootCount;
-            auto roots = scene->GetRootNodes(&rootCount);
-            for (int i = 0; i < rootCount; ++i)
+            for (auto &node : scene->sceneNodes)
             {
-                DrawNode(roots[i], m_selected.lock().get());
+                DrawNode(node, m_selected.lock().get());
             }
 
             ImGui::End();
