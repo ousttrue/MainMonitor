@@ -8,6 +8,7 @@ add_executable(${TARGET_NAME}
     Gui/ImGuiDX12FrameResources.cpp
     Gui/ImGuiImplScreenState.cpp
     Gui/Gui.cpp
+    Gui/GuiView.cpp
     Gizmo.cpp
     CameraView.cpp
     )

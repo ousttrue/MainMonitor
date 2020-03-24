@@ -3,7 +3,6 @@
 #include <OrbitCamera.h>
 #include <hierarchy.h>
 
-
 class CameraView
 {
     OrbitCamera m_camera;
@@ -44,5 +43,3 @@ public:
 
     void Update3DView(const screenstate::ScreenState &viewState, const hierarchy::SceneNodePtr &selected);
 };
-
-

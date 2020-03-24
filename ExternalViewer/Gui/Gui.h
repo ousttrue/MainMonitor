@@ -14,7 +14,7 @@ public:
     ~Gui();
     void Log(const char *msg);
     void OnFrame(const screenstate::ScreenState &state, hierarchy::Scene *scene);
-    bool View(const screenstate::ScreenState &state, size_t textureID, screenstate::ScreenState *viewState);
+    bool View(void *view, const screenstate::ScreenState &state, size_t textureID, screenstate::ScreenState *viewState);
 };
 
 } // namespace gui

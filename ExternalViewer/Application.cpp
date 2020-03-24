@@ -68,7 +68,6 @@ public:
 
 } // namespace plog
 
-
 class ApplicationImpl
 {
     plog::ColorConsoleAppender<plog::MyFormatter> m_consoleAppender;
@@ -150,7 +149,7 @@ public:
             // view
             auto viewTextureID = m_renderer.ViewTextureID(m_sceneView);
             // imgui window for rendertarget. convert screenState for view
-            isShowView = m_imgui.View(state, viewTextureID, &viewState);
+            isShowView = m_imgui.View(m_sceneView.get(), state, viewTextureID, &viewState);
         }
 
         // renderering
