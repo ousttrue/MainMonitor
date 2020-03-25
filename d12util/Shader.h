@@ -28,6 +28,8 @@ public:
     {
     }
 
+    int Generation() const { return m_generation; }
+
     const D3D12_INPUT_ELEMENT_DESC *inputLayout(int *count) const
     {
         *count = (int)m_layout.size();

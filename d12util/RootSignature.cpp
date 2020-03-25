@@ -141,6 +141,7 @@ bool RootSignature::Initialize(const ComPtr<ID3D12Device> &device)
 
 void RootSignature::Update(const ComPtr<ID3D12Device> &device)
 {
+    // update shader
     for (auto kv : m_shaderMap)
     {
         auto [source, generation] = kv.first->source();
@@ -151,6 +152,11 @@ void RootSignature::Update(const ComPtr<ID3D12Device> &device)
                 kv.first->clear();
             }
         }
+    }
+
+    for (auto kv : m_materialMap)
+    {
+        kv.second->Initialize(device, kv.first);
     }
 }
 
@@ -200,11 +206,11 @@ std::shared_ptr<Material> RootSignature::GetOrCreate(const ComPtr<ID3D12Device> 
     }
 
     auto gpuMaterial = std::make_shared<Material>();
-    if(!gpuMaterial->Initialize(device, m_rootSignature, gpuShader, sceneMaterial))
+    if (!gpuMaterial->Initialize(device, m_rootSignature, gpuShader, sceneMaterial))
     {
         throw;
     }
-    
+
     m_materialMap.insert(std::make_pair(sceneMaterial, gpuMaterial));
     return gpuMaterial;
 }

@@ -4,6 +4,11 @@
 namespace d12u
 {
 
+bool Material::Initialize(const ComPtr<ID3D12Device> &device, const hierarchy::SceneMaterialPtr &material)
+{
+    return Initialize(device, m_rootSignature, m_shader, material);
+}
+
 bool Material::Initialize(const ComPtr<ID3D12Device> &device,
                           const ComPtr<ID3D12RootSignature> &rootSignature,
                           const std::shared_ptr<Shader> &shader,
@@ -11,6 +16,23 @@ bool Material::Initialize(const ComPtr<ID3D12Device> &device,
 {
     int inputLayoutCount;
     auto inputLayout = shader->inputLayout(&inputLayoutCount);
+
+    m_rootSignature = rootSignature;
+    m_shader = shader;
+    // m_lastGeneration = m_shader->Generation();
+
+    auto current = m_shader->Generation();
+    if (current > m_lastGeneration)
+    {
+        m_pipelineState = nullptr;
+        m_lastGeneration = current;
+    }
+
+    if (m_pipelineState)
+    {
+        // already
+        return true;
+    }
 
     D3D12_BLEND_DESC blend{
         .AlphaToCoverageEnable = FALSE,
