@@ -57,19 +57,19 @@ bool Material::Initialize(const ComPtr<ID3D12Device> &device,
         break;
 
     case hierarchy::AlphaMode::Blend:
-        // blend.RenderTarget[0] = {
-        //     .BlendEnable = TRUE,
-        //     .LogicOpEnable = FALSE,
-        //     .SrcBlend = D3D12_BLEND_SRC_ALPHA,
-        //     .DestBlend = D3D12_BLEND_INV_SRC_ALPHA,
-        //     .BlendOp = D3D12_BLEND_OP_ADD,
-        //     .SrcBlendAlpha = D3D12_BLEND_ONE,
-        //     .DestBlendAlpha = D3D12_BLEND_ZERO,
-        //     .BlendOpAlpha = D3D12_BLEND_OP_ADD,
-        //     .LogicOp = D3D12_LOGIC_OP_NOOP,
-        //     .RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL,
-        // };
-        // depth.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+        blend.RenderTarget[0] = {
+            .BlendEnable = TRUE,
+            .LogicOpEnable = FALSE,
+            .SrcBlend = D3D12_BLEND_SRC_ALPHA,
+            .DestBlend = D3D12_BLEND_INV_SRC_ALPHA,
+            .BlendOp = D3D12_BLEND_OP_ADD,
+            .SrcBlendAlpha = D3D12_BLEND_ONE,
+            .DestBlendAlpha = D3D12_BLEND_ONE,
+            .BlendOpAlpha = D3D12_BLEND_OP_MAX,
+            .LogicOp = D3D12_LOGIC_OP_NOOP,
+            .RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL,
+        };
+        depth.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
         break;
 
     default:

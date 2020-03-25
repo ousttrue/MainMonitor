@@ -93,7 +93,7 @@ public:
     {
         m_sceneView->ClearColor = {
             0.3f,
-            0.6f,
+            0.4f,
             0.5f,
             1.0f,
         };
