@@ -127,15 +127,15 @@ public:
         return texture;
     }
 
-    void View(const hierarchy::SceneViewPtr &sceneView, const hierarchy::DrawList &drawlist)
+    void View(const hierarchy::SceneViewPtr &sceneView)
     {
         auto viewRenderTarget = m_sceneMapper->GetOrCreate(sceneView);
 
-        UpdateNodes(drawlist);
+        UpdateNodes(sceneView->Drawlist);
 
         UpdateView(viewRenderTarget, sceneView);
 
-        DrawView(m_commandlist->Get(), m_swapchain->CurrentFrameIndex(), viewRenderTarget, drawlist, sceneView->ClearColor.data());
+        DrawView(m_commandlist->Get(), m_swapchain->CurrentFrameIndex(), viewRenderTarget, sceneView);
     }
 
 private:
@@ -220,18 +220,17 @@ private:
 
     void DrawView(const ComPtr<ID3D12GraphicsCommandList> &commandList, int frameIndex,
                   const std::shared_ptr<d12u::RenderTargetChain> &viewRenderTarget,
-                  const hierarchy::DrawList &drawlist,
-                  const float clear[4])
+                  const hierarchy::SceneViewPtr &sceneView)
     {
         // clear
         if (viewRenderTarget->Resource(frameIndex))
         {
-            viewRenderTarget->Begin(frameIndex, commandList, clear);
+            viewRenderTarget->Begin(frameIndex, commandList, sceneView->ClearColor.data());
 
             // global settings
             m_rootSignature->Begin(commandList);
 
-            for (auto &drawMesh : drawlist.Meshes)
+            for (auto &drawMesh : sceneView->Drawlist.Meshes)
             {
                 m_rootSignature->SetNodeDescriptorTable(commandList, drawMesh.NodeID);
                 DrawMesh(commandList, drawMesh.Mesh);
@@ -317,8 +316,7 @@ size_t Renderer::ViewTextureID(const std::shared_ptr<hierarchy::SceneView> &view
     return m_impl->ViewTextureID(view);
 }
 
-void Renderer::View(const hierarchy::SceneViewPtr &view,
-                    const hierarchy::DrawList &drawlist)
+void Renderer::View(const hierarchy::SceneViewPtr &view)
 {
-    m_impl->View(view, drawlist);
+    m_impl->View(view);
 }

@@ -175,7 +175,7 @@ public:
                 m_sceneView->CameraPosition = m_view.Camera()->state.position;
                 m_sceneView->CameraFovYRadians = m_view.Camera()->state.fovYRadians;
                 UpdateDrawList();
-                m_renderer.View(m_sceneView, m_scene.drawlist);
+                m_renderer.View(m_sceneView);
             }
             m_renderer.EndFrame();
         }
@@ -183,12 +183,12 @@ public:
 
     void UpdateDrawList()
     {
-        m_scene.UpdateDrawList(m_sceneView);
+        m_sceneView->UpdateDrawList(&m_scene);
 
         // gizmo
         if (m_sceneView->ShowGizmo)
         {
-            m_scene.drawlist.Nodes.push_back({.NodeID = m_view.GizmoNodeID(),
+            m_sceneView->Drawlist.Nodes.push_back({.NodeID = m_view.GizmoNodeID(),
                                         .WorldMatrix = {
                                             1, 0, 0, 0, //
                                             0, 1, 0, 0, //
@@ -196,7 +196,7 @@ public:
                                             0, 0, 0, 1, //
                                         }});
             m_gizmoBuffer = m_view.GizmoBuffer();
-            m_scene.drawlist.Meshes.push_back({
+            m_sceneView->Drawlist.Meshes.push_back({
                 .NodeID = m_view.GizmoNodeID(),
                 .Mesh = m_view.GizmoMesh(),
                 .Vertices = {

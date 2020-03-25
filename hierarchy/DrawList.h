@@ -28,6 +28,7 @@ struct DrawList
     {
         int NodeID;
         std::shared_ptr<SceneMesh> Mesh;
+        int SubmeshIndex;
         Buffer Vertices{};
         Buffer Indices{};
     };
