@@ -258,7 +258,6 @@ private:
             return;
         }
 
-        int offset = 0;
         // for (auto &submesh : mesh->submeshes)
         {
             auto &submesh = mesh->submeshes[info.SubmeshIndex];
@@ -280,10 +279,8 @@ private:
 
             if (material->Set(commandList))
             {
-                m_commandlist->Get()->DrawIndexedInstanced(submesh.draw_count, 1, offset, 0, 0);
+                m_commandlist->Get()->DrawIndexedInstanced(submesh.drawCount, 1, submesh.drawOffset, 0, 0);
             }
-
-            offset += submesh.draw_count;
         }
     }
 };

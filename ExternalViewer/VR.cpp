@@ -188,7 +188,7 @@ void VR::OnFrame(hierarchy::Scene *scene)
             material->colorImage = image;
 
             mesh->submeshes.push_back({
-                .draw_count = indexCount,
+                .drawCount = indexCount,
                 .material = material,
             });
 

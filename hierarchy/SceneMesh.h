@@ -11,7 +11,8 @@ namespace hierarchy
 
 struct SceneSubmesh
 {
-    uint32_t draw_count = 0;
+    uint32_t drawOffset = 0;
+    uint32_t drawCount = 0;
     SceneMaterialPtr material;
 };
 

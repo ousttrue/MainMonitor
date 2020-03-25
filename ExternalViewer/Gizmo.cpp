@@ -53,7 +53,7 @@ void Gizmo::Begin(const screenstate::ScreenState &state, const camera::CameraSta
 gizmesh::GizmoSystem::Buffer Gizmo::End()
 {
     auto buffer = m_gizmo->end();
-    m_gizmoMesh->submeshes.back().draw_count = buffer.indicesBytes / buffer.indexStride;
+    m_gizmoMesh->submeshes.back().drawCount = buffer.indicesBytes / buffer.indexStride;
     return buffer;
 }
 

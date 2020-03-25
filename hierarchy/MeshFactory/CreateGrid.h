@@ -35,7 +35,7 @@ static std::shared_ptr<hierarchy::SceneMesh> CreateGrid()
     {
         auto material = hierarchy::SceneMaterial::Create();
         material->shader = hierarchy::ShaderManager::Instance().get("grid");
-        mesh->submeshes.push_back({.draw_count = _countof(indices),
+        mesh->submeshes.push_back({.drawCount = _countof(indices),
                                    .material = material});
     }
     return mesh;

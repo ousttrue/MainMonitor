@@ -368,6 +368,7 @@ public:
         // shared vertices
         prim.LoadVertices(m_gltf, m_bin, gltfMesh, gltfMesh.primitives.front());
 
+        uint32_t offset = 0;
         for (auto &gltfPrimitive : gltfMesh.primitives)
         {
             if (!prim.mesh->indices)
@@ -386,9 +387,11 @@ public:
 
                 auto material = m_model->materials[gltfPrimitive.material.value()];
                 prim.mesh->submeshes.push_back({
-                    .draw_count = (uint32_t)accessor.count.value(),
+                    .drawOffset = offset,
+                    .drawCount = (uint32_t)accessor.count.value(),
                     .material = material,
                 });
+                offset += accessor.count.value();
             }
         }
         return group;
@@ -411,7 +414,7 @@ public:
             {
                 auto material = m_model->materials[gltfPrimitive.material.value()];
                 prim.mesh->submeshes.push_back({
-                    .draw_count = prim.mesh->indices->Count(),
+                    .drawCount = prim.mesh->indices->Count(),
                     .material = material,
                 });
             }
