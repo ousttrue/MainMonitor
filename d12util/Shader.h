@@ -44,10 +44,19 @@ public:
         void GetSemantic(const std::string &src);
     };
 
+    struct ConstantBuffer
+    {
+        std::vector<ConstantVariable> Variables;
+
+        void GetVariables(ID3D12ShaderReflectionConstantBuffer *cb,
+                          const std::string &source);
+    };
+
     struct ShaderWithConstants
     {
         ComPtr<ID3DBlob> Compiled;
-        std::vector<ConstantVariable> Constants;
+
+        std::vector<ConstantBuffer> Buffers;
 
         D3D12_SHADER_BYTECODE ByteCode() const
         {
@@ -56,6 +65,9 @@ public:
                 Compiled->GetBufferSize(),
             };
         }
+
+        void ShaderWithConstants::GetConstants(const ComPtr<ID3D12ShaderReflection> &pReflection,
+                                               const std::string &source);
     };
 
 public:

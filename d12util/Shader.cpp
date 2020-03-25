@@ -91,6 +91,39 @@ void Shader::ConstantVariable::GetSemantic(const std::string &src)
     Semantic = GetSemanticAfterName(src.substr(found + Name.size()));
 }
 
+void Shader::ConstantBuffer::GetVariables(ID3D12ShaderReflectionConstantBuffer *cb,
+                                          const std::string &source)
+{
+    D3D12_SHADER_BUFFER_DESC cbDesc;
+    cb->GetDesc(&cbDesc);
+    for (unsigned j = 0; j < cbDesc.Variables; ++j)
+    {
+        auto cbVariable = cb->GetVariableByIndex(j);
+        D3D12_SHADER_VARIABLE_DESC variableDesc;
+        cbVariable->GetDesc(&variableDesc);
+        Variables.push_back(ConstantVariable{
+            .Name = variableDesc.Name,
+            .Offset = variableDesc.StartOffset,
+            .Size = variableDesc.Size,
+        });
+        Variables.back().GetSemantic(source);
+    }
+}
+
+void Shader::ShaderWithConstants::GetConstants(const ComPtr<ID3D12ShaderReflection> &pReflection,
+                                               const std::string &source)
+{
+    D3D12_SHADER_DESC desc;
+    pReflection->GetDesc(&desc);
+
+    for (unsigned i = 0; i < desc.ConstantBuffers; ++i)
+    {
+        auto cb = pReflection->GetConstantBufferByIndex(i);
+        Buffers.push_back({});
+        Buffers.back().GetVariables(cb, source);
+    }
+}
+
 bool Shader::InputLayoutFromReflection(const ComPtr<ID3D12ShaderReflection> &pReflection)
 {
     // Define the vertex input layout.
@@ -209,7 +242,6 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
             LOGW << ToString(error);
             return false;
         }
-
         ComPtr<ID3D12ShaderReflection> pReflection;
         if (FAILED(D3DReflect(VS.Compiled->GetBufferPointer(), VS.Compiled->GetBufferSize(), IID_PPV_ARGS(&pReflection))))
         {
@@ -219,29 +251,7 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
         {
             return false;
         }
-        {
-            D3D12_SHADER_DESC desc;
-            pReflection->GetDesc(&desc);
-
-            for (unsigned i = 0; i < desc.ConstantBuffers; ++i)
-            {
-                auto cb = pReflection->GetConstantBufferByIndex(i);
-                D3D12_SHADER_BUFFER_DESC cbDesc;
-                cb->GetDesc(&cbDesc);
-                for (unsigned j = 0; j < cbDesc.Variables; ++j)
-                {
-                    auto cbVariable = cb->GetVariableByIndex(j);
-                    D3D12_SHADER_VARIABLE_DESC variableDesc;
-                    cbVariable->GetDesc(&variableDesc);
-                    VS.Constants.push_back(ConstantVariable{
-                        .Name = variableDesc.Name,
-                        .Offset = variableDesc.StartOffset,
-                        .Size = variableDesc.Size,
-                    });
-                    VS.Constants.back().GetSemantic(source);
-                }
-            }
-        }
+        VS.GetConstants(pReflection, source);
     }
 
     //
@@ -254,6 +264,12 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
             LOGW << ToString(error);
             return false;
         }
+        ComPtr<ID3D12ShaderReflection> pReflection;
+        if (FAILED(D3DReflect(PS.Compiled->GetBufferPointer(), PS.Compiled->GetBufferSize(), IID_PPV_ARGS(&pReflection))))
+        {
+            return false;
+        }
+        PS.GetConstants(pReflection, source);
     }
 
     m_generation = generation;

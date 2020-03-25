@@ -41,9 +41,9 @@ PS_INPUT VSMain(VS_INPUT vs)
 
     ps.position = float4(vs.position, 1, 1);
     // ps.position = float4(vs.position, 0, 1);
-    float halfFov = b0ScreenSizeFovY.z / 2;
+    float halfFov = fovY / 2;
     float t = tan(halfFov);
-    float aspectRatio = b0ScreenSizeFovY.x / b0ScreenSizeFovY.y;
+    float aspectRatio = b0ScreenSize.x / b0ScreenSize.y;
     ps.ray = mul(float4(vs.position.x * t * aspectRatio, vs.position.y * t, -1, 0), b0View).xyz;
 
     ps.uv = vs.uv;
