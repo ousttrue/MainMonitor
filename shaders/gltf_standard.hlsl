@@ -1,15 +1,15 @@
 SamplerState s0 : register(s0);
-Texture2D t0 : register(t0);    
+Texture2D t0 : register(t0);
 cbuffer SceneConstantBuffer : register(b0)
 {
-    float4x4 b0View;
-    float4x4 b0Projection;
-    float3 b0LightDirection;
-    float3 b0LightColor;
+    float4x4 b0View : CAMERA_VIEW;
+    float4x4 b0Projection : CAMERA_PROJECTION;
+    float3 b0LightDirection : LIGHT_DIRECTION;
+    float3 b0LightColor : LIGHT_COLOR;
 };
 cbuffer NodeConstantBuffer : register(b1)
 {
-    float4x4 b1World : WORLD;
+    float4x4 b1World : NODE_WORLD;
 };
 // cbuffer MaterialConstantBuffer: register(b2)
 // {
@@ -21,13 +21,13 @@ cbuffer NodeConstantBuffer : register(b1)
 struct VSInput
 {
     float3 position : SV_POSITION;
-    float3 normal: NORMAL;
+    float3 normal : NORMAL;
     float2 uv : TEXCOORD0;
 };
 struct PSInput
 {
     float4 position : SV_POSITION;
-    float3 normal: NORMAL;
+    float3 normal : NORMAL;
     float2 uv : TEXCOORD0;
 };
 
@@ -45,16 +45,18 @@ PSInput VSMain(VSInput vs)
 float4 PSMain(PSInput input) : SV_TARGET
 {
     // float3 P = input.position.xyz;
-	float4 vColor = t0.Sample(s0, input.uv);
+    float4 vColor = t0.Sample(s0, input.uv);
     float3 N = input.normal;
     float3 L = normalize(-b0LightDirection);
     float3 Shading = vColor.xyz * (saturate(dot(N, L)) + float3(0.2, 0.2, 0.2));
     return float4(Shading, 1);
 }
 
-technique MainTec0 {
-    pass DrawObject {
+technique MainTec0
+{
+    pass DrawObject
+    {
         VertexShader = compile vs_3_0 VSMain();
-        PixelShader  = compile ps_3_0 PSMain();
+        PixelShader = compile ps_3_0 PSMain();
     }
 }

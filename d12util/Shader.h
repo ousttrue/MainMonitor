@@ -23,9 +23,15 @@ public:
     enum class ConstantSemantics
     {
         UNKNOWN,
-        PROJECTION, // camera
-        VIEW,       // camera
-        WORLD,      // node, world
+
+        RENDERTARGET_SIZE,
+        CAMERA_VIEW,
+        CAMERA_PROJECTION,
+        CAMERA_POSITION,
+        CAMERA_FOVY,
+        LIGHT_DIRECTION,
+        LIGHT_COLOR,
+        NODE_WORLD,
     };
 
     struct ConstantVariable

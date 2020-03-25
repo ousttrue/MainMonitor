@@ -15,11 +15,12 @@ struct PS_INPUT
 cbuffer SceneConstantBuffer : register(b0)
 {
     float4x4 b0View : CAMERA_VIEW;
-    float4x4 b0Projection : PROJECTION;
-    float3 b0LightDirection;
-    float3 b0LightColor;
-    float3 b0CameraPosition;
-    float3 b0ScreenSizeFovY;
+    float4x4 b0Projection : CAMERA_PROJECTION;
+    float3 b0LightDirection : LIGHT_DIRECTION;
+    float3 b0LightColor : LIGHT_COLOR;
+    float3 b0CameraPosition : CAMERA_POSITION;
+    float fovY : CAMERA_FOVY;
+    float3 b0ScreenSize : RENDERTARGET_SIZE;
 };
 
 cbuffer NodeConstantBuffer : register(b1)

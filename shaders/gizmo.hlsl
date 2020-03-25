@@ -2,16 +2,16 @@ SamplerState s0 : register(s0);
 Texture2D t0 : register(t0);
 cbuffer SceneConstantBuffer : register(b0)
 {
-    float4x4 b0View;
-    float4x4 b0Projection;
-    float3 b0LightDirection;
-    float3 b0LightColor;
-    float3 uEye;
+    float4x4 b0View : CAMERA_VIEW;
+    float4x4 b0Projection : CAMERA_PROJECTION;
+    float3 b0LightDirection : LIGHT_DIRECTION;
+    float3 b0LightColor : LIGHT_COLOR;
+    float3 uEye : CAMERA_POSITION;
 };
 
 cbuffer NodeConstantBuffer : register(b1)
 {
-    float4x4 b1World : WORLD;
+    float4x4 b1World : WORLD : NODE_WORLD;
 };
 // cbuffer MaterialConstantBuffer: register(b2)
 // {

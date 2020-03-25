@@ -9,8 +9,10 @@ static bool IsMatch(const std::string &src, const std::string &name, Shader::Con
     auto pos = src.find(name);
     if (pos == std::string::npos)
     {
+        // not found
         return false;
     }
+
     auto tail = src[pos + name.size()];
     if (
         (tail >= 'a' && tail <= 'z')    // a-z
@@ -18,6 +20,7 @@ static bool IsMatch(const std::string &src, const std::string &name, Shader::Con
         || (tail >= '0' && tail <= '9') // 0-9
         || tail == '_')
     {
+        // continuous
         return false;
     }
 
@@ -26,11 +29,20 @@ static bool IsMatch(const std::string &src, const std::string &name, Shader::Con
 
 #define MATCH(Symbol)                                             \
     if (IsMatch(src, #Symbol, Shader::ConstantSemantics::Symbol)) \
-    return Shader::ConstantSemantics::Symbol
+    {                                                             \
+        return Shader::ConstantSemantics::Symbol;                 \
+    }
 
 static Shader::ConstantSemantics GetSemanticAfterColon(const std::string &src)
 {
-    MATCH(PROJECTION);
+    MATCH(RENDERTARGET_SIZE);
+    MATCH(CAMERA_VIEW);
+    MATCH(CAMERA_PROJECTION);
+    MATCH(CAMERA_POSITION);
+    MATCH(CAMERA_FOVY);
+    MATCH(LIGHT_DIRECTION);
+    MATCH(LIGHT_COLOR);
+    MATCH(NODE_WORLD);
 
     return Shader::ConstantSemantics::UNKNOWN;
 }
