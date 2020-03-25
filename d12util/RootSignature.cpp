@@ -107,10 +107,10 @@ bool RootSignature::Initialize(const ComPtr<ID3D12Device> &device)
     };
 
     D3D12_STATIC_SAMPLER_DESC sampler = {
-        .Filter = D3D12_FILTER_MIN_MAG_MIP_POINT,
-        .AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
-        .AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
-        .AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        .Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR,
+        .AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        .AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        .AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
         .ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER,
         .MaxLOD = D3D12_FLOAT32_MAX,
         .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
