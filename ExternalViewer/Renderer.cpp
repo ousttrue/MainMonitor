@@ -233,15 +233,16 @@ private:
             for (auto &drawMesh : sceneView->Drawlist.Meshes)
             {
                 m_rootSignature->SetNodeDescriptorTable(commandList, drawMesh.NodeID);
-                DrawMesh(commandList, drawMesh.Mesh);
+                DrawMesh(commandList, drawMesh);
             }
 
             viewRenderTarget->End(frameIndex, commandList);
         }
     }
 
-    void DrawMesh(const ComPtr<ID3D12GraphicsCommandList> &commandList, const hierarchy::SceneMeshPtr &mesh)
+    void DrawMesh(const ComPtr<ID3D12GraphicsCommandList> &commandList, const hierarchy::DrawList::MeshInfo &info)
     {
+        auto &mesh = info.Mesh;
         if (!mesh)
         {
             return;
@@ -258,8 +259,9 @@ private:
         }
 
         int offset = 0;
-        for (auto &submesh : mesh->submeshes)
+        // for (auto &submesh : mesh->submeshes)
         {
+            auto &submesh = mesh->submeshes[info.SubmeshIndex];
             auto material = m_rootSignature->GetOrCreate(m_device, submesh.material);
 
             // texture setup

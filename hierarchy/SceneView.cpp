@@ -13,21 +13,30 @@ void Traverse(DrawList *drawlist, const std::shared_ptr<SceneNode> &node, const 
     auto mesh = node->Mesh();
     if (mesh)
     {
-        drawlist->Nodes.push_back({
-            .NodeID = node->ID(),
-            .WorldMatrix = node->World().RowMatrix(),
-        });
-        drawlist->Meshes.push_back({
-            .NodeID = node->ID(),
-            .Mesh = mesh,
-        });
-
         auto skin = mesh->skin;
         if (skin)
         {
             // update matrix
             auto &vertices = mesh->vertices;
             skin->Update(vertices->buffer.data(), vertices->stride, vertices->Count());
+        }
+
+        drawlist->Nodes.push_back({
+            .NodeID = node->ID(),
+            .WorldMatrix = node->World().RowMatrix(),
+        });
+
+        auto &submeshes = mesh->submeshes;
+        for (int i = 0; i < (int)submeshes.size(); ++i)
+        {
+            if (filter(submeshes[i].material))
+            {
+                drawlist->Meshes.push_back({
+                    .NodeID = node->ID(),
+                    .Mesh = mesh,
+                    .SubmeshIndex = i,
+                });
+            }
         }
     }
 
