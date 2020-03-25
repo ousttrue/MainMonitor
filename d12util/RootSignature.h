@@ -53,7 +53,7 @@ public:
     d12u::ConstantBuffer<ViewConstants> m_viewConstantsBuffer;
     ViewConstants *GetViewConstantsBuffer(UINT index)
     {
-        return m_viewConstantsBuffer.Get(index);
+        return m_viewConstantsBuffer.GetTyped(index);
     }
     void UploadViewConstantsBuffer()
     {
@@ -72,7 +72,7 @@ public:
     d12u::ConstantBuffer<DrawConstants> m_drawConstantsBuffer;
     DrawConstants *GetDrawConstantsBuffer(UINT index)
     {
-        return m_drawConstantsBuffer.Get(index);
+        return m_drawConstantsBuffer.GetTyped(index);
     }
     void UploadDrawConstantsBuffer()
     {
