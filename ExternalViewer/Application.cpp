@@ -76,7 +76,6 @@ class ApplicationImpl
 
     VR m_vr;
     hierarchy::Scene m_scene;
-    hierarchy::DrawList m_drawlist;
 
     Renderer m_renderer;
 
@@ -175,42 +174,21 @@ public:
                 m_sceneView->View = m_view.Camera()->state.view;
                 m_sceneView->CameraPosition = m_view.Camera()->state.position;
                 m_sceneView->CameraFovYRadians = m_view.Camera()->state.fovYRadians;
-                updateDrawList();
-                m_renderer.View(m_sceneView, m_drawlist);
+                UpdateDrawList();
+                m_renderer.View(m_sceneView, m_scene.drawlist);
             }
             m_renderer.EndFrame();
         }
     }
 
-    void updateDrawList()
+    void UpdateDrawList()
     {
-        m_drawlist.Clear();
-        if (m_sceneView->ShowGrid)
-        {
-            for (auto &node : m_scene.gizmoNodes)
-            {
-                node->UpdateWorld();
-                m_drawlist.Traverse(node);
-            }
-        }
-        if (m_sceneView->ShowVR)
-        {
-            for (auto &node : m_scene.vrNodes)
-            {
-                node->UpdateWorld();
-                m_drawlist.Traverse(node);
-            }
-        }
-        for (auto &node : m_scene.sceneNodes)
-        {
-            node->UpdateWorld();
-            m_drawlist.Traverse(node);
-        }
+        m_scene.UpdateDrawList(m_sceneView);
 
         // gizmo
         if (m_sceneView->ShowGizmo)
         {
-            m_drawlist.Nodes.push_back({.NodeID = m_view.GizmoNodeID(),
+            m_scene.drawlist.Nodes.push_back({.NodeID = m_view.GizmoNodeID(),
                                         .WorldMatrix = {
                                             1, 0, 0, 0, //
                                             0, 1, 0, 0, //
@@ -218,7 +196,7 @@ public:
                                             0, 0, 0, 1, //
                                         }});
             m_gizmoBuffer = m_view.GizmoBuffer();
-            m_drawlist.Meshes.push_back({
+            m_scene.drawlist.Meshes.push_back({
                 .NodeID = m_view.GizmoNodeID(),
                 .Mesh = m_view.GizmoMesh(),
                 .Vertices = {

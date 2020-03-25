@@ -6,6 +6,8 @@
 #include "SceneNode.h"
 #include "SceneMaterial.h"
 #include "SceneMesh.h"
+#include "DrawList.h"
+#include "SceneView.h"
 
 namespace hierarchy
 {
@@ -20,7 +22,11 @@ public:
     // single selection
     std::weak_ptr<hierarchy::SceneNode> selected;
 
+    hierarchy::DrawList drawlist;
+
     Scene();
+
+    void UpdateDrawList(const SceneViewPtr &view);
 };
 
 } // namespace hierarchy
