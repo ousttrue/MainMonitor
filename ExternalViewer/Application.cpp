@@ -174,6 +174,7 @@ public:
                 m_sceneView->View = m_view.Camera()->state.view;
                 m_sceneView->CameraPosition = m_view.Camera()->state.position;
                 m_sceneView->CameraFovYRadians = m_view.Camera()->state.fovYRadians;
+                m_scene.Update();
                 UpdateDrawList();
                 m_renderer.View(m_sceneView);
             }

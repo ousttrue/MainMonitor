@@ -8,23 +8,26 @@ namespace hierarchy
 {
 using FilterFunc = std::function<bool(const SceneMaterialPtr &)>;
 
-void Traverse(DrawList *drawlist, const std::shared_ptr<SceneNode> &node, const FilterFunc &filter)
+void TraverseNode(DrawList *drawlist, const std::shared_ptr<SceneNode> &node)
+{
+    drawlist->Nodes.push_back({
+        .NodeID = node->ID(),
+        .WorldMatrix = node->World().RowMatrix(),
+    });
+
+    int count;
+    auto child = node->GetChildren(&count);
+    for (int i = 0; i < count; ++i, ++child)
+    {
+        TraverseNode(drawlist, *child);
+    }
+}
+
+void TraverseMesh(DrawList *drawlist, const std::shared_ptr<SceneNode> &node, const FilterFunc &filter)
 {
     auto mesh = node->Mesh();
     if (mesh)
     {
-        auto skin = mesh->skin;
-        if (skin)
-        {
-            // update matrix
-            auto &vertices = mesh->vertices;
-            skin->Update(vertices->buffer.data(), vertices->stride, vertices->Count());
-        }
-
-        drawlist->Nodes.push_back({
-            .NodeID = node->ID(),
-            .WorldMatrix = node->World().RowMatrix(),
-        });
 
         auto &submeshes = mesh->submeshes;
         for (int i = 0; i < (int)submeshes.size(); ++i)
@@ -44,7 +47,7 @@ void Traverse(DrawList *drawlist, const std::shared_ptr<SceneNode> &node, const 
     auto child = node->GetChildren(&count);
     for (int i = 0; i < count; ++i, ++child)
     {
-        Traverse(drawlist, *child, filter);
+        TraverseMesh(drawlist, *child, filter);
     }
 }
 
@@ -54,28 +57,45 @@ static void UpdateDrawListIf(SceneView *view, const Scene *scene, const FilterFu
     {
         for (auto &node : scene->gizmoNodes)
         {
-            node->UpdateWorld();
-            Traverse(&view->Drawlist, node, filter);
+            TraverseMesh(&view->Drawlist, node, filter);
         }
     }
     if (view->ShowVR)
     {
         for (auto &node : scene->vrNodes)
         {
-            node->UpdateWorld();
-            Traverse(&view->Drawlist, node, filter);
+            TraverseMesh(&view->Drawlist, node, filter);
         }
     }
     for (auto &node : scene->sceneNodes)
     {
-        node->UpdateWorld();
-        Traverse(&view->Drawlist, node, filter);
+        TraverseMesh(&view->Drawlist, node, filter);
     }
 }
 
 void SceneView::UpdateDrawList(const Scene *scene)
 {
     Drawlist.Clear();
+
+    //
+    // node
+    //
+    for (auto &node : scene->gizmoNodes)
+    {
+        TraverseNode(&Drawlist, node);
+    }
+    for (auto &node : scene->vrNodes)
+    {
+        TraverseNode(&Drawlist, node);
+    }
+    for (auto &node : scene->sceneNodes)
+    {
+        TraverseNode(&Drawlist, node);
+    }
+
+    //
+    // mesh
+    //
     // Opaque
     UpdateDrawListIf(this, scene, [](const SceneMaterialPtr &m) {
         return m->alphaMode != AlphaMode::Blend;
