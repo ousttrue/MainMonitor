@@ -21,8 +21,8 @@ class RootSignature : NonCopyable
     ComPtr<ID3D12RootSignature> m_rootSignature;
     std::unique_ptr<Heap> m_heap;
 
-    // scene
-    struct SceneConstants
+    // Frame
+    struct FrameConstants
     {
         DirectX::XMFLOAT4X4 b0View;
         DirectX::XMFLOAT4X4 b0Projection;
@@ -35,7 +35,7 @@ class RootSignature : NonCopyable
         DirectX::XMFLOAT3 b0ScreenSizeFovY;
         // DirectX::XMFLOAT4X4 b0ViewInv;
     };
-    d12u::ConstantBuffer<SceneConstants> m_sceneConstantsBuffer;
+    d12u::ConstantBuffer<FrameConstants> m_sceneConstantsBuffer;
 
     // node
     struct NodeConstants
@@ -47,15 +47,6 @@ class RootSignature : NonCopyable
             0, 0, 0, 1};
     };
     d12u::ConstantBuffer<NodeConstants> m_nodeConstantsBuffer;
-
-    // material
-    struct MaterialConstants
-    {
-        DirectX::XMFLOAT4 b1Diffuse;
-        DirectX::XMFLOAT3 b1Ambient;
-        DirectX::XMFLOAT3 b1Specular;
-    };
-    d12u::ConstantBuffer<MaterialConstants> m_materialConstantsBuffer;
 
     std::unordered_map<hierarchy::ShaderWatcherPtr, std::shared_ptr<class Shader>> m_shaderMap;
     std::unordered_map<hierarchy::SceneMaterialPtr, std::shared_ptr<class Material>> m_materialMap;
@@ -72,7 +63,7 @@ public:
     std::shared_ptr<class Material> GetOrCreate(const ComPtr<ID3D12Device> &device, const hierarchy::SceneMaterialPtr &material);
     std::pair<std::shared_ptr<class Texture>, UINT> GetOrCreate(const ComPtr<ID3D12Device> &device, const hierarchy::SceneImagePtr &image, class Uploader *uploader);
 
-    SceneConstants *GetSceneConstantsBuffer(UINT index)
+    FrameConstants *GetSceneConstantsBuffer(UINT index)
     {
         return m_sceneConstantsBuffer.Get(index);
     }

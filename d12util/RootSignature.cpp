@@ -9,8 +9,8 @@
 
 // SCENE_SLOTS=1;
 const int NODE_SLOTS = 1024;
-const int MATERIAL_SLOTS = 1024;
-const int TEXTURE_SLOTS = MATERIAL_SLOTS;
+// const int MATERIAL_SLOTS = 1024;
+const int TEXTURE_SLOTS = 1024;
 
 namespace d12u
 {
@@ -128,11 +128,10 @@ bool RootSignature::Initialize(const ComPtr<ID3D12Device> &device)
     //
     m_sceneConstantsBuffer.Initialize(device, 1);
     m_nodeConstantsBuffer.Initialize(device, NODE_SLOTS);
-    m_materialConstantsBuffer.Initialize(device, MATERIAL_SLOTS);
+    // m_materialConstantsBuffer.Initialize(device, MATERIAL_SLOTS);
     ConstantBufferBase *items[] = {
         &m_sceneConstantsBuffer,
         &m_nodeConstantsBuffer,
-        &m_materialConstantsBuffer,
     };
     m_heap->Initialize(device, _countof(items), items, TEXTURE_SLOTS);
 
@@ -246,7 +245,7 @@ std::pair<std::shared_ptr<class Texture>, UINT> RootSignature::GetOrCreate(const
             .MipLevels = 1,
         },
     };
-    device->CreateShaderResourceView(gpuTexture->Resource().Get(), &desc, m_heap->CpuHandle(index + 1 + NODE_SLOTS + MATERIAL_SLOTS));
+    device->CreateShaderResourceView(gpuTexture->Resource().Get(), &desc, m_heap->CpuHandle(index + 1 + NODE_SLOTS));
 
     return std::make_pair(gpuTexture, index);
 }
@@ -258,7 +257,7 @@ void RootSignature::SetNodeDescriptorTable(const ComPtr<ID3D12GraphicsCommandLis
 
 void RootSignature::SetTextureDescriptorTable(const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT textureIndex)
 {
-    commandList->SetGraphicsRootDescriptorTable(2, m_heap->GpuHandle(textureIndex + 1 + NODE_SLOTS + MATERIAL_SLOTS));
+    commandList->SetGraphicsRootDescriptorTable(2, m_heap->GpuHandle(textureIndex + 1 + NODE_SLOTS));
 }
 
 } // namespace d12u
