@@ -101,14 +101,8 @@ bool Material::Initialize(const ComPtr<ID3D12Device> &device,
     // Describe and create the graphics pipeline state object (PSO).
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {
         .pRootSignature = rootSignature.Get(),
-        .VS = {
-            .pShaderBytecode = shader->m_vs->GetBufferPointer(),
-            .BytecodeLength = shader->m_vs->GetBufferSize(),
-        },
-        .PS = {
-            .pShaderBytecode = shader->m_ps->GetBufferPointer(),
-            .BytecodeLength = shader->m_ps->GetBufferSize(),
-        },
+        .VS = shader->VS.ByteCode(),
+        .PS = shader->PS.ByteCode(),
         .BlendState = blend,
         .SampleMask = UINT_MAX,
         .RasterizerState = {

@@ -10,6 +10,8 @@ class Shader : NonCopyable
     template <typename T>
     using ComPtr = Microsoft::WRL::ComPtr<T>;
 
+private:
+    std::string m_name;
     int m_generation = -1;
 
     // keep semantics string
@@ -17,11 +19,42 @@ class Shader : NonCopyable
     std::vector<D3D12_INPUT_ELEMENT_DESC> m_layout;
     bool InputLayoutFromReflection(const ComPtr<ID3D12ShaderReflection> &reflection);
 
-    std::string m_name;
+public:
+    enum class ConstantSemantics
+    {
+        UNKNOWN,
+        PROJECTION, // camera
+        VIEW,       // camera
+        WORLD,      // node, world
+    };
+
+    struct ConstantVariable
+    {
+        std::string Name;
+        ConstantSemantics Semantic;
+        UINT Offset;
+        UINT Size;
+
+        void GetSemantic(const std::string &src);
+    };
+
+    struct ShaderWithConstants
+    {
+        ComPtr<ID3DBlob> Compiled;
+        std::vector<ConstantVariable> Constants;
+
+        D3D12_SHADER_BYTECODE ByteCode() const
+        {
+            return {
+                Compiled->GetBufferPointer(),
+                Compiled->GetBufferSize(),
+            };
+        }
+    };
 
 public:
-    ComPtr<ID3DBlob> m_vs;
-    ComPtr<ID3DBlob> m_ps;
+    ShaderWithConstants VS;
+    ShaderWithConstants PS;
 
     Shader(const std::string &name)
         : m_name(name)

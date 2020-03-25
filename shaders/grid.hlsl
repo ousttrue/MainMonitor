@@ -15,7 +15,7 @@ struct PS_INPUT
 cbuffer SceneConstantBuffer : register(b0)
 {
     float4x4 b0View : CAMERA_VIEW;
-    float4x4 b0Projection;
+    float4x4 b0Projection : PROJECTION;
     float3 b0LightDirection;
     float3 b0LightColor;
     float3 b0CameraPosition;

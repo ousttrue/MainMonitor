@@ -4,6 +4,81 @@
 namespace d12u
 {
 
+static bool IsMatch(const std::string &src, const std::string &name, Shader::ConstantSemantics semantic)
+{
+    auto pos = src.find(name);
+    if (pos == std::string::npos)
+    {
+        return false;
+    }
+    auto tail = src[pos + name.size()];
+    if (
+        (tail >= 'a' && tail <= 'z')    // a-z
+        || (tail >= 'A' && tail <= 'Z') // A-Z
+        || (tail >= '0' && tail <= '9') // 0-9
+        || tail == '_')
+    {
+        return false;
+    }
+
+    return true;
+}
+
+#define MATCH(Symbol)                                             \
+    if (IsMatch(src, #Symbol, Shader::ConstantSemantics::Symbol)) \
+    return Shader::ConstantSemantics::Symbol
+
+static Shader::ConstantSemantics GetSemanticAfterColon(const std::string &src)
+{
+    MATCH(PROJECTION);
+
+    return Shader::ConstantSemantics::UNKNOWN;
+}
+
+#undef MATCH
+
+static Shader::ConstantSemantics GetSemanticAfterName(const std::string &src)
+{
+    // search :
+    for (auto it = src.begin(); it != src.end(); ++it)
+    {
+        if (*it == ';')
+        {
+            return Shader::ConstantSemantics::UNKNOWN;
+        }
+
+        if (*it == ':')
+        {
+            auto start = it;
+            ++start;
+            for (; start != src.end() && *start == ' '; ++start)
+            {
+            }
+
+            auto end = start;
+            ++end;
+            for (; end != src.end() && *end != ';'; ++end)
+            {
+            }
+
+            return GetSemanticAfterColon(std::string(start, end));
+        }
+    }
+
+    return Shader::ConstantSemantics::UNKNOWN;
+}
+
+void Shader::ConstantVariable::GetSemantic(const std::string &src)
+{
+    auto found = src.find(Name);
+    if (found == std::string::npos)
+    {
+        return;
+    }
+
+    Semantic = GetSemanticAfterName(src.substr(found + Name.size()));
+}
+
 bool Shader::InputLayoutFromReflection(const ComPtr<ID3D12ShaderReflection> &pReflection)
 {
     // Define the vertex input layout.
@@ -87,13 +162,13 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
     if (generation > m_generation)
     {
         // clear
-        m_vs = nullptr;
-        m_ps = nullptr;
+        VS.Compiled = nullptr;
+        PS.Compiled = nullptr;
         m_semantics.clear();
         m_layout.clear();
     }
 
-    if (m_vs && m_ps)
+    if (VS.Compiled && PS.Compiled)
     {
         // already
         return true;
@@ -112,49 +187,60 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
     UINT compileFlags = 0;
 #endif
 
+    //
+    // VS
+    //
     {
         ComPtr<ID3DBlob> error;
-        if (FAILED(D3DCompile(source.data(), source.size(), m_name.c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &m_vs, &error)))
+        if (FAILED(D3DCompile(source.data(), source.size(), m_name.c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &VS.Compiled, &error)))
         {
             LOGW << ToString(error);
             return false;
         }
-    }
-    {
-        ComPtr<ID3DBlob> error;
-        if (FAILED(D3DCompile(source.data(), source.size(), m_name.c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &m_ps, nullptr)))
+
+        ComPtr<ID3D12ShaderReflection> pReflection;
+        if (FAILED(D3DReflect(VS.Compiled->GetBufferPointer(), VS.Compiled->GetBufferSize(), IID_PPV_ARGS(&pReflection))))
         {
-            LOGW << ToString(error);
             return false;
         }
-    }
-
-    ComPtr<ID3D12ShaderReflection> pReflection;
-    if (FAILED(D3DReflect(m_vs->GetBufferPointer(), m_vs->GetBufferSize(), IID_PPV_ARGS(&pReflection))))
-    {
-        return false;
-    }
-    if (!InputLayoutFromReflection(pReflection))
-    {
-        return false;
-    }
-
-    {
-        D3D12_SHADER_DESC desc;
-        pReflection->GetDesc(&desc);
-
-        for (unsigned i = 0; i < desc.ConstantBuffers; ++i)
+        if (!InputLayoutFromReflection(pReflection))
         {
-            auto cb = pReflection->GetConstantBufferByIndex(i);
-            D3D12_SHADER_BUFFER_DESC cbDesc;
-            cb->GetDesc(&cbDesc);
-            for (unsigned j = 0; j < cbDesc.Variables; ++j)
+            return false;
+        }
+        {
+            D3D12_SHADER_DESC desc;
+            pReflection->GetDesc(&desc);
+
+            for (unsigned i = 0; i < desc.ConstantBuffers; ++i)
             {
-                auto cbVariable = cb->GetVariableByIndex(j);
-                D3D12_SHADER_VARIABLE_DESC variableDesc;
-                cbVariable->GetDesc(&variableDesc);
-                auto a = 0;
+                auto cb = pReflection->GetConstantBufferByIndex(i);
+                D3D12_SHADER_BUFFER_DESC cbDesc;
+                cb->GetDesc(&cbDesc);
+                for (unsigned j = 0; j < cbDesc.Variables; ++j)
+                {
+                    auto cbVariable = cb->GetVariableByIndex(j);
+                    D3D12_SHADER_VARIABLE_DESC variableDesc;
+                    cbVariable->GetDesc(&variableDesc);
+                    VS.Constants.push_back(ConstantVariable{
+                        .Name = variableDesc.Name,
+                        .Offset = variableDesc.StartOffset,
+                        .Size = variableDesc.Size,
+                    });
+                    VS.Constants.back().GetSemantic(source);
+                }
             }
+        }
+    }
+
+    //
+    // PS
+    //
+    {
+        ComPtr<ID3DBlob> error;
+        if (FAILED(D3DCompile(source.data(), source.size(), m_name.c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &PS.Compiled, nullptr)))
+        {
+            LOGW << ToString(error);
+            return false;
         }
     }
 
