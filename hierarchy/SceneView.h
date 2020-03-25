@@ -13,6 +13,11 @@ struct SceneView
     std::array<float, 16> View = {};
     std::array<float, 3> CameraPosition = {0, 0, 0};
     float CameraFovYRadians = 1.0f;
+
+    std::array<float, 4> ClearColor = {0, 0, 0, 1};
+    bool ShowGrid = true;
+    bool ShowGizmo = true;
+    bool ShowVR = false;
 };
 using SceneViewPtr = std::shared_ptr<SceneView>;
 

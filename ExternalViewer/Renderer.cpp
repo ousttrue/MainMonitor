@@ -127,8 +127,7 @@ public:
         return texture;
     }
 
-    void View(const hierarchy::SceneViewPtr &sceneView, const hierarchy::DrawList &drawlist,
-              const float clear[4])
+    void View(const hierarchy::SceneViewPtr &sceneView, const hierarchy::DrawList &drawlist)
     {
         auto viewRenderTarget = m_sceneMapper->GetOrCreate(sceneView);
 
@@ -136,7 +135,7 @@ public:
 
         UpdateView(viewRenderTarget, sceneView);
 
-        DrawView(m_commandlist->Get(), m_swapchain->CurrentFrameIndex(), viewRenderTarget, drawlist, clear);
+        DrawView(m_commandlist->Get(), m_swapchain->CurrentFrameIndex(), viewRenderTarget, drawlist, sceneView->ClearColor.data());
     }
 
 private:
@@ -319,8 +318,7 @@ size_t Renderer::ViewTextureID(const std::shared_ptr<hierarchy::SceneView> &view
 }
 
 void Renderer::View(const hierarchy::SceneViewPtr &view,
-                    const hierarchy::DrawList &drawlist,
-                    const float clear[4])
+                    const hierarchy::DrawList &drawlist)
 {
-    m_impl->View(view, drawlist, clear);
+    m_impl->View(view, drawlist);
 }

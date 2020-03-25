@@ -85,14 +85,6 @@ class ApplicationImpl
     gizmesh::GizmoSystem::Buffer m_gizmoBuffer;
     std::shared_ptr<hierarchy::SceneView> m_sceneView;
     size_t m_viewTextureID = 0;
-    gui::ViewValue m_viewValue{
-        .clearColor = {
-            0.3f,
-            0.6f,
-            0.5f,
-            1.0f,
-        },
-    };
 
     bool m_initialized = false;
 
@@ -100,6 +92,13 @@ public:
     ApplicationImpl(int argc, char **argv)
         : m_renderer(256), m_sceneView(new hierarchy::SceneView)
     {
+        m_sceneView->ClearColor = {
+            0.3f,
+            0.6f,
+            0.5f,
+            1.0f,
+        };
+
         m_imGuiAppender.onWrite(std::bind(&gui::Gui::Log, &m_imgui, std::placeholders::_1));
         plog::init(plog::debug, &m_consoleAppender).addAppender(&m_imGuiAppender);
 
@@ -159,7 +158,7 @@ public:
             auto viewTextureID = m_renderer.ViewTextureID(m_sceneView);
             // imgui window for rendertarget. convert screenState for view
             isShowView = m_imgui.View(m_sceneView.get(), state, viewTextureID,
-                                      &viewState, &m_viewValue);
+                                      &viewState);
         }
 
         // renderering
@@ -177,7 +176,7 @@ public:
                 m_sceneView->CameraPosition = m_view.Camera()->state.position;
                 m_sceneView->CameraFovYRadians = m_view.Camera()->state.fovYRadians;
                 updateDrawList();
-                m_renderer.View(m_sceneView, m_drawlist, m_viewValue.clearColor);
+                m_renderer.View(m_sceneView, m_drawlist);
             }
             m_renderer.EndFrame();
         }
@@ -186,7 +185,7 @@ public:
     void updateDrawList()
     {
         m_drawlist.Clear();
-        if (m_viewValue.showGrid)
+        if (m_sceneView->ShowGrid)
         {
             for (auto &node : m_scene.gizmoNodes)
             {
@@ -194,7 +193,7 @@ public:
                 m_drawlist.Traverse(node);
             }
         }
-        if (m_viewValue.showVR)
+        if (m_sceneView->ShowVR)
         {
             for (auto &node : m_scene.vrNodes)
             {
@@ -209,7 +208,7 @@ public:
         }
 
         // gizmo
-        if (m_viewValue.showGizmo)
+        if (m_sceneView->ShowGizmo)
         {
             m_drawlist.Nodes.push_back({.NodeID = m_view.GizmoNodeID(),
                                         .WorldMatrix = {
