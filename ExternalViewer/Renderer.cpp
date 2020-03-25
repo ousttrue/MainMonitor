@@ -160,9 +160,8 @@ private:
         // nodes
         for (auto &drawNode : drawlist.Nodes)
         {
-            m_rootSignature->GetNodeConstantsBuffer(drawNode.NodeID)->b1World = drawNode.WorldMatrix;
+            m_rootSignature->GetDrawConstantsBuffer(drawNode.NodeID)->b1World = drawNode.WorldMatrix;
         }
-        m_rootSignature->UploadNodeConstantsBuffer();
 
         // skins
         for (auto &drawMesh : drawlist.Meshes)
@@ -187,20 +186,22 @@ private:
                 }
             }
         }
+
+        m_rootSignature->UploadDrawConstantsBuffer();
     }
 
     void UpdateView(const std::shared_ptr<d12u::RenderTargetChain> &viewRenderTarget,
                     const hierarchy::SceneViewPtr &sceneView)
     {
         {
-            auto buffer = m_rootSignature->GetSceneConstantsBuffer(0);
+            auto buffer = m_rootSignature->GetViewConstantsBuffer(0);
             buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(sceneView->Projection);
             buffer->b0View = falg::size_cast<DirectX::XMFLOAT4X4>(sceneView->View);
             buffer->b0LightDir = m_light->LightDirection;
             buffer->b0LightColor = m_light->LightColor;
             buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(sceneView->CameraPosition);
             buffer->b0ScreenSizeFovY = {(float)sceneView->Width, (float)sceneView->Height, sceneView->CameraFovYRadians};
-            m_rootSignature->UploadSceneConstantsBuffer();
+            m_rootSignature->UploadViewConstantsBuffer();
         }
 
         if (viewRenderTarget->Resize(sceneView->Width, sceneView->Height))
@@ -232,7 +233,7 @@ private:
 
             for (auto &drawMesh : sceneView->Drawlist.Meshes)
             {
-                m_rootSignature->SetNodeDescriptorTable(commandList, drawMesh.NodeID);
+                m_rootSignature->SetDrawDescriptorTable(commandList, drawMesh.NodeID);
                 DrawMesh(commandList, drawMesh);
             }
 

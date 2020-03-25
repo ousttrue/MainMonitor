@@ -21,33 +21,6 @@ class RootSignature : NonCopyable
     ComPtr<ID3D12RootSignature> m_rootSignature;
     std::unique_ptr<Heap> m_heap;
 
-    // Frame
-    struct FrameConstants
-    {
-        DirectX::XMFLOAT4X4 b0View;
-        DirectX::XMFLOAT4X4 b0Projection;
-        DirectX::XMFLOAT3 b0LightDir;
-        float p0;
-        DirectX::XMFLOAT3 b0LightColor;
-        float p1;
-        DirectX::XMFLOAT3 b0CameraPosition;
-        float p2;
-        DirectX::XMFLOAT3 b0ScreenSizeFovY;
-        // DirectX::XMFLOAT4X4 b0ViewInv;
-    };
-    d12u::ConstantBuffer<FrameConstants> m_sceneConstantsBuffer;
-
-    // node
-    struct NodeConstants
-    {
-        std::array<float, 16> b1World{
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1};
-    };
-    d12u::ConstantBuffer<NodeConstants> m_nodeConstantsBuffer;
-
     std::unordered_map<hierarchy::ShaderWatcherPtr, std::shared_ptr<class Shader>> m_shaderMap;
     std::unordered_map<hierarchy::SceneMaterialPtr, std::shared_ptr<class Material>> m_materialMap;
     std::vector<std::shared_ptr<class Texture>> m_textures;
@@ -63,23 +36,50 @@ public:
     std::shared_ptr<class Material> GetOrCreate(const ComPtr<ID3D12Device> &device, const hierarchy::SceneMaterialPtr &material);
     std::pair<std::shared_ptr<class Texture>, UINT> GetOrCreate(const ComPtr<ID3D12Device> &device, const hierarchy::SceneImagePtr &image, class Uploader *uploader);
 
-    FrameConstants *GetSceneConstantsBuffer(UINT index)
+    // each View
+    struct ViewConstants
     {
-        return m_sceneConstantsBuffer.Get(index);
-    }
-    void UploadSceneConstantsBuffer()
+        DirectX::XMFLOAT4X4 b0View;
+        DirectX::XMFLOAT4X4 b0Projection;
+        DirectX::XMFLOAT3 b0LightDir;
+        float p0;
+        DirectX::XMFLOAT3 b0LightColor;
+        float p1;
+        DirectX::XMFLOAT3 b0CameraPosition;
+        float p2;
+        DirectX::XMFLOAT3 b0ScreenSizeFovY;
+        // DirectX::XMFLOAT4X4 b0ViewInv;
+    };
+    d12u::ConstantBuffer<ViewConstants> m_viewConstantsBuffer;
+    ViewConstants *GetViewConstantsBuffer(UINT index)
     {
-        m_sceneConstantsBuffer.CopyToGpu();
+        return m_viewConstantsBuffer.Get(index);
     }
-    NodeConstants *GetNodeConstantsBuffer(UINT index)
+    void UploadViewConstantsBuffer()
     {
-        return m_nodeConstantsBuffer.Get(index);
+        m_viewConstantsBuffer.CopyToGpu();
     }
-    void UploadNodeConstantsBuffer()
+
+    // each DrawCall
+    struct DrawConstants
     {
-        m_nodeConstantsBuffer.CopyToGpu();
+        std::array<float, 16> b1World{
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1};
+    };
+    d12u::ConstantBuffer<DrawConstants> m_drawConstantsBuffer;
+    DrawConstants *GetDrawConstantsBuffer(UINT index)
+    {
+        return m_drawConstantsBuffer.Get(index);
     }
-    void SetNodeDescriptorTable(const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT nodeIndex);
+    void UploadDrawConstantsBuffer()
+    {
+        m_drawConstantsBuffer.CopyToGpu();
+    }
+    void SetDrawDescriptorTable(const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT nodeIndex);
+
     void SetTextureDescriptorTable(const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT textureIndex);
 };
 
