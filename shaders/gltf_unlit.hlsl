@@ -46,5 +46,6 @@ float4 PSMain(PSInput input) : SV_TARGET
 {
     // float3 P = input.position.xyz;
     float4 vColor = t0.Sample(s0, input.uv);
+    clip(vColor.w - 0.6);
     return vColor;
 }
