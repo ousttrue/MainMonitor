@@ -4,8 +4,9 @@
 #include <d3dcompiler.h>
 #include <string>
 #include <vector>
+#include <memory>
 
-namespace d12u
+namespace hierarchy
 {
 
 class Shader
@@ -95,5 +96,6 @@ public:
     bool Initialize(const ComPtr<ID3D12Device> &device,
                     const std::string &source, int generation);
 };
+using ShaderPtr = std::shared_ptr<Shader>;
 
 } // namespace d12u

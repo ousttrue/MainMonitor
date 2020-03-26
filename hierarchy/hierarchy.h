@@ -11,3 +11,4 @@
 #include "SceneView.h"
 #include "DrawList.h"
 #include "MeshFactory/CreateGrid.h"
+#include "Shader.h"

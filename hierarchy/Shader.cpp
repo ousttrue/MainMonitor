@@ -1,7 +1,7 @@
 #include "Shader.h"
 #include <plog/log.h>
 
-namespace d12u
+namespace hierarchy
 {
 
 static std::string ToString(const Microsoft::WRL::ComPtr<ID3DBlob> &blob)

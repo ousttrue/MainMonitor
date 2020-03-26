@@ -15,6 +15,7 @@ add_library(${TARGET_NAME}
     frame_metrics.cpp
     ToUnicode.cpp
     SceneView.cpp
+    Shader.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

@@ -4,7 +4,6 @@
 #include "Texture.h"
 #include "Uploader.h"
 #include "RootSignature.h"
-#include "Shader.h"
 #include "RenderTarget.h"
 #include <hierarchy.h>
 #include <DirectXMath.h>
@@ -72,7 +71,7 @@ std::shared_ptr<Mesh> SceneMapper::GetOrCreate(const ComPtr<ID3D12Device> &devic
     // vertices
     {
         // first material's shader for input layout
-        auto shader = rootSignature->GetOrCreate(device, sceneMesh->submeshes[0].material->shader);
+        auto shader = sceneMesh->submeshes[0].material->shader->Compiled();
         // auto resource = CreateResourceItem(device, m_uploader, sceneMesh, shader->inputLayout(), shader->inputLayoutCount());
         auto dstStride = 0;
         int inputLayoutCount;
