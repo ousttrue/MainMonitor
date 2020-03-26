@@ -9,18 +9,18 @@ namespace d12u
 class ConstantBufferBase : NonCopyable
 {
     //
-    // cpu
+    // CPU
     //
 protected:
     std::vector<uint8_t> m_bytes;
     UINT8 *m_pCbvDataBegin = nullptr;
 
 public:
-    virtual UINT Size() const = 0;
-    UINT Count() const { return (UINT)(m_bytes.size() / Size()); }
+    virtual UINT ItemSize() const = 0;
+    UINT Count() const { return (UINT)(m_bytes.size() / ItemSize()); }
     uint8_t *Get(int index)
     {
-        return &m_bytes[Size() * index];
+        return &m_bytes[ItemSize() * index];
     }
 
     //
@@ -41,10 +41,10 @@ template <typename T>
 class ConstantBuffer : public ConstantBufferBase
 {
     // // CB size is required to be 256-byte aligned.
-    static const UINT SIZE = ((UINT)sizeof(T) + 255) & ~255;
+    static const UINT ITEM_SIZE = ((UINT)sizeof(T) + 255) & ~255;
 
 public:
-    UINT Size() const override { return SIZE; }
+    UINT ItemSize() const override { return ITEM_SIZE; }
     T *GetTyped(int index)
     {
         return (T *)ConstantBufferBase::Get(index);
@@ -52,7 +52,7 @@ public:
 
     void Initialize(const Microsoft::WRL::ComPtr<ID3D12Device> &device, int count)
     {
-        m_bytes.resize(SIZE * count);
+        m_bytes.resize(ITEM_SIZE * count);
 
         D3D12_HEAP_PROPERTIES prop{
             .Type = D3D12_HEAP_TYPE_UPLOAD,

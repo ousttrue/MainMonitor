@@ -32,7 +32,7 @@ void Heap::Initialize(const ComPtr<ID3D12Device> &device,
         auto resource = resources[i];
         for (UINT j = 0; j < resource->Count(); ++j, ++index)
         {
-            auto size = resource->Size();
+            auto size = resource->ItemSize();
             auto offset = 0;
             if (resource->Count() > 1)
             {
