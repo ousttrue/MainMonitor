@@ -16,12 +16,8 @@ protected:
     UINT8 *m_pCbvDataBegin = nullptr;
 
 public:
-    virtual UINT ItemSize() const = 0;
-    UINT Count() const { return (UINT)(m_bytes.size() / ItemSize()); }
-    uint8_t *Get(int index)
-    {
-        return &m_bytes[ItemSize() * index];
-    }
+    virtual UINT Count() const = 0;
+    virtual std::pair<UINT, UINT> Range(UINT index) const = 0;
 
     //
     // GPU
@@ -37,17 +33,32 @@ public:
     }
 };
 
+// class SemanticsConstantBuffer : public ConstantBufferBase
+// {
+//     UINT m_itemSize = 0;
+
+// public:
+// };
+
 template <typename T>
 class ConstantBuffer : public ConstantBufferBase
 {
-    // // CB size is required to be 256-byte aligned.
+public:
+    // CB size is required to be 256-byte aligned.
     static const UINT ITEM_SIZE = ((UINT)sizeof(T) + 255) & ~255;
 
-public:
-    UINT ItemSize() const override { return ITEM_SIZE; }
+    UINT Count() const override
+    {
+        return (UINT)(m_bytes.size() / ITEM_SIZE);
+    }
+    std::pair<UINT, UINT> Range(UINT index) const override
+    {
+        return std::make_pair(ITEM_SIZE * index, ITEM_SIZE);
+    }
+
     T *GetTyped(int index)
     {
-        return (T *)ConstantBufferBase::Get(index);
+        return (T *)&m_bytes[ITEM_SIZE * index];
     }
 
     void Initialize(const Microsoft::WRL::ComPtr<ID3D12Device> &device, int count)

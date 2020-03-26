@@ -32,17 +32,7 @@ void Heap::Initialize(const ComPtr<ID3D12Device> &device,
         auto resource = resources[i];
         for (UINT j = 0; j < resource->Count(); ++j, ++index)
         {
-            auto size = resource->ItemSize();
-            auto offset = 0;
-            if (resource->Count() > 1)
-            {
-                // each model cbv
-                offset = size * j;
-            }
-            else
-            {
-                // shared scene cbv
-            }
+            auto [offset, size] = resource->Range(j);
             D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {
                 .BufferLocation = resource->Resource()->GetGPUVirtualAddress() + offset,
                 .SizeInBytes = size,
