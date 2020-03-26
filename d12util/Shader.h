@@ -1,14 +1,20 @@
 #pragma once
-#include "Helper.h"
+#include <wrl/client.h>
+#include <d3d12.h>
 #include <d3dcompiler.h>
+#include <string>
+#include <vector>
 
 namespace d12u
 {
 
-class Shader : NonCopyable
+class Shader
 {
     template <typename T>
     using ComPtr = Microsoft::WRL::ComPtr<T>;
+
+    Shader(const Shader &) = delete;
+    Shader &operator=(const Shader &) = delete;
 
 private:
     std::string m_name;

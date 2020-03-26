@@ -95,11 +95,4 @@ protected:
     NonCopyable() = default;
 };
 
-static std::string ToString(const ComPtr<ID3DBlob> &blob)
-{
-    std::vector<uint8_t> buffer(blob->GetBufferSize());
-    memcpy(buffer.data(), blob->GetBufferPointer(), buffer.size());
-    return std::string(buffer.begin(), buffer.end());
-}
-
 } // namespace d12u

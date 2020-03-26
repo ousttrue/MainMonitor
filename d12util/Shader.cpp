@@ -4,6 +4,13 @@
 namespace d12u
 {
 
+static std::string ToString(const Microsoft::WRL::ComPtr<ID3DBlob> &blob)
+{
+    std::vector<uint8_t> buffer(blob->GetBufferSize());
+    memcpy(buffer.data(), blob->GetBufferPointer(), buffer.size());
+    return std::string(buffer.begin(), buffer.end());
+}
+
 static bool IsMatch(const std::string &src, const std::string &name, Shader::ConstantSemantics semantic)
 {
     auto pos = src.find(name);
