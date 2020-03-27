@@ -55,29 +55,10 @@ public:
     {
         return m_viewConstantsBuffer.GetTyped(index);
     }
-    void UploadViewConstantsBuffer()
-    {
-        m_viewConstantsBuffer.CopyToGpu();
-    }
 
     // each DrawCall
-    // struct DrawConstants
-    // {
-    //     std::array<float, 16> b1World{
-    //         1, 0, 0, 0,
-    //         0, 1, 0, 0,
-    //         0, 0, 1, 0,
-    //         0, 0, 0, 1};
-    // };
     d12u::SemanticsConstantBuffer m_drawConstantsBuffer{1024};
-    // DrawConstants *GetDrawConstantsBuffer(UINT index)
-    // {
-    //     return m_drawConstantsBuffer.GetTyped(index);
-    // }
-    void UploadDrawConstantsBuffer()
-    {
-        m_drawConstantsBuffer.CopyToGpu();
-    }
+
     void SetDrawDescriptorTable(const ComPtr<ID3D12Device> &device,
                                 const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT nodeIndex);
     void SetTextureDescriptorTable(const ComPtr<ID3D12Device> &device,

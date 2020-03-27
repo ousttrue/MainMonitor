@@ -185,11 +185,7 @@ private:
         m_rootSignature->m_drawConstantsBuffer.Assign(drawlist.CB.data(),
                                                       (const std::pair<UINT, UINT> *)drawlist.CBRanges.data(),
                                                       (uint32_t)drawlist.CBRanges.size());
-        // for (size_t i = 0; i < drawlist.Items.size(); ++i)
-        // {
-        //     m_rootSignature->GetDrawConstantsBuffer((UINT)i)->b1World = drawlist.Items[i].WorldMatrix;
-        // }
-        m_rootSignature->UploadDrawConstantsBuffer();
+        m_rootSignature->m_drawConstantsBuffer.CopyToGpu();
     }
 
     void UpdateView(const std::shared_ptr<d12u::RenderTargetChain> &viewRenderTarget,
@@ -203,7 +199,7 @@ private:
             buffer->b0LightColor = m_light->LightColor;
             buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(sceneView->CameraPosition);
             buffer->b0ScreenSizeFovY = {(float)sceneView->Width, (float)sceneView->Height, sceneView->CameraFovYRadians};
-            m_rootSignature->UploadViewConstantsBuffer();
+            m_rootSignature->m_viewConstantsBuffer.CopyToGpu();
         }
 
         if (viewRenderTarget->Resize(sceneView->Width, sceneView->Height))
