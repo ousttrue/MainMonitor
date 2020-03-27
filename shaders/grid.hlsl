@@ -19,8 +19,8 @@ cbuffer SceneConstantBuffer : register(b0)
     float3 b0LightDirection : LIGHT_DIRECTION;
     float3 b0LightColor : LIGHT_COLOR;
     float3 b0CameraPosition : CAMERA_POSITION;
+    float2 b0ScreenSize : RENDERTARGET_SIZE;
     float fovY : CAMERA_FOVY;
-    float3 b0ScreenSize : RENDERTARGET_SIZE;
 };
 
 cbuffer NodeConstantBuffer : register(b1)

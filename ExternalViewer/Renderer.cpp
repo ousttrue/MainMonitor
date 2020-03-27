@@ -192,13 +192,15 @@ private:
                     const hierarchy::SceneViewPtr &sceneView)
     {
         {
+            // auto a = sizeof(d12u::RootSignature::ViewConstants);
             auto buffer = m_rootSignature->GetViewConstantsBuffer(0);
-            buffer->b0Projection = falg::size_cast<DirectX::XMFLOAT4X4>(sceneView->Projection);
-            buffer->b0View = falg::size_cast<DirectX::XMFLOAT4X4>(sceneView->View);
+            buffer->b0Projection = sceneView->Projection;
+            buffer->b0View = sceneView->View;
             buffer->b0LightDir = m_light->LightDirection;
             buffer->b0LightColor = m_light->LightColor;
-            buffer->b0CameraPosition = falg::size_cast<DirectX::XMFLOAT3>(sceneView->CameraPosition);
-            buffer->b0ScreenSizeFovY = {(float)sceneView->Width, (float)sceneView->Height, sceneView->CameraFovYRadians};
+            buffer->b0CameraPosition = sceneView->CameraPosition;
+            buffer->fovY = sceneView->CameraFovYRadians;
+            buffer->b0ScreenSize = {(float)sceneView->Width, (float)sceneView->Height};
             m_rootSignature->m_viewConstantsBuffer.CopyToGpu();
         }
 
