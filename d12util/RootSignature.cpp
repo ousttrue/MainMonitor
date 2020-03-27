@@ -261,13 +261,27 @@ void RootSignature::SetDrawDescriptorTable(const ComPtr<ID3D12Device> &device,
     // m_heap->CreateView();
     // void Heap::CreateView(const ComPtr<ID3D12Device> &device, UINT cbIndex)
     // {
+
+    std::pair<uint32_t, uint32_t> view = {};
+    if (nodeIndex < m_viewList.size())
+    {
+        view = m_viewList[nodeIndex];
+    }
+    else
+    {
+        m_viewList.resize(nodeIndex + 1);
+    }
+
     auto [offset, size] = m_drawConstantsBuffer.Range(nodeIndex);
-    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {
-        .BufferLocation = m_drawConstantsBuffer.Resource()->GetGPUVirtualAddress() + offset,
-        .SizeInBytes = size,
-    };
-    device->CreateConstantBufferView(&cbvDesc, m_heap->CpuHandle(1 + nodeIndex));
-    // }
+    if (view.first != offset || view.second != size)
+    {
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {
+            .BufferLocation = m_drawConstantsBuffer.Resource()->GetGPUVirtualAddress() + offset,
+            .SizeInBytes = size,
+        };
+        device->CreateConstantBufferView(&cbvDesc, m_heap->CpuHandle(1 + nodeIndex));
+        m_viewList[nodeIndex] = {offset, size};
+    }
 
     commandList->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(1 + nodeIndex));
 }

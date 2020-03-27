@@ -20,6 +20,7 @@ class RootSignature : NonCopyable
 {
     ComPtr<ID3D12RootSignature> m_rootSignature;
     std::unique_ptr<Heap> m_heap;
+    std::vector<std::pair<uint32_t, uint32_t>> m_viewList;
 
     // std::unordered_map<hierarchy::ShaderWatcherPtr, std::shared_ptr<class Shader>> m_shaderMap;
     std::unordered_map<hierarchy::SceneMaterialPtr, std::shared_ptr<class Material>> m_materialMap;

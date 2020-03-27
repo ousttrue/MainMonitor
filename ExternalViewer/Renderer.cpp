@@ -234,15 +234,14 @@ private:
             auto &drawlist = sceneView->Drawlist.Items;
             for (size_t i = 0; i < drawlist.size(); ++i)
             {
-                m_rootSignature->SetDrawDescriptorTable(m_device, commandList, (UINT)i);
-                DrawMesh(commandList, drawlist[i]);
+                DrawMesh(commandList, (UINT)i, drawlist[i]);
             }
 
             viewRenderTarget->End(frameIndex, commandList);
         }
     }
 
-    void DrawMesh(const ComPtr<ID3D12GraphicsCommandList> &commandList, const hierarchy::DrawList::DrawItem &info)
+    void DrawMesh(const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT i, const hierarchy::DrawList::DrawItem &info)
     {
         auto &mesh = info.Mesh;
         if (!mesh)
@@ -262,6 +261,8 @@ private:
 
         // for (auto &submesh : mesh->submeshes)
         {
+            m_rootSignature->SetDrawDescriptorTable(m_device, commandList, i);
+
             auto &submesh = mesh->submeshes[info.SubmeshIndex];
             auto material = m_rootSignature->GetOrCreate(m_device, submesh.material);
 
