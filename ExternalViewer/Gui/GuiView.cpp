@@ -57,6 +57,8 @@ bool View(hierarchy::SceneView *view, const screenstate::ScreenState &state, siz
                                ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     if (isOpen)
     {
+        ImGui::SetWindowSize(ImVec2(512, 512), ImGuiCond_FirstUseEver);
+
         auto size = ImGui::GetContentRegionAvail();
         auto pos = ImGui::GetWindowPos();
         auto frameHeight = ImGui::GetFrameHeight();

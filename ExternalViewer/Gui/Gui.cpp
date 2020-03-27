@@ -572,6 +572,7 @@ private:
         {
             // scene tree
             ImGui::Begin("scene graph");
+            ImGui::SetWindowSize(ImVec2(256, 512), ImGuiCond_FirstUseEver);
 
             for (auto &node : scene->sceneNodes)
             {

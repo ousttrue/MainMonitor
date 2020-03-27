@@ -157,14 +157,8 @@ private:
 
     void UpdateNodes(const hierarchy::DrawList &drawlist)
     {
-        // nodes
-        for (auto &drawNode : drawlist.Nodes)
-        {
-            m_rootSignature->GetDrawConstantsBuffer(drawNode.NodeID)->b1World = drawNode.WorldMatrix;
-        }
-
         // skins
-        for (auto &drawMesh : drawlist.Meshes)
+        for (auto &drawMesh : drawlist.Items)
         {
             auto mesh = drawMesh.Mesh;
             auto drawable = m_sceneMapper->GetOrCreate(m_device, drawMesh.Mesh, nullptr);
@@ -187,6 +181,11 @@ private:
             }
         }
 
+        // CB
+        for (size_t i = 0; i < drawlist.Items.size(); ++i)
+        {
+            m_rootSignature->GetDrawConstantsBuffer((UINT)i)->b1World = drawlist.Items[i].WorldMatrix;
+        }
         m_rootSignature->UploadDrawConstantsBuffer();
     }
 
@@ -231,17 +230,18 @@ private:
             // global settings
             m_rootSignature->Begin(commandList);
 
-            for (auto &drawMesh : sceneView->Drawlist.Meshes)
+            auto &drawlist = sceneView->Drawlist.Items;
+            for (size_t i = 0; i < drawlist.size(); ++i)
             {
-                m_rootSignature->SetDrawDescriptorTable(commandList, drawMesh.NodeID);
-                DrawMesh(commandList, drawMesh);
+                m_rootSignature->SetDrawDescriptorTable(commandList, (UINT)i);
+                DrawMesh(commandList, drawlist[i]);
             }
 
             viewRenderTarget->End(frameIndex, commandList);
         }
     }
 
-    void DrawMesh(const ComPtr<ID3D12GraphicsCommandList> &commandList, const hierarchy::DrawList::MeshInfo &info)
+    void DrawMesh(const ComPtr<ID3D12GraphicsCommandList> &commandList, const hierarchy::DrawList::DrawItem &info)
     {
         auto &mesh = info.Mesh;
         if (!mesh)

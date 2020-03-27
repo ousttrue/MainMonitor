@@ -11,35 +11,29 @@ class SceneNode;
 
 struct DrawList
 {
-    struct NodeInfo
-    {
-        int NodeID;
-        std::array<float, 16> WorldMatrix;
-    };
-    std::vector<NodeInfo> Nodes;
-
     struct Buffer
     {
         uint8_t *Ptr;
         uint32_t Bytes;
         uint32_t Stride;
     };
-    struct MeshInfo
+    struct DrawItem
     {
-        int NodeID;
+        // node
+        std::array<float, 16> WorldMatrix;
+        // mesh
         std::shared_ptr<SceneMesh> Mesh;
-        int SubmeshIndex;
         Buffer Vertices{};
         Buffer Indices{};
+        int SubmeshIndex;
     };
-    std::vector<MeshInfo> Meshes;
+    std::vector<DrawItem> Items;
 
     void Clear()
     {
-        Nodes.clear();
-        Meshes.clear();
+        Items.clear();
     }
-    void Traverse(const std::shared_ptr<SceneNode> &node);
+    // void Traverse(const std::shared_ptr<SceneNode> &node);
 };
 
 } // namespace hierarchy

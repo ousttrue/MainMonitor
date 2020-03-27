@@ -8,21 +8,6 @@ namespace hierarchy
 {
 using FilterFunc = std::function<bool(const SceneMaterialPtr &)>;
 
-void TraverseNode(DrawList *drawlist, const std::shared_ptr<SceneNode> &node)
-{
-    drawlist->Nodes.push_back({
-        .NodeID = node->ID(),
-        .WorldMatrix = node->World().RowMatrix(),
-    });
-
-    int count;
-    auto child = node->GetChildren(&count);
-    for (int i = 0; i < count; ++i, ++child)
-    {
-        TraverseNode(drawlist, *child);
-    }
-}
-
 void TraverseMesh(DrawList *drawlist, const std::shared_ptr<SceneNode> &node, const FilterFunc &filter)
 {
     auto mesh = node->Mesh();
@@ -34,8 +19,8 @@ void TraverseMesh(DrawList *drawlist, const std::shared_ptr<SceneNode> &node, co
         {
             if (filter(submeshes[i].material))
             {
-                drawlist->Meshes.push_back({
-                    .NodeID = node->ID(),
+                drawlist->Items.push_back({
+                    .WorldMatrix = node->World().RowMatrix(),
                     .Mesh = mesh,
                     .SubmeshIndex = i,
                 });
@@ -76,22 +61,6 @@ static void UpdateDrawListIf(SceneView *view, const Scene *scene, const FilterFu
 void SceneView::UpdateDrawList(const Scene *scene)
 {
     Drawlist.Clear();
-
-    //
-    // node
-    //
-    for (auto &node : scene->gizmoNodes)
-    {
-        TraverseNode(&Drawlist, node);
-    }
-    for (auto &node : scene->vrNodes)
-    {
-        TraverseNode(&Drawlist, node);
-    }
-    for (auto &node : scene->sceneNodes)
-    {
-        TraverseNode(&Drawlist, node);
-    }
 
     //
     // mesh

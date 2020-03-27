@@ -123,7 +123,7 @@ public:
             }
         }
 
-return;
+        return;
         if (m_vr.Connect())
         {
             LOGI << "vr.Connect";
@@ -190,16 +190,14 @@ return;
         // gizmo
         if (m_sceneView->ShowGizmo)
         {
-            m_sceneView->Drawlist.Nodes.push_back({.NodeID = m_view.GizmoNodeID(),
-                                                   .WorldMatrix = {
-                                                       1, 0, 0, 0, //
-                                                       0, 1, 0, 0, //
-                                                       0, 0, 1, 0, //
-                                                       0, 0, 0, 1, //
-                                                   }});
             m_gizmoBuffer = m_view.GizmoBuffer();
-            m_sceneView->Drawlist.Meshes.push_back({
-                .NodeID = m_view.GizmoNodeID(),
+            m_sceneView->Drawlist.Items.push_back({
+                .WorldMatrix = {
+                    1, 0, 0, 0, //
+                    0, 1, 0, 0, //
+                    0, 0, 1, 0, //
+                    0, 0, 0, 1, //
+                },
                 .Mesh = m_view.GizmoMesh(),
                 .Vertices = {
                     .Ptr = m_gizmoBuffer.pVertices,
@@ -211,6 +209,7 @@ return;
                     .Bytes = m_gizmoBuffer.indicesBytes,
                     .Stride = m_gizmoBuffer.indexStride,
                 },
+                .SubmeshIndex = 0,
             });
         }
     }
