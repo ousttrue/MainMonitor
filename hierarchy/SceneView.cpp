@@ -2,6 +2,8 @@
 #include "Scene.h"
 #include "SceneMeshSkin.h"
 #include "VertexBuffer.h"
+#include "SceneMaterial.h"
+#include "Shader.h"
 #include <functional>
 
 namespace hierarchy
@@ -17,13 +19,23 @@ void TraverseMesh(DrawList *drawlist, const std::shared_ptr<SceneNode> &node, co
         auto &submeshes = mesh->submeshes;
         for (int i = 0; i < (int)submeshes.size(); ++i)
         {
-            if (filter(submeshes[i].material))
+            auto &material = submeshes[i].material;
+            if (filter(material))
             {
-                drawlist->Items.push_back({
-                    .WorldMatrix = node->World().RowMatrix(),
-                    .Mesh = mesh,
-                    .SubmeshIndex = i,
-                });
+                auto shader = material->shader->Compiled();
+                if (shader)
+                {
+                    auto m = node->World().RowMatrix();
+                    CBValue values[] = {
+                        {.semantic = ConstantSemantics::NODE_WORLD,
+                         .p = &m,
+                         .size = sizeof(m)}};
+                    drawlist->PushCB(shader->VS.DrawCB(), values, _countof(values));
+                    drawlist->Items.push_back({
+                        .Mesh = mesh,
+                        .SubmeshIndex = i,
+                    });
+                }
             }
         }
     }

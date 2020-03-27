@@ -16,6 +16,7 @@ add_library(${TARGET_NAME}
     ToUnicode.cpp
     SceneView.cpp
     Shader.cpp
+    ShaderConstantVariable.cpp
     )
 set_property(TARGET ${TARGET_NAME} 
     PROPERTY CXX_STANDARD 20

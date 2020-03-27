@@ -126,12 +126,19 @@ bool RootSignature::Initialize(const ComPtr<ID3D12Device> &device)
     // buffers
     //
     m_viewConstantsBuffer.Initialize(device, 1);
+
     m_drawConstantsBuffer.Initialize(device, DRAW_SLOTS);
-    ConstantBufferBase *items[] = {
-        &m_viewConstantsBuffer,
-        &m_drawConstantsBuffer,
-    };
-    m_heap->Initialize(device, _countof(items), items, TEXTURE_SLOTS);
+    auto count = 1 + DRAW_SLOTS + TEXTURE_SLOTS;
+    m_heap->Initialize(device, count);
+
+    {
+        auto [offset, size] = m_viewConstantsBuffer.Range(0);
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {
+            .BufferLocation = m_viewConstantsBuffer.Resource()->GetGPUVirtualAddress() + offset,
+            .SizeInBytes = size,
+        };
+        device->CreateConstantBufferView(&cbvDesc, m_heap->CpuHandle(0));
+    }
 
     return true;
 }
@@ -157,7 +164,7 @@ void RootSignature::Update(const ComPtr<ID3D12Device> &device)
     }
 }
 
-void RootSignature::Begin(const ComPtr<ID3D12GraphicsCommandList> &commandList)
+void RootSignature::Begin(const ComPtr<ID3D12Device> &device, const ComPtr<ID3D12GraphicsCommandList> &commandList)
 {
     commandList->SetGraphicsRootSignature(m_rootSignature.Get());
     ID3D12DescriptorHeap *ppHeaps[] = {m_heap->Get()};
@@ -248,14 +255,27 @@ std::pair<std::shared_ptr<class Texture>, UINT> RootSignature::GetOrCreate(const
     return std::make_pair(gpuTexture, index);
 }
 
-void RootSignature::SetDrawDescriptorTable(const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT nodeIndex)
+void RootSignature::SetDrawDescriptorTable(const ComPtr<ID3D12Device> &device,
+                                           const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT nodeIndex)
 {
-    commandList->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(nodeIndex + 1));
+    // m_heap->CreateView();
+    // void Heap::CreateView(const ComPtr<ID3D12Device> &device, UINT cbIndex)
+    // {
+    auto [offset, size] = m_drawConstantsBuffer.Range(nodeIndex);
+    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {
+        .BufferLocation = m_drawConstantsBuffer.Resource()->GetGPUVirtualAddress() + offset,
+        .SizeInBytes = size,
+    };
+    device->CreateConstantBufferView(&cbvDesc, m_heap->CpuHandle(1 + nodeIndex));
+    // }
+
+    commandList->SetGraphicsRootDescriptorTable(1, m_heap->GpuHandle(1 + nodeIndex));
 }
 
-void RootSignature::SetTextureDescriptorTable(const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT textureIndex)
+void RootSignature::SetTextureDescriptorTable(const ComPtr<ID3D12Device> &device,
+                                              const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT textureIndex)
 {
-    commandList->SetGraphicsRootDescriptorTable(2, m_heap->GpuHandle(textureIndex + 1 + DRAW_SLOTS));
+    commandList->SetGraphicsRootDescriptorTable(2, m_heap->GpuHandle(1 + DRAW_SLOTS + textureIndex));
 }
 
 } // namespace d12u

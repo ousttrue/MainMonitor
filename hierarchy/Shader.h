@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include "ShaderConstantVariable.h"
 
 namespace hierarchy
 {
@@ -27,43 +28,25 @@ private:
     bool InputLayoutFromReflection(const ComPtr<ID3D12ShaderReflection> &reflection);
 
 public:
-    enum class ConstantSemantics
-    {
-        UNKNOWN,
-
-        RENDERTARGET_SIZE,
-        CAMERA_VIEW,
-        CAMERA_PROJECTION,
-        CAMERA_POSITION,
-        CAMERA_FOVY,
-        LIGHT_DIRECTION,
-        LIGHT_COLOR,
-        NODE_WORLD,
-    };
-
-    struct ConstantVariable
-    {
-        std::string Name;
-        ConstantSemantics Semantic;
-        UINT Offset;
-        UINT Size;
-
-        void GetSemantic(const std::string &src);
-    };
-
-    struct ConstantBuffer
-    {
-        std::vector<ConstantVariable> Variables;
-
-        void GetVariables(ID3D12ShaderReflectionConstantBuffer *cb,
-                          const std::string &source);
-    };
-
     struct ShaderWithConstants
     {
         ComPtr<ID3DBlob> Compiled;
 
+    private:
         std::vector<ConstantBuffer> Buffers;
+
+    public:
+        const ConstantBuffer *DrawCB() const
+        {
+            for (auto &b : Buffers)
+            {
+                if (b.reg == 1)
+                {
+                    return &b;
+                }
+            }
+            return nullptr;
+        }
 
         D3D12_SHADER_BYTECODE ByteCode() const
         {
@@ -98,4 +81,4 @@ public:
 };
 using ShaderPtr = std::shared_ptr<Shader>;
 
-} // namespace d12u
+} // namespace hierarchy

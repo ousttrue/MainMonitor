@@ -172,20 +172,23 @@ private:
                 }
                 if (drawMesh.Vertices.Ptr)
                 {
-                    drawable->VertexBuffer()->MapCopyUnmap(drawMesh.Vertices.Ptr, drawMesh.Vertices.Bytes, drawMesh.Vertices.Stride);
+                    drawable->VertexBuffer()->MapCopyUnmap(drawMesh.Vertices.Ptr, drawMesh.Vertices.Size, drawMesh.Vertices.Stride);
                 }
                 if (drawMesh.Indices.Ptr)
                 {
-                    drawable->IndexBuffer()->MapCopyUnmap(drawMesh.Indices.Ptr, drawMesh.Indices.Bytes, drawMesh.Indices.Stride);
+                    drawable->IndexBuffer()->MapCopyUnmap(drawMesh.Indices.Ptr, drawMesh.Indices.Size, drawMesh.Indices.Stride);
                 }
             }
         }
 
         // CB
-        for (size_t i = 0; i < drawlist.Items.size(); ++i)
-        {
-            m_rootSignature->GetDrawConstantsBuffer((UINT)i)->b1World = drawlist.Items[i].WorldMatrix;
-        }
+        m_rootSignature->m_drawConstantsBuffer.Assign(drawlist.CB.data(),
+                                                      (const std::pair<UINT, UINT> *)drawlist.CBRanges.data(),
+                                                      (uint32_t)drawlist.CBRanges.size());
+        // for (size_t i = 0; i < drawlist.Items.size(); ++i)
+        // {
+        //     m_rootSignature->GetDrawConstantsBuffer((UINT)i)->b1World = drawlist.Items[i].WorldMatrix;
+        // }
         m_rootSignature->UploadDrawConstantsBuffer();
     }
 
@@ -228,12 +231,12 @@ private:
             viewRenderTarget->Begin(frameIndex, commandList, sceneView->ClearColor.data());
 
             // global settings
-            m_rootSignature->Begin(commandList);
+            m_rootSignature->Begin(m_device, commandList);
 
             auto &drawlist = sceneView->Drawlist.Items;
             for (size_t i = 0; i < drawlist.size(); ++i)
             {
-                m_rootSignature->SetDrawDescriptorTable(commandList, (UINT)i);
+                m_rootSignature->SetDrawDescriptorTable(m_device, commandList, (UINT)i);
                 DrawMesh(commandList, drawlist[i]);
             }
 
@@ -273,7 +276,7 @@ private:
                 {
                     if (texture->IsDrawable(m_commandlist.get(), 0))
                     {
-                        m_rootSignature->SetTextureDescriptorTable(commandList, textureSlot);
+                        m_rootSignature->SetTextureDescriptorTable(m_device, commandList, textureSlot);
                     }
                 }
             }

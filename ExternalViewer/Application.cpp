@@ -9,6 +9,7 @@
 #include "Renderer.h"
 #include <hierarchy.h>
 #include <functional>
+#include "Shader.h"
 
 #include <plog/Log.h>
 #include <plog/Appenders/ColorConsoleAppender.h>
@@ -190,27 +191,43 @@ public:
         // gizmo
         if (m_sceneView->ShowGizmo)
         {
-            m_gizmoBuffer = m_view.GizmoBuffer();
-            m_sceneView->Drawlist.Items.push_back({
-                .WorldMatrix = {
-                    1, 0, 0, 0, //
-                    0, 1, 0, 0, //
-                    0, 0, 1, 0, //
-                    0, 0, 0, 1, //
-                },
-                .Mesh = m_view.GizmoMesh(),
-                .Vertices = {
-                    .Ptr = m_gizmoBuffer.pVertices,
-                    .Bytes = m_gizmoBuffer.verticesBytes,
-                    .Stride = m_gizmoBuffer.vertexStride,
-                },
-                .Indices = {
-                    .Ptr = m_gizmoBuffer.pIndices,
-                    .Bytes = m_gizmoBuffer.indicesBytes,
-                    .Stride = m_gizmoBuffer.indexStride,
-                },
-                .SubmeshIndex = 0,
-            });
+            auto mesh = m_view.GizmoMesh();
+            if (mesh)
+            {
+                auto shader = mesh->submeshes[0].material->shader->Compiled();
+                if (shader)
+                {
+                    m_gizmoBuffer = m_view.GizmoBuffer();
+                    std::array<float, 16> matrix{
+                        1, 0, 0, 0, //
+                        0, 1, 0, 0, //
+                        0, 0, 1, 0, //
+                        0, 0, 0, 1, //
+                    };
+                    hierarchy::CBValue values[] =
+                        {
+                            {
+                                .semantic = hierarchy::ConstantSemantics::NODE_WORLD,
+                                .p = &matrix,
+                                .size = sizeof(matrix),
+                            }};
+                    m_sceneView->Drawlist.PushCB(shader->VS.DrawCB(), values, _countof(values));
+                    m_sceneView->Drawlist.Items.push_back({
+                        .Mesh = m_view.GizmoMesh(),
+                        .Vertices = {
+                            .Ptr = m_gizmoBuffer.pVertices,
+                            .Size = m_gizmoBuffer.verticesBytes,
+                            .Stride = m_gizmoBuffer.vertexStride,
+                        },
+                        .Indices = {
+                            .Ptr = m_gizmoBuffer.pIndices,
+                            .Size = m_gizmoBuffer.indicesBytes,
+                            .Stride = m_gizmoBuffer.indexStride,
+                        },
+                        .SubmeshIndex = 0,
+                    });
+                }
+            }
         }
     }
 };

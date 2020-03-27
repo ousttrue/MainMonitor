@@ -31,7 +31,7 @@ public:
     bool Initialize(const ComPtr<ID3D12Device> &device);
     // polling shader update
     void Update(const ComPtr<ID3D12Device> &device);
-    void Begin(const ComPtr<ID3D12GraphicsCommandList> &commandList);
+    void Begin(const ComPtr<ID3D12Device> &device, const ComPtr<ID3D12GraphicsCommandList> &commandList);
     // std::shared_ptr<class Shader> GetOrCreate(const ComPtr<ID3D12Device> &device, const hierarchy::ShaderWatcherPtr &shader);
     std::shared_ptr<class Material> GetOrCreate(const ComPtr<ID3D12Device> &device, const hierarchy::SceneMaterialPtr &material);
     std::pair<std::shared_ptr<class Texture>, UINT> GetOrCreate(const ComPtr<ID3D12Device> &device, const hierarchy::SceneImagePtr &image, class Uploader *uploader);
@@ -61,26 +61,27 @@ public:
     }
 
     // each DrawCall
-    struct DrawConstants
-    {
-        std::array<float, 16> b1World{
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1};
-    };
-    d12u::ConstantBuffer<DrawConstants> m_drawConstantsBuffer;
-    DrawConstants *GetDrawConstantsBuffer(UINT index)
-    {
-        return m_drawConstantsBuffer.GetTyped(index);
-    }
+    // struct DrawConstants
+    // {
+    //     std::array<float, 16> b1World{
+    //         1, 0, 0, 0,
+    //         0, 1, 0, 0,
+    //         0, 0, 1, 0,
+    //         0, 0, 0, 1};
+    // };
+    d12u::SemanticsConstantBuffer m_drawConstantsBuffer{1024};
+    // DrawConstants *GetDrawConstantsBuffer(UINT index)
+    // {
+    //     return m_drawConstantsBuffer.GetTyped(index);
+    // }
     void UploadDrawConstantsBuffer()
     {
         m_drawConstantsBuffer.CopyToGpu();
     }
-    void SetDrawDescriptorTable(const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT nodeIndex);
-
-    void SetTextureDescriptorTable(const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT textureIndex);
+    void SetDrawDescriptorTable(const ComPtr<ID3D12Device> &device,
+                                const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT nodeIndex);
+    void SetTextureDescriptorTable(const ComPtr<ID3D12Device> &device,
+                                   const ComPtr<ID3D12GraphicsCommandList> &commandList, UINT textureIndex);
 };
 
 } // namespace d12u

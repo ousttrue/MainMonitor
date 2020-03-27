@@ -2,6 +2,7 @@
 #include "Helper.h"
 #include <stdint.h>
 #include <vector>
+#include <DrawList.h>
 
 namespace d12u
 {
@@ -33,12 +34,26 @@ public:
     }
 };
 
-// class SemanticsConstantBuffer : public ConstantBufferBase
-// {
-//     UINT m_itemSize = 0;
+///
+/// 可変長のバッファ
+///
+class SemanticsConstantBuffer : public ConstantBufferBase
+{
+    UINT m_allocSizePerItem;
+    std::vector<std::pair<UINT, UINT>> m_ranges;
 
-// public:
-// };
+public:
+    SemanticsConstantBuffer(UINT allocSizePerItem)
+        : m_allocSizePerItem(allocSizePerItem)
+    {
+    }
+
+    UINT Count() const override { return (UINT)m_ranges.size(); }
+    std::pair<UINT, UINT> Range(UINT index) const override { return m_ranges[index]; }
+
+    void Initialize(const Microsoft::WRL::ComPtr<ID3D12Device> &device, int count);
+    void Assign(const std::uint8_t *p, const std::pair<UINT, UINT> *range, uint32_t count);
+};
 
 template <typename T>
 class ConstantBuffer : public ConstantBufferBase

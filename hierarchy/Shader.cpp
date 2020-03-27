@@ -11,112 +11,6 @@ static std::string ToString(const Microsoft::WRL::ComPtr<ID3DBlob> &blob)
     return std::string(buffer.begin(), buffer.end());
 }
 
-static bool IsMatch(const std::string &src, const std::string &name, Shader::ConstantSemantics semantic)
-{
-    auto pos = src.find(name);
-    if (pos == std::string::npos)
-    {
-        // not found
-        return false;
-    }
-
-    auto tail = src[pos + name.size()];
-    if (
-        (tail >= 'a' && tail <= 'z')    // a-z
-        || (tail >= 'A' && tail <= 'Z') // A-Z
-        || (tail >= '0' && tail <= '9') // 0-9
-        || tail == '_')
-    {
-        // continuous
-        return false;
-    }
-
-    return true;
-}
-
-#define MATCH(Symbol)                                             \
-    if (IsMatch(src, #Symbol, Shader::ConstantSemantics::Symbol)) \
-    {                                                             \
-        return Shader::ConstantSemantics::Symbol;                 \
-    }
-
-static Shader::ConstantSemantics GetSemanticAfterColon(const std::string &src)
-{
-    MATCH(RENDERTARGET_SIZE);
-    MATCH(CAMERA_VIEW);
-    MATCH(CAMERA_PROJECTION);
-    MATCH(CAMERA_POSITION);
-    MATCH(CAMERA_FOVY);
-    MATCH(LIGHT_DIRECTION);
-    MATCH(LIGHT_COLOR);
-    MATCH(NODE_WORLD);
-
-    return Shader::ConstantSemantics::UNKNOWN;
-}
-
-#undef MATCH
-
-static Shader::ConstantSemantics GetSemanticAfterName(const std::string &src)
-{
-    // search :
-    for (auto it = src.begin(); it != src.end(); ++it)
-    {
-        if (*it == ';')
-        {
-            return Shader::ConstantSemantics::UNKNOWN;
-        }
-
-        if (*it == ':')
-        {
-            auto start = it;
-            ++start;
-            for (; start != src.end() && *start == ' '; ++start)
-            {
-            }
-
-            auto end = start;
-            ++end;
-            for (; end != src.end() && *end != ';'; ++end)
-            {
-            }
-
-            return GetSemanticAfterColon(std::string(start, end));
-        }
-    }
-
-    return Shader::ConstantSemantics::UNKNOWN;
-}
-
-void Shader::ConstantVariable::GetSemantic(const std::string &src)
-{
-    auto found = src.find(Name);
-    if (found == std::string::npos)
-    {
-        return;
-    }
-
-    Semantic = GetSemanticAfterName(src.substr(found + Name.size()));
-}
-
-void Shader::ConstantBuffer::GetVariables(ID3D12ShaderReflectionConstantBuffer *cb,
-                                          const std::string &source)
-{
-    D3D12_SHADER_BUFFER_DESC cbDesc;
-    cb->GetDesc(&cbDesc);
-    for (unsigned j = 0; j < cbDesc.Variables; ++j)
-    {
-        auto cbVariable = cb->GetVariableByIndex(j);
-        D3D12_SHADER_VARIABLE_DESC variableDesc;
-        cbVariable->GetDesc(&variableDesc);
-        Variables.push_back(ConstantVariable{
-            .Name = variableDesc.Name,
-            .Offset = variableDesc.StartOffset,
-            .Size = variableDesc.Size,
-        });
-        Variables.back().GetSemantic(source);
-    }
-}
-
 void Shader::ShaderWithConstants::GetConstants(const ComPtr<ID3D12ShaderReflection> &pReflection,
                                                const std::string &source)
 {
@@ -127,7 +21,7 @@ void Shader::ShaderWithConstants::GetConstants(const ComPtr<ID3D12ShaderReflecti
     {
         auto cb = pReflection->GetConstantBufferByIndex(i);
         Buffers.push_back({});
-        Buffers.back().GetVariables(cb, source);
+        Buffers.back().GetVariables(pReflection.Get(), cb, source);
     }
 }
 
@@ -283,4 +177,4 @@ bool Shader::Initialize(const ComPtr<ID3D12Device> &device,
     return true;
 }
 
-} // namespace d12u
+} // namespace hierarchy
